@@ -43,6 +43,9 @@ backend/alembic/versions/*.pyc
 # Docker
 docker-compose.override.yml
 
+# Seed scripts with secrets
+seed_neon.py
+
 # IDE
 *.swp
 *.swo

@@ -5,11 +5,13 @@ from app.config import get_settings
 settings = get_settings()
 
 connect_args = {}
-if "neon.tech" in settings.DATABASE_URL:
+db_url = settings.DATABASE_URL
+if "neon.tech" in db_url:
     connect_args["ssl"] = "require"
+    db_url = db_url.split("?")[0]
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,
     pool_size=5,
     max_overflow=5,
