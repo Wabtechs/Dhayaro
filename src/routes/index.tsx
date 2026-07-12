@@ -9,6 +9,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+const Landing = lazy(() => import('@/pages/landing'))
 const Login = lazy(() => import('@/pages/auth/login'))
 const ForgotPassword = lazy(() => import('@/pages/auth/forgot-password'))
 const Dashboard = lazy(() => import('@/pages/dashboard'))
@@ -44,6 +45,15 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public routes */}
+        <Route
+          path="/"
+          element={
+            <SuspenseWrapper>
+              <Landing />
+            </SuspenseWrapper>
+          }
+        />
         <Route
           path="/login"
           element={
@@ -61,8 +71,9 @@ export function AppRouter() {
           }
         />
 
+        {/* Protected app routes */}
         <Route
-          path="/"
+          path="/app"
           element={
             <ProtectedRoute>
               <Layout />

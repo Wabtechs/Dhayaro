@@ -27,55 +27,55 @@ interface CommandItem {
 }
 
 const navigationItems: CommandItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/", shortcut: "D" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/app", shortcut: "D" },
   {
     icon: Building2,
     label: "Établissements",
-    href: "/etablissements",
+    href: "/app/facilities",
     shortcut: "E",
   },
   {
     icon: Users,
     label: "Utilisateurs",
-    href: "/utilisateurs",
+    href: "/app/users",
     shortcut: "U",
   },
-  { icon: UserRound, label: "Patients", href: "/patients", shortcut: "P" },
+  { icon: UserRound, label: "Patients", href: "/app/patients", shortcut: "P" },
   {
     icon: FolderOpen,
     label: "Cas Cliniques",
-    href: "/cas-cliniques",
+    href: "/app/clinical-cases",
     shortcut: "C",
   },
   {
     icon: ClipboardList,
     label: "Historique des Traitements",
-    href: "/historique-traitements",
+    href: "/app/treatment-history",
   },
   {
     icon: BarChart3,
-    label: "Tableau de Bord Stats",
-    href: "/statistiques",
+    label: "Statistiques",
+    href: "/app/analytics",
   },
   {
     icon: FlaskConical,
     label: "Chercheurs",
-    href: "/chercheurs",
+    href: "/app/research",
   },
-  { icon: Settings, label: "Paramètres", href: "/parametres" },
+  { icon: Settings, label: "Paramètres", href: "/app/settings" },
 ];
 
 const actionItems: CommandItem[] = [
   {
     icon: Plus,
     label: "Créer un cas clinique",
-    href: "/cas-cliniques/nouveau",
+    href: "/app/clinical-cases",
     shortcut: "⌘N",
   },
   {
     icon: Plus,
     label: "Ajouter un patient",
-    href: "/patients/nouveau",
+    href: "/app/patients",
     shortcut: "⌘P",
   },
   {

@@ -13,7 +13,6 @@ import {
 import { useAppStore } from "@/store";
 import { useAuthStore } from "@/store/auth-store";
 import {
-  HeartPulse,
   LayoutDashboard,
   Building2,
   Users,
@@ -43,20 +42,20 @@ const navSections: NavSection[] = [
   {
     label: "PRINCIPAL",
     items: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-      { label: "Établissements", icon: Building2, href: "/facilities" },
-      { label: "Utilisateurs", icon: Users, href: "/users" },
-      { label: "Patients", icon: UserRound, href: "/patients" },
+      { label: "Dashboard", icon: LayoutDashboard, href: "/app" },
+      { label: "Établissements", icon: Building2, href: "/app/facilities" },
+      { label: "Utilisateurs", icon: Users, href: "/app/users" },
+      { label: "Patients", icon: UserRound, href: "/app/patients" },
     ],
   },
   {
     label: "CLINIQUE",
     items: [
-      { label: "Cas Cliniques", icon: FolderOpen, href: "/clinical-cases" },
+      { label: "Cas Cliniques", icon: FolderOpen, href: "/app/clinical-cases" },
       {
         label: "Historique des Traitements",
         icon: ClipboardList,
-        href: "/treatment-history",
+        href: "/app/treatment-history",
       },
     ],
   },
@@ -66,17 +65,17 @@ const navSections: NavSection[] = [
       {
         label: "Statistiques",
         icon: BarChart3,
-        href: "/analytics",
+        href: "/app/analytics",
       },
-      { label: "Chercheurs", icon: FlaskConical, href: "/research" },
+      { label: "Chercheurs", icon: FlaskConical, href: "/app/research" },
     ],
   },
   {
     label: "SYSTÈME",
     items: [
-      { label: "Synchronisation", icon: RefreshCw, href: "/sync" },
-      { label: "Paramètres", icon: Settings, href: "/settings" },
-      { label: "Journal d'Audit", icon: Shield, href: "/audit" },
+      { label: "Synchronisation", icon: RefreshCw, href: "/app/sync" },
+      { label: "Paramètres", icon: Settings, href: "/app/settings" },
+      { label: "Journal d'Audit", icon: Shield, href: "/app/audit" },
     ],
   },
 ];
@@ -96,7 +95,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b border-border px-4">
-        <HeartPulse className="h-7 w-7 shrink-0 text-primary" />
+        <img src="/logo.png" alt="MedInsight" className="h-7 w-7 shrink-0 object-contain" />
         {!collapsed && (
           <span className="text-lg font-bold tracking-tight text-foreground">
             MedInsight

@@ -145,7 +145,7 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="justify-center text-sm text-primary"
-                onClick={() => navigate("/notifications")}
+                onClick={() => navigate("/app/notifications")}
               >
                 Voir toutes les notifications
               </DropdownMenuItem>
@@ -205,11 +205,11 @@ export function Header() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <DropdownMenuItem onClick={() => navigate("/app/profile")}>
                 <User className="mr-2 h-4 w-4" />
                 Mon profil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <DropdownMenuItem onClick={() => navigate("/app/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Paramètres
               </DropdownMenuItem>
