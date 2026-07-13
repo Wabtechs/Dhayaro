@@ -67,6 +67,10 @@ function transformKeys(obj: unknown): unknown {
     if (!Array.isArray(result.symptoms)) { result.symptoms = []; }
     if (!Array.isArray(result.tags)) { result.tags = []; }
 
+    if (result.firstname && result.lastname && !result.name) {
+      result.name = `${result.firstname} ${result.lastname}`;
+    }
+
     return result;
   }
   return obj;
