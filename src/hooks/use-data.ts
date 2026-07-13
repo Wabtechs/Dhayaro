@@ -29,6 +29,19 @@ const OUTCOME_MAP: Record<string, string> = {
   FAILURE: 'archived',
 };
 
+const ROLE_MAP: Record<string, string> = {
+  ADMIN: 'admin',
+  DOCTOR: 'doctor',
+  RESEARCHER: 'researcher',
+};
+
+const FACILITY_TYPE_MAP: Record<string, string> = {
+  HOSPITAL: 'hospital',
+  CLINIC: 'clinic',
+  LABORATORY: 'laboratory',
+  PHARMACY: 'pharmacy',
+};
+
 function transformKeys(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(transformKeys);
   if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
@@ -52,6 +65,24 @@ function transformKeys(obj: unknown): unknown {
         val = Array.isArray(d.tags) ? d.tags : [];
         key = 'tags';
       }
+      if (key === 'facilityType') {
+        val = FACILITY_TYPE_MAP[String(val)] || String(val).toLowerCase();
+        key = 'type';
+      }
+      if (key === 'facilityId') { key = 'facilityId'; }
+      if (key === 'role' && typeof val === 'string') {
+        val = ROLE_MAP[val] || val.toLowerCase();
+      }
+      if (key === 'sex' && typeof val === 'string') {
+        val = val.toLowerCase();
+        key = 'gender';
+      }
+      if (key === 'bloodGroup') { key = 'bloodType'; }
+      if (key === 'patientUuid') { key = 'medicalRecordNumber'; }
+      if (key === 'resource') { key = 'entity'; }
+      if (key === 'resourceId') { key = 'entityId'; }
+      if (key === 'userId') { key = 'userId'; }
+      if (key === 'ipAddress') { key = 'ipAddress'; }
 
       return [key, val] as const;
     });
@@ -69,6 +100,43 @@ function transformKeys(obj: unknown): unknown {
 
     if (result.firstname && result.lastname && !result.name) {
       result.name = `${result.firstname} ${result.lastname}`;
+    }
+
+    if (result.firstName && result.lastName && !result.name) {
+      result.name = `${result.firstName} ${result.lastName}`;
+    }
+
+    if (result.details && typeof result.details === 'object' && !Array.isArray(result.details)) {
+      const d = result.details as Record<string, unknown>;
+      result.details = Object.entries(d).map(([k, v]) => `${k}: ${v}`).join(', ');
+    }
+
+    if (!result.type && FACILITY_TYPE_MAP[result.facilityType as string]) {
+      result.type = FACILITY_TYPE_MAP[result.facilityType as string];
+    }
+
+    if (!result.gender && result.sex) {
+      result.gender = String(result.sex).toLowerCase();
+    }
+
+    if (!result.bloodType && result.bloodGroup) {
+      result.bloodType = result.bloodGroup;
+    }
+
+    if (!result.medicalRecordNumber && result.patientUuid) {
+      result.medicalRecordNumber = result.patientUuid;
+    }
+
+    if (!result.entity && result.resource) {
+      result.entity = result.resource;
+    }
+
+    if (!result.entityId && result.resourceId) {
+      result.entityId = result.resourceId;
+    }
+
+    if (!result.facility && result.facilityId) {
+      result.facility = result.facilityId;
     }
 
     return result;
@@ -98,20 +166,34 @@ export function useDashboardData() {
           api.get<unknown>('/patients', token).catch(() => null),
           api.get<unknown>('/facilities', token).catch(() => null),
         ]);
-        const stats = transformKeys(rawStats) as { total_cases: number; total_patients: number; total_facilities: number; resolution_rate: number } | null;
+        const apiStats = transformKeys(rawStats) as { total?: number; pending?: number; inProgress?: number; success?: number; failure?: number } | null;
         const cases = transformKeys(rawCases) as { items: ClinicalCase[]; total: number } | null;
-        const patients = transformKeys(rawPatients) as { total: number } | null;
-        const facilities = transformKeys(rawFacilities) as { total: number } | null;
+        const patients = transformKeys(rawPatients) as { total?: number } | null;
+        const facilities = transformKeys(rawFacilities) as { total?: number } | null;
+
+        const totalCases = apiStats?.total ?? mockClinicalCases.length;
+        const totalPatients = patients?.total ?? mockPatients.length;
+        const totalFacilities = facilities?.total ?? mockFacilities.length;
+        const successCount = apiStats?.success ?? 0;
+        const resolutionRate = totalCases > 0 ? Math.round((successCount / totalCases) * 100) : 78;
+
+        const patientItems = (patients as unknown as { items?: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> })?.items || [];
+        const facilityItems = (facilities as unknown as { items?: Array<{ id: string; name: string }> })?.items || [];
+        const patientMap = Object.fromEntries(patientItems.map((p) => [p.id, p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || '—']));
+        const facilityMap = Object.fromEntries(facilityItems.map((f) => [f.id, f.name]));
+
         return {
-          stats: stats || {
-            total_cases: mockClinicalCases.length,
-            total_patients: mockPatients.length,
-            total_facilities: mockFacilities.length,
-            resolution_rate: 78,
+          stats: {
+            total_cases: totalCases,
+            total_patients: totalPatients,
+            total_facilities: totalFacilities,
+            resolution_rate: resolutionRate,
           },
           recentCases: cases?.items || mockClinicalCases.slice(0, 5),
-          totalPatients: patients?.total || mockPatients.length,
-          totalFacilities: facilities?.total || mockFacilities.length,
+          patientMap,
+          facilityMap,
+          totalPatients,
+          totalFacilities,
           chartData: mockChartData,
         };
       } catch {
@@ -123,6 +205,8 @@ export function useDashboardData() {
             resolution_rate: 78,
           },
           recentCases: mockClinicalCases.slice(0, 5),
+          patientMap: Object.fromEntries(mockPatients.map((p) => [p.id, `${p.firstName} ${p.lastName}`])),
+          facilityMap: Object.fromEntries(mockFacilities.map((f) => [f.id, f.name])),
           totalPatients: mockPatients.length,
           totalFacilities: mockFacilities.length,
           chartData: mockChartData,

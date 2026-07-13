@@ -110,7 +110,13 @@ export default function Users() {
     setPage(1)
   }
 
-  const allUsers = useMemo(() => [...users, ...localUsers], [users, localUsers])
+  const allUsers = useMemo(() => {
+    const merged = [...users, ...localUsers]
+    return merged.map((u) => ({
+      ...u,
+      role: (u.role || '').toLowerCase(),
+    }))
+  }, [users, localUsers])
 
   const filtered = useMemo(() => {
     const result = allUsers.filter((u) => {
@@ -465,19 +471,19 @@ export default function Users() {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${roleBadgeColors[user.role]}`}
+                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${roleBadgeColors[user.role] || roleBadgeColors.viewer}`}
                       >
-                        {roleLabels[user.role]}
+                        {roleLabels[user.role] || user.role}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Building2 className="h-3 w-3" />
-                        {facilityMap[user.facility || ''] || '—'}
+                        {facilityMap[user.facility || ''] || facilityMap[user.facilityId || ''] || '—'}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {user.lastLogin ? formatDate(user.lastLogin) : '—'}
+                      {user.lastLogin ? formatDate(user.lastLogin) : user.createdAt ? formatDate(user.createdAt) : '—'}
                     </TableCell>
                     <TableCell>
                       <Badge

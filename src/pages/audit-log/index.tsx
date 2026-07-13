@@ -142,9 +142,9 @@ export default function AuditLogPage() {
     return auditEntries.filter((entry) => {
       const user = userMap[entry.userId]
       const matchesSearch =
-        entry.details.toLowerCase().includes(search.toLowerCase()) ||
-        entry.entity.toLowerCase().includes(search.toLowerCase()) ||
-        entry.entityId.toLowerCase().includes(search.toLowerCase()) ||
+        (entry.details || '').toLowerCase().includes(search.toLowerCase()) ||
+        (entry.entity || '').toLowerCase().includes(search.toLowerCase()) ||
+        (entry.entityId || '').toLowerCase().includes(search.toLowerCase()) ||
         (user?.name.toLowerCase().includes(search.toLowerCase()) ?? false)
 
       const category = getActionCategory(entry.action)
@@ -415,18 +415,18 @@ export default function AuditLogPage() {
                               {entry.action}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{entry.entity}</TableCell>
+                          <TableCell className="text-sm">{entry.entity || '—'}</TableCell>
                           <TableCell>
                             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                              {entry.entityId}
+                              {entry.entityId || '—'}
                             </code>
                           </TableCell>
                           <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
-                            {entry.details}
+                            {entry.details || '—'}
                           </TableCell>
                           <TableCell>
                             <code className="text-xs text-muted-foreground">
-                              {entry.ipAddress}
+                              {entry.ipAddress || '—'}
                             </code>
                           </TableCell>
                         </TableRow>
@@ -517,13 +517,13 @@ export default function AuditLogPage() {
                               </span>
                             </div>
                             <p className="mt-2 text-sm text-muted-foreground">
-                              {entry.details}
+                              {entry.details || '—'}
                             </p>
                             <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                               <span>
-                                {entry.entity}{' '}
+                                {entry.entity || '—'}{' '}
                                 <code className="rounded bg-muted px-1 py-0.5">
-                                  {entry.entityId}
+                                  {entry.entityId || '—'}
                                 </code>
                               </span>
                               <span>•</span>

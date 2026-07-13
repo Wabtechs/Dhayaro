@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/table'
 import { RechartsChart } from '@/components/charts/recharts-chart'
 import { useDashboardData } from '@/hooks/use-data'
-import { mockPatients, mockFacilities } from '@/lib/mock-data'
 import { formatDate, formatNumber } from '@/lib/utils'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -59,7 +58,7 @@ export default function DashboardPage() {
     )
   }
 
-  const { stats, recentCases, chartData } = data
+  const { stats, recentCases, chartData, patientMap, facilityMap } = data
 
   const statsCards = [
     {
@@ -182,8 +181,8 @@ export default function DashboardPage() {
             </TableHeader>
             <TableBody>
               {recentCases.map((cas) => {
-                const patient = mockPatients.find((p) => p.id === cas.patientId)
-                const facility = mockFacilities.find((f) => f.id === cas.facilityId)
+                const patientName = patientMap[cas.patientId] || '—'
+                const facilityName = facilityMap[cas.facilityId] || '—'
                 return (
                   <TableRow key={cas.id}>
                     <TableCell>
@@ -195,10 +194,10 @@ export default function DashboardPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {patient ? `${patient.firstName} ${patient.lastName}` : '—'}
+                      {patientName}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {facility?.name ?? '—'}
+                      {facilityName}
                     </TableCell>
                     <TableCell>
                       <Badge variant={cas.priority === 'critical' ? 'destructive' : 'outline'}>

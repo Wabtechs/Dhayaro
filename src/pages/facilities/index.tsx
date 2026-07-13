@@ -332,12 +332,12 @@ export default function Facilities() {
 
                 <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3 text-center">
                   <div>
-                    <p className="text-lg font-semibold">{facility.bedCount}</p>
+                    <p className="text-lg font-semibold">{facility.bedCount ?? 0}</p>
                     <p className="text-xs text-muted-foreground">Lits</p>
                   </div>
                   <div>
                     <p className="text-lg font-semibold">
-                      {facility.departmentCount}
+                      {facility.departmentCount ?? 0}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Départements
@@ -345,7 +345,7 @@ export default function Facilities() {
                   </div>
                   <div>
                     <p className="text-lg font-semibold">
-                      {facility.staffCount}
+                      {facility.staffCount ?? 0}
                     </p>
                     <p className="text-xs text-muted-foreground">Personnel</p>
                   </div>
@@ -355,9 +355,9 @@ export default function Facilities() {
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users className="h-3 w-3" />
                     <span>
-                      {facilities.length > 0
+                      {facility.staffCount
                         ? `${facility.staffCount} employés`
-                        : ''}
+                        : '—'}
                     </span>
                   </div>
                   <Button asChild variant="ghost" size="sm">

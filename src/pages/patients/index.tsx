@@ -72,12 +72,12 @@ export default function PatientsPage() {
 
   const filtered = useMemo(() => {
     return patients.filter((p) => {
-      const fullName = `${p.firstName} ${p.lastName}`.toLowerCase()
+      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase()
       const matchesSearch =
         !search ||
         fullName.includes(search.toLowerCase()) ||
-        p.medicalRecordNumber.toLowerCase().includes(search.toLowerCase()) ||
-        p.phone.includes(search)
+        (p.medicalRecordNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.phone || '').includes(search)
       const matchesGender =
         genderFilter === 'all' || p.gender === genderFilter
       const matchesFacility =
@@ -341,31 +341,31 @@ export default function PatientsPage() {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {patient.firstName[0]}
-                          {patient.lastName[0]}
+                          {(patient.firstName || '?')[0]}
+                          {(patient.lastName || '?')[0]}
                         </AvatarFallback>
                       </Avatar>
-                      {patient.firstName} {patient.lastName}
+                      {patient.firstName || '—'} {patient.lastName || ''}
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {patient.medicalRecordNumber}
+                    {patient.medicalRecordNumber || '—'}
                   </TableCell>
                   <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {patient.gender}
+                      {patient.gender || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono', bloodTypeColors[patient.bloodType])}
+                      className={cn('font-mono', bloodTypeColors[patient.bloodType || ''])}
                     >
-                      {patient.bloodType}
+                      {patient.bloodType || '—'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{patient.phone}</TableCell>
+                  <TableCell className="text-sm">{patient.phone || '—'}</TableCell>
                   <TableCell className="max-w-[160px] truncate text-sm">
                     {getFacilityName(patient.facilityId)}
                   </TableCell>
@@ -417,14 +417,14 @@ export default function PatientsPage() {
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarFallback className="text-xs">
-                    {patient.firstName[0]}
-                    {patient.lastName[0]}
+                    {(patient.firstName || '?')[0]}
+                    {(patient.lastName || '?')[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">
-                      {patient.firstName} {patient.lastName}
+                      {patient.firstName || '—'} {patient.lastName || ''}
                     </p>
                     <Badge
                       variant={patient.isActive ? 'default' : 'secondary'}
@@ -439,22 +439,22 @@ export default function PatientsPage() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                    {patient.medicalRecordNumber}
+                    {patient.medicalRecordNumber || '—'}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <UserRound className="h-3 w-3" />
-                      {patient.gender === 'M' ? 'Masculin' : 'Féminin'}
+                      {patient.gender === 'M' ? 'Masculin' : patient.gender === 'F' ? 'Féminin' : patient.gender || '—'}
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono text-xs', bloodTypeColors[patient.bloodType])}
+                      className={cn('font-mono text-xs', bloodTypeColors[patient.bloodType || ''])}
                     >
-                      {patient.bloodType}
+                      {patient.bloodType || '—'}
                     </Badge>
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
-                      {patient.phone}
+                      {patient.phone || '—'}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
