@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import type { ClinicalCase } from '@/types';
 import {
   mockClinicalCases,
   mockPatients,
@@ -40,7 +41,7 @@ export function useDashboardData() {
             total_facilities: number;
             resolution_rate: number;
           }>('/clinical-cases/stats', token).catch(() => null),
-          api.get<{ items: unknown[]; total: number }>('/clinical-cases?page=1&size=5', token).catch(() => null),
+          api.get<{ items: ClinicalCase[]; total: number }>('/clinical-cases?page=1&size=5', token).catch(() => null),
           api.get<{ total: number }>('/patients', token).catch(() => null),
           api.get<{ total: number }>('/facilities', token).catch(() => null),
         ]);

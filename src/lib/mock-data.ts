@@ -1171,3 +1171,13 @@ export const mockChartData = {
     { name: 'En cours', value: 5 },
   ] satisfies ChartDataPoint[],
 }
+
+export const mockSyncQueue = mockSyncLogs
+
+export const mockTreatments: ClinicalCase[] = mockClinicalCases.filter(
+  (c) => c.treatment
+)
+
+export const mockStudies: ClinicalCase[] = mockClinicalCases.filter(
+  (c) => c.status === 'resolved'
+)
