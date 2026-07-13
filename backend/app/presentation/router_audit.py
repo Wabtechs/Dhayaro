@@ -28,7 +28,7 @@ async def list_audit_logs(
     user_id: UUID | None = None,
     action: str | None = None,
     resource: str | None = None,
-    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR, UserRole.RESEARCHER)),
     db: AsyncSession = Depends(get_db),
 ):
     audit_repo = AuditLogRepository(AuditLog, db)

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/facilities", tags=["Facilities"])
 async def list_facilities(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR, UserRole.RESEARCHER)),
     db: AsyncSession = Depends(get_db),
 ):
     facility_repo = FacilityRepository(Facility, db)

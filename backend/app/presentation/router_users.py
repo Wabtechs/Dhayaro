@@ -18,7 +18,7 @@ async def list_users(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     facility_id: UUID | None = None,
-    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR, UserRole.RESEARCHER)),
     db: AsyncSession = Depends(get_db),
 ):
     user_repo = UserRepository(User, db)
