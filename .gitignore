@@ -14,6 +14,8 @@ dist-ssr
 .next
 out
 drizzle
+.env
+.env.local
 
 # Editor directories and files
 .vscode/*
@@ -25,29 +27,6 @@ drizzle
 *.njsproj
 *.sln
 *.sw?
-
-# Python
-__pycache__
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-.env
-*.egg-info/
-build/
-eggs/
-*.egg
-
-# Alembic
-backend/alembic/versions/*.pyc
-
-# Docker
-docker-compose.override.yml
-
-# Seed scripts with secrets
-seed_neon.py
 
 # IDE
 *.swp
