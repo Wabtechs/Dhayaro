@@ -1,12 +1,5 @@
-'use client'
-
-import { Providers } from '@/app/providers'
-import { AppShell } from '@/components/layout/app-shell'
+import { AppLayoutContent } from './layout-content'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <Providers>
-      <AppShell>{children}</AppShell>
-    </Providers>
-  )
+  return <AppLayoutContent>{children}</AppLayoutContent>
 }
