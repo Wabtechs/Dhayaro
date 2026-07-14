@@ -3,14 +3,12 @@ import { getDb, getSql } from '@/lib/db'
 import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
+import { apiError, logError, parsePagination } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const size = Math.min(100, Math.max(1, parseInt(searchParams.get('size') || '20', 10)))
-    const search = searchParams.get('search') || ''
-    const offset = (page - 1) * size
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const conditions = [eq(patients.isActive, true)]
     if (search) {
@@ -24,18 +22,10 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await getDb()
-      .select({ value: count() })
-      .from(patients)
-      .where(whereClause)
-
-    const items = await getDb()
-      .select()
-      .from(patients)
-      .where(whereClause)
-      .orderBy(desc(patients.createdAt))
-      .limit(size)
-      .offset(offset)
+    const [[countResult], items] = await Promise.all([
+      getDb().select({ value: count() }).from(patients).where(whereClause),
+      getDb().select().from(patients).where(whereClause).orderBy(desc(patients.createdAt)).limit(size).offset(offset),
+    ])
 
     return NextResponse.json({
       items,
@@ -44,7 +34,8 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    return NextResponse.json({ detail: 'Internal server error', message: e instanceof Error ? e.message : String(e) }, { status: 500 })
+    logError('GET /patients', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -59,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (facilityId) {
       const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
       if (facilityCheck.length === 0) {
-        return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
+        return apiError(400, 'Facility not found')
       }
     }
 
@@ -76,6 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e) {
-    return NextResponse.json({ detail: 'Internal server error', message: e instanceof Error ? e.message : String(e) }, { status: 500 })
+    logError('POST /patients', e)
+    return apiError(500, 'Internal server error')
   }
 }

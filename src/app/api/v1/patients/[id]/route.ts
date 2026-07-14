@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { patients } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+
+const PATIENT_KEYS = ['firstname', 'lastname', 'email', 'sex', 'dateOfBirth', 'bloodGroup', 'facilityId', 'allergies', 'phone', 'address', 'patientUuid', 'age', 'medicalHistoryJson'] as const
 
 export async function GET(
   request: NextRequest,
@@ -9,15 +12,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const rows = await getDb().select().from(patients).where(eq(patients.id, id)).limit(1)
+    const [row] = await getDb().select().from(patients).where(eq(patients.id, id)).limit(1)
 
-    if (rows.length === 0) {
-      return NextResponse.json({ detail: 'Patient not found' }, { status: 404 })
+    if (!row) {
+      return apiError(404, 'Patient not found')
     }
 
-    return NextResponse.json(rows[0])
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(row)
+  } catch (e) {
+    logError('GET /patients/[id]', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -28,19 +32,21 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
+    const allowedFields = pickAllowedKeys(body, PATIENT_KEYS)
 
     const [updated] = await getDb()
       .update(patients)
-      .set({ ...body, updatedAt: new Date() })
+      .set(allowedFields)
       .where(eq(patients.id, id))
       .returning()
 
     if (!updated) {
-      return NextResponse.json({ detail: 'Patient not found' }, { status: 404 })
+      return apiError(404, 'Patient not found')
     }
 
     return NextResponse.json(updated)
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('PUT /patients/[id]', e)
+    return apiError(500, 'Internal server error')
   }
 }

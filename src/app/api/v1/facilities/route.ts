@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, getSql } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
+import { apiError, logError, parsePagination } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const size = Math.min(100, Math.max(1, parseInt(searchParams.get('size') || '20', 10)))
-    const search = searchParams.get('search') || ''
-    const offset = (page - 1) * size
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const conditions = [eq(facilities.isActive, true)]
     if (search) {
@@ -18,18 +16,10 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await getDb()
-      .select({ value: count() })
-      .from(facilities)
-      .where(whereClause)
-
-    const items = await getDb()
-      .select()
-      .from(facilities)
-      .where(whereClause)
-      .orderBy(desc(facilities.createdAt))
-      .limit(size)
-      .offset(offset)
+    const [[countResult], items] = await Promise.all([
+      getDb().select({ value: count() }).from(facilities).where(whereClause),
+      getDb().select().from(facilities).where(whereClause).orderBy(desc(facilities.createdAt)).limit(size).offset(offset),
+    ])
 
     return NextResponse.json({
       items,
@@ -37,8 +27,9 @@ export async function GET(request: NextRequest) {
       page,
       size,
     })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('GET /facilities', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -47,12 +38,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     if (!body.name || !body.code || !body.facilityType) {
-      return NextResponse.json({ detail: 'name, code, and facilityType are required' }, { status: 400 })
+      return apiError(400, 'name, code, and facilityType are required')
     }
 
     const validTypes = ['HOSPITAL', 'CLINIC', 'LABORATORY', 'PHARMACY']
     if (!validTypes.includes(body.facilityType)) {
-      return NextResponse.json({ detail: `facilityType must be one of: ${validTypes.join(', ')}` }, { status: 400 })
+      return apiError(400, `facilityType must be one of: ${validTypes.join(', ')}`)
     }
 
     const sql = getSql()
@@ -66,8 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {
-    console.error('POST /facilities error:', e)
-    const msg = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
+    logError('POST /facilities', e)
+    return apiError(500, 'Internal server error')
   }
 }

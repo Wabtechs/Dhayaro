@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+
+const FACILITY_KEYS = ['name', 'code', 'facilityType', 'address', 'city', 'phone', 'email', 'bedCount', 'departmentCount', 'staffCount'] as const
 
 export async function GET(
   request: NextRequest,
@@ -9,15 +12,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const rows = await getDb().select().from(facilities).where(eq(facilities.id, id)).limit(1)
+    const [row] = await getDb().select().from(facilities).where(eq(facilities.id, id)).limit(1)
 
-    if (rows.length === 0) {
-      return NextResponse.json({ detail: 'Facility not found' }, { status: 404 })
+    if (!row) {
+      return apiError(404, 'Facility not found')
     }
 
-    return NextResponse.json(rows[0])
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(row)
+  } catch (e) {
+    logError('GET /facilities/[id]', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -28,20 +32,22 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
+    const allowedFields = pickAllowedKeys(body, FACILITY_KEYS)
 
     const [updated] = await getDb()
       .update(facilities)
-      .set({ ...body, updatedAt: new Date() })
+      .set(allowedFields)
       .where(eq(facilities.id, id))
       .returning()
 
     if (!updated) {
-      return NextResponse.json({ detail: 'Facility not found' }, { status: 404 })
+      return apiError(404, 'Facility not found')
     }
 
     return NextResponse.json(updated)
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('PUT /facilities/[id]', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -59,11 +65,12 @@ export async function DELETE(
       .returning()
 
     if (!deleted) {
-      return NextResponse.json({ detail: 'Facility not found' }, { status: 404 })
+      return apiError(404, 'Facility not found')
     }
 
     return NextResponse.json({ detail: 'Facility deleted' })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('DELETE /facilities/[id]', e)
+    return apiError(500, 'Internal server error')
   }
 }

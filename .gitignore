@@ -32,3 +32,6 @@ drizzle
 *.swp
 *.swo
 *~
+
+.vercel
+.env*

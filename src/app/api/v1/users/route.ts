@@ -4,14 +4,12 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
+import { apiError, logError, parsePagination } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const size = Math.min(100, Math.max(1, parseInt(searchParams.get('size') || '20', 10)))
-    const search = searchParams.get('search') || ''
-    const offset = (page - 1) * size
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const conditions = [eq(users.isActive, true)]
     if (search) {
@@ -24,13 +22,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await getDb()
-      .select({ value: count() })
-      .from(users)
-      .where(whereClause)
-
-    const items = await getDb()
-      .select({
+    const [[countResult], items] = await Promise.all([
+      getDb().select({ value: count() }).from(users).where(whereClause),
+      getDb().select({
         id: users.id,
         facilityId: users.facilityId,
         firstname: users.firstname,
@@ -48,7 +42,8 @@ export async function GET(request: NextRequest) {
       .where(whereClause)
       .orderBy(desc(users.createdAt))
       .limit(size)
-      .offset(offset)
+      .offset(offset),
+    ])
 
     return NextResponse.json({
       items,
@@ -56,8 +51,9 @@ export async function GET(request: NextRequest) {
       page,
       size,
     })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('GET /users', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -66,16 +62,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     if (!body.email || !body.firstname || !body.lastname || !body.role) {
-      return NextResponse.json({ detail: 'email, firstname, lastname, and role are required' }, { status: 400 })
+      return apiError(400, 'email, firstname, lastname, and role are required')
     }
 
     if (!body.password) {
-      return NextResponse.json({ detail: 'password is required' }, { status: 400 })
+      return apiError(400, 'password is required')
     }
 
     const validRoles = ['ADMIN', 'DOCTOR', 'RESEARCHER', 'NURSE', 'VIEWER']
     if (!validRoles.includes(body.role)) {
-      return NextResponse.json({ detail: `role must be one of: ${validRoles.join(', ')}` }, { status: 400 })
+      return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
     }
 
     const passwordHash = await hashPassword(body.password)
@@ -93,8 +89,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {
-    console.error('POST /users error:', e)
-    const msg = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
+    logError('POST /users', e)
+    return apiError(500, 'Internal server error')
   }
 }

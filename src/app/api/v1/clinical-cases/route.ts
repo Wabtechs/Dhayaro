@@ -3,14 +3,12 @@ import { getDb, getSql } from '@/lib/db'
 import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
+import { apiError, logError, parsePagination } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const size = Math.min(100, Math.max(1, parseInt(searchParams.get('size') || '20', 10)))
-    const search = searchParams.get('search') || ''
-    const offset = (page - 1) * size
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const conditions = []
     if (search) {
@@ -23,13 +21,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-    const [countResult] = await getDb()
-      .select({ value: count() })
-      .from(clinicalCases)
-      .where(whereClause)
-
-    const items = await getDb()
-      .select({
+    const [[countResult], items] = await Promise.all([
+      getDb().select({ value: count() }).from(clinicalCases).where(whereClause),
+      getDb().select({
         id: clinicalCases.id,
         facilityId: clinicalCases.facilityId,
         patientId: clinicalCases.patientId,
@@ -60,7 +54,8 @@ export async function GET(request: NextRequest) {
       .where(whereClause)
       .orderBy(desc(clinicalCases.createdAt))
       .limit(size)
-      .offset(offset)
+      .offset(offset),
+    ])
 
     return NextResponse.json({
       items,
@@ -68,8 +63,9 @@ export async function GET(request: NextRequest) {
       page,
       size,
     })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('GET /clinical-cases', e)
+    return apiError(500, 'Internal server error')
   }
 }
 
@@ -82,31 +78,28 @@ export async function POST(request: NextRequest) {
     const facilityId = sanitizeUuid(body.facilityId)
 
     if (!patientId) {
-      return NextResponse.json({ detail: 'patientId is required and must be a valid UUID' }, { status: 400 })
+      return apiError(400, 'patientId is required and must be a valid UUID')
     }
 
     const db = getDb()
-    const sql = getSql()
 
-    const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
+    const [patientCheck, doctorCheck, facilityCheck] = await Promise.all([
+      db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1),
+      doctorId ? db.select({ id: users.id }).from(users).where(eq(users.id, doctorId)).limit(1) : Promise.resolve([]),
+      facilityId ? db.select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1) : Promise.resolve([]),
+    ])
+
     if (patientCheck.length === 0) {
-      return NextResponse.json({ detail: 'Patient not found' }, { status: 400 })
+      return apiError(400, 'Patient not found')
+    }
+    if (doctorId && doctorCheck.length === 0) {
+      return apiError(400, 'Doctor not found')
+    }
+    if (facilityId && facilityCheck.length === 0) {
+      return apiError(400, 'Facility not found')
     }
 
-    if (doctorId) {
-      const doctorCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, doctorId)).limit(1)
-      if (doctorCheck.length === 0) {
-        return NextResponse.json({ detail: 'Doctor not found' }, { status: 400 })
-      }
-    }
-
-    if (facilityId) {
-      const facilityCheck = await db.select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
-      if (facilityCheck.length === 0) {
-        return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
-      }
-    }
-
+    const sql = getSql()
     const outcomeVal = body.outcomeStatus || 'PENDING'
     const symptomsStr = body.symptomsJson ? JSON.stringify(body.symptomsJson) : '{}'
     const tagsStr = body.tagsJson ? JSON.stringify(body.tagsJson) : '{}'
@@ -121,8 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {
-    console.error('POST /clinical-cases error:', e)
-    const msg = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
+    logError('POST /clinical-cases', e)
+    return apiError(500, 'Internal server error')
   }
 }
