@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Search,
   Plus,
@@ -59,6 +60,8 @@ import {
   mockUsers,
 } from '@/lib/mock-data'
 import { useClinicalCasesData } from '@/hooks/use-data'
+import { useToast } from '@/hooks/use-toast'
+import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
 import type { CaseStatus, CasePriority } from '@/types'
 
@@ -81,6 +84,8 @@ const priorityLabels: Record<CasePriority, string> = {
 
 export default function ClinicalCasesPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const { data: casesData, isLoading } = useClinicalCasesData()
   const clinicalCases = casesData?.items ?? []
   const [search, setSearch] = useState('')
@@ -90,6 +95,7 @@ export default function ClinicalCasesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [currentPage, setCurrentPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const [newCase, setNewCase] = useState({
     title: '',
@@ -136,19 +142,31 @@ export default function ClinicalCasesPage() {
     return doctor ? doctor.name : 'Inconnu'
   }
 
-  const handleCreateCase = () => {
-    setDialogOpen(false)
-    setNewCase({
-      title: '',
-      description: '',
-      patientId: '',
-      facilityId: '',
-      assignedDoctorId: '',
-      priority: '',
-      diagnosis: '',
-      symptoms: '',
-      tags: '',
-    })
+  const handleCreateCase = async () => {
+    setCreating(true)
+    try {
+      const token = localStorage.getItem('medinsight_token') || ''
+      await api.post('/clinical-cases', {
+        title: newCase.title,
+        description: newCase.description,
+        patientId: newCase.patientId || null,
+        facilityId: newCase.facilityId || null,
+        doctorId: newCase.assignedDoctorId || null,
+        provisionalDiagnosis: newCase.diagnosis,
+        symptomsJson: newCase.symptoms ? { description: newCase.symptoms } : {},
+        tagsJson: newCase.tags ? { tags: newCase.tags.split(',').map((t: string) => t.trim()).filter(Boolean) } : {},
+        priority: newCase.priority || 'medium',
+        outcomeStatus: 'PENDING',
+      }, token)
+      await queryClient.invalidateQueries({ queryKey: ['clinical-cases'] })
+      toast({ title: 'Cas créé', description: `"${newCase.title}" a été ajouté.` })
+      setDialogOpen(false)
+      setNewCase({ title: '', description: '', patientId: '', facilityId: '', assignedDoctorId: '', priority: '', diagnosis: '', symptoms: '', tags: '' })
+    } catch {
+      toast({ title: 'Erreur', description: "Impossible de créer le cas clinique.", variant: 'destructive' })
+    } finally {
+      setCreating(false)
+    }
   }
 
   if (isLoading) {
@@ -343,7 +361,7 @@ export default function ClinicalCasesPage() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleCreateCase}>Créer le cas</Button>
+              <Button onClick={handleCreateCase} disabled={creating}>{creating ? 'Création...' : 'Créer le cas'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,6 +37,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFacilitiesData } from '@/hooks/use-data'
+import { useToast } from '@/hooks/use-toast'
+import { api } from '@/services/api'
 import type { Facility } from '@/types'
 
 const facilityTypeIcons: Record<Facility['type'], React.ReactNode> = {
@@ -54,9 +57,12 @@ const facilityTypeLabels: Record<Facility['type'], string> = {
 
 export default function Facilities() {
   const { data, isLoading } = useFacilitiesData()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   const facilities = data?.items ?? []
 
   const [newName, setNewName] = useState('')
@@ -75,31 +81,44 @@ export default function Facilities() {
     return matchesSearch && matchesType
   })
 
-  const handleCreate = (e: React.FormEvent) => {
+  const TYPE_MAP: Record<Facility['type'], string> = {
+    hospital: 'HOSPITAL',
+    clinic: 'CLINIC',
+    laboratory: 'LABORATORY',
+    pharmacy: 'PHARMACY',
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    const facility: Facility = {
-      id: `fac-${String(facilities.length + 1).padStart(3, '0')}`,
-      name: newName,
-      type: newType,
-      address: newAddress,
-      city: newCity,
-      country: 'Algérie',
-      phone: newPhone,
-      email: newEmail,
-      bedCount: parseInt(newBedCount) || 0,
-      departmentCount: 0,
-      staffCount: 0,
-      isActive: true,
-      createdAt: new Date().toISOString(),
+    setCreating(true)
+    try {
+      const token = localStorage.getItem('medinsight_token') || ''
+      const code = newName.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 30) + '-' + Date.now().toString(36)
+      await api.post('/facilities', {
+        name: newName,
+        code,
+        facilityType: TYPE_MAP[newType],
+        address: newAddress,
+        city: newCity,
+        phone: newPhone,
+        email: newEmail,
+        bedCount: parseInt(newBedCount) || 0,
+      }, token)
+      await queryClient.invalidateQueries({ queryKey: ['facilities'] })
+      toast({ title: 'Établissement créé', description: `${newName} a été ajouté avec succès.` })
+      setDialogOpen(false)
+      setNewName('')
+      setNewType('hospital')
+      setNewAddress('')
+      setNewCity('')
+      setNewPhone('')
+      setNewEmail('')
+      setNewBedCount('')
+    } catch {
+      toast({ title: 'Erreur', description: "Impossible de créer l'établissement.", variant: 'destructive' })
+    } finally {
+      setCreating(false)
     }
-    setDialogOpen(false)
-    setNewName('')
-    setNewType('hospital')
-    setNewAddress('')
-    setNewCity('')
-    setNewPhone('')
-    setNewEmail('')
-    setNewBedCount('')
   }
 
   if (isLoading) {
@@ -252,7 +271,7 @@ export default function Facilities() {
                 >
                   Annuler
                 </Button>
-                <Button type="submit">Créer</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Création...' : 'Créer'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

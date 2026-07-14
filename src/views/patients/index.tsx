@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, UserRound, Calendar, Phone, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,8 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { usePatientsData } from '@/hooks/use-data'
+import { useToast } from '@/hooks/use-toast'
+import { api } from '@/services/api'
 import { mockFacilities } from '@/lib/mock-data'
 import { cn, formatDate } from '@/lib/utils'
 
@@ -52,11 +55,14 @@ const bloodTypeColors: Record<string, string> = {
 
 export default function PatientsPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [genderFilter, setGenderFilter] = useState('all')
   const [facilityFilter, setFacilityFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -97,20 +103,31 @@ export default function PatientsPage() {
   const getFacilityName = (id: string) =>
     mockFacilities.find((f) => f.id === id)?.name ?? '—'
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setDialogOpen(false)
-    setForm({
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      gender: '',
-      phone: '',
-      address: '',
-      bloodType: '',
-      facilityId: '',
-      allergies: '',
-    })
+    setCreating(true)
+    try {
+      const token = localStorage.getItem('medinsight_token') || ''
+      await api.post('/patients', {
+        firstname: form.firstName,
+        lastname: form.lastName,
+        dateOfBirth: form.dateOfBirth,
+        sex: form.gender,
+        phone: form.phone,
+        address: form.address,
+        bloodGroup: form.bloodType,
+        facilityId: form.facilityId || null,
+        allergies: form.allergies ? form.allergies.split(',').map((a: string) => a.trim()).filter(Boolean) : [],
+      }, token)
+      await queryClient.invalidateQueries({ queryKey: ['patients'] })
+      toast({ title: 'Patient créé', description: `${form.firstName} ${form.lastName} a été ajouté.` })
+      setDialogOpen(false)
+      setForm({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phone: '', address: '', bloodType: '', facilityId: '', allergies: '' })
+    } catch {
+      toast({ title: 'Erreur', description: "Impossible de créer le patient.", variant: 'destructive' })
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -257,7 +274,7 @@ export default function PatientsPage() {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit">Créer le Patient</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Création...' : 'Créer le Patient'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import {
   Search,
@@ -43,6 +44,7 @@ import {
 } from '@/components/ui/table'
 import { mockFacilities } from '@/lib/mock-data'
 import { useUsersData } from '@/hooks/use-data'
+import { api } from '@/services/api'
 import { formatDate, getInitials } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
@@ -80,9 +82,11 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 
 export default function Users() {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [page, setPage] = useState(1)
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
@@ -96,6 +100,7 @@ export default function Users() {
   const [newFacility, setNewFacility] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newDepartment, setNewDepartment] = useState('')
+  const [newPassword, setNewPassword] = useState('')
 
   const facilityMap = useMemo(
     () => Object.fromEntries(mockFacilities.map((f) => [f.id, f.name])),
@@ -170,27 +175,45 @@ export default function Users() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const handleCreate = (e: React.FormEvent) => {
+  const ROLE_MAP: Record<User['role'], string> = {
+    admin: 'ADMIN',
+    doctor: 'DOCTOR',
+    nurse: 'DOCTOR',
+    researcher: 'RESEARCHER',
+    viewer: 'DOCTOR',
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    const user: User = {
-      id: `usr-${String(allUsers.length + 1).padStart(3, '0')}`,
-      name: newName,
-      email: newEmail,
-      role: newRole,
-      facility: newFacility || undefined,
-      phone: newPhone || undefined,
-      department: newDepartment || undefined,
-      createdAt: new Date().toISOString(),
-      isActive: true,
+    setCreating(true)
+    try {
+      const token = localStorage.getItem('medinsight_token') || ''
+      const nameParts = newName.trim().split(' ')
+      const firstname = nameParts[0] || newName
+      const lastname = nameParts.slice(1).join(' ') || newName
+      await api.post('/users', {
+        firstname,
+        lastname,
+        email: newEmail,
+        password: newPassword,
+        role: ROLE_MAP[newRole] || 'DOCTOR',
+        facilityId: newFacility || null,
+      }, token)
+      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast({ title: 'Utilisateur créé', description: `${newName} a été ajouté.` })
+      setDialogOpen(false)
+      setNewName('')
+      setNewEmail('')
+      setNewRole('doctor')
+      setNewFacility('')
+      setNewPhone('')
+      setNewDepartment('')
+      setNewPassword('')
+    } catch {
+      toast({ title: 'Erreur', description: "Impossible de créer l'utilisateur.", variant: 'destructive' })
+    } finally {
+      setCreating(false)
     }
-    setLocalUsers((prev) => [...prev, user])
-    setDialogOpen(false)
-    setNewName('')
-    setNewEmail('')
-    setNewRole('doctor')
-    setNewFacility('')
-    setNewPhone('')
-    setNewDepartment('')
   }
 
   if (isLoading) {
@@ -279,6 +302,17 @@ export default function Users() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="user-password">Mot de passe</Label>
+                <Input
+                  id="user-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Rôle</Label>
                 <Select
                   value={newRole}
@@ -339,7 +373,7 @@ export default function Users() {
                 >
                   Annuler
                 </Button>
-                <Button type="submit">Créer</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Création...' : 'Créer'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
