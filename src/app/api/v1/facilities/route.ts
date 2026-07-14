@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(created, { status: 201 })
   } catch (e: unknown) {
     console.error('POST /facilities error:', e)
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
   }
 }
