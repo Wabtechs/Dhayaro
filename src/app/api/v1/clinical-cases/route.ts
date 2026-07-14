@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, getSql } from '@/lib/db'
 import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,27 +77,31 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    if (!body.patientId) {
-      return NextResponse.json({ detail: 'patientId is required' }, { status: 400 })
+    const patientId = sanitizeUuid(body.patientId)
+    const doctorId = sanitizeUuid(body.doctorId)
+    const facilityId = sanitizeUuid(body.facilityId)
+
+    if (!patientId) {
+      return NextResponse.json({ detail: 'patientId is required and must be a valid UUID' }, { status: 400 })
     }
 
     const db = getDb()
     const sql = getSql()
 
-    const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, body.patientId)).limit(1)
+    const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {
       return NextResponse.json({ detail: 'Patient not found' }, { status: 400 })
     }
 
-    if (body.doctorId) {
-      const doctorCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, body.doctorId)).limit(1)
+    if (doctorId) {
+      const doctorCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, doctorId)).limit(1)
       if (doctorCheck.length === 0) {
         return NextResponse.json({ detail: 'Doctor not found' }, { status: 400 })
       }
     }
 
-    if (body.facilityId) {
-      const facilityCheck = await db.select({ id: facilities.id }).from(facilities).where(eq(facilities.id, body.facilityId)).limit(1)
+    if (facilityId) {
+      const facilityCheck = await db.select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
       if (facilityCheck.length === 0) {
         return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
       }
@@ -106,10 +111,11 @@ export async function POST(request: NextRequest) {
     const symptomsStr = body.symptomsJson ? JSON.stringify(body.symptomsJson) : '{}'
     const tagsStr = body.tagsJson ? JSON.stringify(body.tagsJson) : '{}'
     const id = crypto.randomUUID()
+    const now = new Date().toISOString()
 
     const rows = await sql`
-      INSERT INTO clinical_cases (id, patient_id, doctor_id, facility_id, title, description, symptoms_json, provisional_diagnosis, treatment, treatment_duration, outcome_status, outcome_notes, priority, tags_json)
-      VALUES (${id}, ${body.patientId}, ${body.doctorId || null}, ${body.facilityId || null}, ${body.title || null}, ${body.description || null}, ${symptomsStr}::jsonb, ${body.provisionalDiagnosis || null}, ${body.treatment || null}, ${body.treatmentDuration || null}, ${outcomeVal}, ${body.outcomeNotes || null}, ${body.priority || 'medium'}, ${tagsStr}::jsonb)
+      INSERT INTO clinical_cases (id, patient_id, doctor_id, facility_id, title, description, symptoms_json, provisional_diagnosis, treatment, treatment_duration, outcome_status, outcome_notes, priority, tags_json, is_synced, created_at, updated_at)
+      VALUES (${id}, ${patientId}, ${doctorId}, ${facilityId}, ${body.title || null}, ${body.description || null}, ${symptomsStr}::jsonb, ${body.provisionalDiagnosis || null}, ${body.treatment || null}, ${body.treatmentDuration || null}, ${outcomeVal}, ${body.outcomeNotes || null}, ${body.priority || 'medium'}, ${tagsStr}::jsonb, false, ${now}, ${now})
       RETURNING id, facility_id, patient_id, doctor_id, title, description, symptoms_json, provisional_diagnosis, treatment, treatment_duration, outcome_status, outcome_notes, priority, tags_json, is_synced, created_at, updated_at
     `
 

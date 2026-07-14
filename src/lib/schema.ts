@@ -1,6 +1,6 @@
 import { pgTable, text, uuid, boolean, timestamp, jsonb, integer, index, pgEnum } from 'drizzle-orm/pg-core'
 
-export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'DOCTOR', 'RESEARCHER'])
+export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'DOCTOR', 'RESEARCHER', 'NURSE', 'VIEWER'])
 export const facilityTypeEnum = pgEnum('facility_type', ['HOSPITAL', 'CLINIC', 'LABORATORY', 'PHARMACY'])
 export const outcomeStatusEnum = pgEnum('outcome_status', ['SUCCESS', 'FAILURE', 'IN_PROGRESS', 'PENDING'])
 

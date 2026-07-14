@@ -57,9 +57,10 @@ export async function POST(request: NextRequest) {
 
     const sql = getSql()
     const id = crypto.randomUUID()
+    const now = new Date().toISOString()
     const rows = await sql`
-      INSERT INTO facilities (id, name, code, facility_type, address, city, phone, email, bed_count)
-      VALUES (${id}, ${body.name}, ${body.code}, ${body.facilityType}, ${body.address || null}, ${body.city || null}, ${body.phone || null}, ${body.email || null}, ${body.bedCount || 0})
+      INSERT INTO facilities (id, name, code, facility_type, address, city, phone, email, bed_count, is_active, created_at, updated_at)
+      VALUES (${id}, ${body.name}, ${body.code}, ${body.facilityType}, ${body.address || null}, ${body.city || null}, ${body.phone || null}, ${body.email || null}, ${body.bedCount || 0}, true, ${now}, ${now})
       RETURNING id, name, code, facility_type, address, city, phone, email, bed_count, department_count, staff_count, is_active, created_at, updated_at
     `
 
@@ -67,6 +68,6 @@ export async function POST(request: NextRequest) {
   } catch (e: unknown) {
     console.error('POST /facilities error:', e)
     const msg = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ detail: 'Internal server error', error: msg, version: 'v4-no-cast' }, { status: 500 })
+    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
   }
 }

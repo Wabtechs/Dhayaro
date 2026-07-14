@@ -42,10 +42,10 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { mockFacilities } from '@/lib/mock-data'
-import { useUsersData } from '@/hooks/use-data'
+import { useUsersData, useFacilitiesData } from '@/hooks/use-data'
 import { api } from '@/services/api'
 import { formatDate, getInitials } from '@/lib/utils'
+import { sanitizeUuid } from '@/lib/validation'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
 
@@ -91,7 +91,9 @@ export default function Users() {
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
   const { data: usersData, isLoading } = useUsersData()
+  const { data: facilitiesData } = useFacilitiesData()
   const users = usersData?.items ?? []
+  const facilitiesList = facilitiesData?.items ?? []
   const [localUsers, setLocalUsers] = useState<User[]>([])
 
   const [newName, setNewName] = useState('')
@@ -103,8 +105,8 @@ export default function Users() {
   const [newPassword, setNewPassword] = useState('')
 
   const facilityMap = useMemo(
-    () => Object.fromEntries(mockFacilities.map((f) => [f.id, f.name])),
-    []
+    () => Object.fromEntries(facilitiesList.map((f) => [f.id, f.name])),
+    [facilitiesList]
   )
 
   const handleSort = (field: SortField) => {
@@ -178,9 +180,9 @@ export default function Users() {
   const ROLE_MAP: Record<User['role'], string> = {
     admin: 'ADMIN',
     doctor: 'DOCTOR',
-    nurse: 'DOCTOR',
+    nurse: 'NURSE',
     researcher: 'RESEARCHER',
-    viewer: 'DOCTOR',
+    viewer: 'VIEWER',
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -197,7 +199,7 @@ export default function Users() {
         email: newEmail,
         password: newPassword,
         role: ROLE_MAP[newRole] || 'DOCTOR',
-        facilityId: newFacility || null,
+        facilityId: sanitizeUuid(newFacility),
       }, token)
       await queryClient.invalidateQueries({ queryKey: ['users'] })
       toast({ title: 'Utilisateur créé', description: `${newName} a été ajouté.` })
@@ -337,7 +339,7 @@ export default function Users() {
                     <SelectValue placeholder="Sélectionner un établissement" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockFacilities.map((f) => (
+                    {facilitiesList.map((f) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name}
                       </SelectItem>

@@ -54,15 +54,11 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  mockPatients,
-  mockFacilities,
-  mockUsers,
-} from '@/lib/mock-data'
-import { useClinicalCasesData } from '@/hooks/use-data'
+import { useClinicalCasesData, usePatientsData, useFacilitiesData, useUsersData } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
+import { sanitizeUuid } from '@/lib/validation'
 import type { CaseStatus, CasePriority } from '@/types'
 
 const ITEMS_PER_PAGE = 10
@@ -87,7 +83,13 @@ export default function ClinicalCasesPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { data: casesData, isLoading } = useClinicalCasesData()
+  const { data: patientsData } = usePatientsData()
+  const { data: facilitiesData } = useFacilitiesData()
+  const { data: usersData } = useUsersData()
   const clinicalCases = casesData?.items ?? []
+  const patientsList = patientsData?.items ?? []
+  const facilitiesList = facilitiesData?.items ?? []
+  const usersList = usersData?.items ?? []
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
@@ -133,12 +135,12 @@ export default function ClinicalCasesPage() {
   )
 
   const getPatientName = (patientId: string) => {
-    const patient = mockPatients.find((p) => p.id === patientId)
+    const patient = patientsList.find((p) => p.id === patientId)
     return patient ? `${patient.firstName} ${patient.lastName}` : 'Inconnu'
   }
 
   const getDoctorName = (doctorId: string) => {
-    const doctor = mockUsers.find((u) => u.id === doctorId)
+    const doctor = usersList.find((u) => u.id === doctorId)
     return doctor ? doctor.name : 'Inconnu'
   }
 
@@ -149,9 +151,9 @@ export default function ClinicalCasesPage() {
       await api.post('/clinical-cases', {
         title: newCase.title,
         description: newCase.description,
-        patientId: newCase.patientId || null,
-        facilityId: newCase.facilityId || null,
-        doctorId: newCase.assignedDoctorId || null,
+        patientId: sanitizeUuid(newCase.patientId),
+        facilityId: sanitizeUuid(newCase.facilityId),
+        doctorId: sanitizeUuid(newCase.assignedDoctorId),
         provisionalDiagnosis: newCase.diagnosis,
         symptomsJson: newCase.symptoms ? { description: newCase.symptoms } : {},
         tagsJson: newCase.tags ? { tags: newCase.tags.split(',').map((t: string) => t.trim()).filter(Boolean) } : {},
@@ -203,7 +205,7 @@ export default function ClinicalCasesPage() {
                 clinique.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateCase() }} className="grid gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Titre *
@@ -244,7 +246,7 @@ export default function ClinicalCasesPage() {
                       <SelectValue placeholder="Sélectionner un patient" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockPatients.map((p) => (
+                      {patientsList.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.firstName} {p.lastName}
                         </SelectItem>
@@ -266,7 +268,7 @@ export default function ClinicalCasesPage() {
                       <SelectValue placeholder="Sélectionner un établissement" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockFacilities.map((f) => (
+                      {facilitiesList.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
                           {f.name}
                         </SelectItem>
@@ -288,7 +290,7 @@ export default function ClinicalCasesPage() {
                       <SelectValue placeholder="Sélectionner un médecin" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockUsers
+                      {usersList
                         .filter((u) => u.role === 'doctor')
                         .map((u) => (
                           <SelectItem key={u.id} value={u.id}>
@@ -356,12 +358,12 @@ export default function ClinicalCasesPage() {
                   }
                 />
               </div>
-            </div>
+            </form>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleCreateCase} disabled={creating}>{creating ? 'Création...' : 'Créer le cas'}</Button>
+              <Button type="submit" disabled={creating}>{creating ? 'Création...' : 'Créer le cas'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -432,7 +434,7 @@ export default function ClinicalCasesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous</SelectItem>
-                {mockFacilities.map((f) => (
+                {facilitiesList.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.name}
                   </SelectItem>

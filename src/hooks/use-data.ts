@@ -33,6 +33,8 @@ const ROLE_MAP: Record<string, string> = {
   ADMIN: 'admin',
   DOCTOR: 'doctor',
   RESEARCHER: 'researcher',
+  NURSE: 'nurse',
+  VIEWER: 'viewer',
 };
 
 const FACILITY_TYPE_MAP: Record<string, string> = {
@@ -69,6 +71,8 @@ function transformKeys(obj: unknown): unknown {
         val = FACILITY_TYPE_MAP[String(val)] || String(val).toLowerCase();
         key = 'type';
       }
+      if (key === 'firstname') { key = 'firstName'; }
+      if (key === 'lastname') { key = 'lastName'; }
       if (key === 'facilityId') { key = 'facilityId'; }
       if (key === 'role' && typeof val === 'string') {
         val = ROLE_MAP[val] || val.toLowerCase();

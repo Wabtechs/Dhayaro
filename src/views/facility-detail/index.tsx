@@ -147,7 +147,7 @@ export default function FacilityDetail() {
                 <div>
                   <p className="text-sm font-medium">Adresse</p>
                   <p className="text-sm text-muted-foreground">
-                    {facility.address}, {facility.city}, {facility.country}
+                    {facility.address}, {facility.city}
                   </p>
                 </div>
               </div>

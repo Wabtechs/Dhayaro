@@ -1,5 +1,4 @@
-const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000/api/v1' : '/api/v1');
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 interface ApiOptions {
   method?: string;

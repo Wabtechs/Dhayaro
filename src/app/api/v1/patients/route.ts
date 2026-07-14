@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, getSql } from '@/lib/db'
 import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,8 +54,10 @@ export async function POST(request: NextRequest) {
 
     const patientUuid = body.patientUuid || crypto.randomUUID()
 
-    if (body.facilityId) {
-      const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, body.facilityId)).limit(1)
+    const facilityId = sanitizeUuid(body.facilityId)
+
+    if (facilityId) {
+      const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
       if (facilityCheck.length === 0) {
         return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
       }
@@ -63,10 +66,11 @@ export async function POST(request: NextRequest) {
     const sql = getSql()
     const allergiesStr = body.allergies ? JSON.stringify(body.allergies) : '[]'
     const id = crypto.randomUUID()
+    const now = new Date().toISOString()
 
     const rows = await sql`
-      INSERT INTO patients (id, patient_uuid, firstname, lastname, email, sex, date_of_birth, blood_group, facility_id, allergies)
-      VALUES (${id}, ${patientUuid}, ${body.firstname || null}, ${body.lastname || null}, ${body.email || null}, ${body.sex || null}, ${body.dateOfBirth || null}, ${body.bloodGroup || null}, ${body.facilityId || null}, ${allergiesStr}::jsonb)
+      INSERT INTO patients (id, patient_uuid, firstname, lastname, email, sex, date_of_birth, blood_group, facility_id, allergies, is_active, created_at, updated_at)
+      VALUES (${id}, ${patientUuid}, ${body.firstname || null}, ${body.lastname || null}, ${body.email || null}, ${body.sex || null}, ${body.dateOfBirth || null}, ${body.bloodGroup || null}, ${facilityId}, ${allergiesStr}::jsonb, true, ${now}, ${now})
       RETURNING id, facility_id, patient_uuid, firstname, lastname, email, sex, date_of_birth, blood_group, is_active, created_at, updated_at
     `
 

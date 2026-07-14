@@ -3,6 +3,7 @@ import { getDb, getSql } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'password is required' }, { status: 400 })
     }
 
-    const validRoles = ['ADMIN', 'DOCTOR', 'RESEARCHER']
+    const validRoles = ['ADMIN', 'DOCTOR', 'RESEARCHER', 'NURSE', 'VIEWER']
     if (!validRoles.includes(body.role)) {
       return NextResponse.json({ detail: `role must be one of: ${validRoles.join(', ')}` }, { status: 400 })
     }
@@ -80,10 +81,13 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(body.password)
     const sql = getSql()
     const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+
+    const facilityId = sanitizeUuid(body.facilityId)
 
     const rows = await sql`
-      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash)
-      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${body.facilityId || null}, ${passwordHash})
+      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash, is_active, created_at, updated_at)
+      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${facilityId}, ${passwordHash}, true, ${now}, ${now})
       RETURNING id, facility_id, firstname, lastname, email, role, is_active, created_at, updated_at
     `
 

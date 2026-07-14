@@ -34,11 +34,11 @@ import {
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { usePatientsData } from '@/hooks/use-data'
+import { usePatientsData, useFacilitiesData } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { api } from '@/services/api'
-import { mockFacilities } from '@/lib/mock-data'
 import { cn, formatDate } from '@/lib/utils'
+import { sanitizeUuid } from '@/lib/validation'
 
 const ITEMS_PER_PAGE = 10
 
@@ -76,7 +76,9 @@ export default function PatientsPage() {
   })
 
   const { data, isLoading } = usePatientsData()
+  const { data: facilitiesData } = useFacilitiesData()
   const patients = data?.items ?? []
+  const facilitiesList = facilitiesData?.items ?? []
 
   const filtered = useMemo(() => {
     return patients.filter((p) => {
@@ -101,7 +103,7 @@ export default function PatientsPage() {
   )
 
   const getFacilityName = (id: string) =>
-    mockFacilities.find((f) => f.id === id)?.name ?? '—'
+    facilitiesList.find((f) => f.id === id)?.name ?? '—'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,7 +118,7 @@ export default function PatientsPage() {
         phone: form.phone,
         address: form.address,
         bloodGroup: form.bloodType,
-        facilityId: form.facilityId || null,
+        facilityId: sanitizeUuid(form.facilityId),
         allergies: form.allergies ? form.allergies.split(',').map((a: string) => a.trim()).filter(Boolean) : [],
       }, token)
       await queryClient.invalidateQueries({ queryKey: ['patients'] })
@@ -254,7 +256,7 @@ export default function PatientsPage() {
                     <SelectValue placeholder="Sélectionner un établissement" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockFacilities.map((f) => (
+                    {facilitiesList.map((f) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name}
                       </SelectItem>
@@ -324,7 +326,7 @@ export default function PatientsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les établissements</SelectItem>
-            {mockFacilities.map((f) => (
+            {facilitiesList.map((f) => (
               <SelectItem key={f.id} value={f.id}>
                 {f.name}
               </SelectItem>

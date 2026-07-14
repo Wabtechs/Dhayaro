@@ -20,7 +20,6 @@ export interface Facility {
   type: 'hospital' | 'clinic' | 'laboratory' | 'pharmacy'
   address: string
   city: string
-  country: string
   phone: string
   email: string
   bedCount: number
