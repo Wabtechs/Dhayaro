@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await db
+    const [countResult] = await getDb()
       .select({ value: count() })
       .from(users)
       .where(whereClause)
 
-    const items = await db
+    const items = await getDb()
       .select({
         id: users.id,
         facilityId: users.facilityId,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       delete body.password
     }
 
-    const [created] = await db.insert(users).values(body).returning()
+    const [created] = await getDb().insert(users).values(body).returning()
 
     const { passwordHash: _, ...safe } = created as Record<string, unknown>
     return NextResponse.json(safe, { status: 201 })

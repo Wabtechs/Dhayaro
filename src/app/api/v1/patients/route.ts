@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { patients } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await db
+    const [countResult] = await getDb()
       .select({ value: count() })
       .from(patients)
       .where(whereClause)
 
-    const items = await db
+    const items = await getDb()
       .select()
       .from(patients)
       .where(whereClause)
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       body.patientUuid = crypto.randomUUID()
     }
 
-    const [created] = await db.insert(patients).values(body).returning()
+    const [created] = await getDb().insert(patients).values(body).returning()
 
     return NextResponse.json(created, { status: 201 })
   } catch {

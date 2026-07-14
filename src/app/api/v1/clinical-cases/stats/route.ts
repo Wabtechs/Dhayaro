@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { clinicalCases } from '@/lib/schema'
 import { count } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const rows = await db
+    const rows = await getDb()
       .select({
         status: clinicalCases.outcomeStatus,
         value: count(),

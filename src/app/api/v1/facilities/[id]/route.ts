@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const rows = await db.select().from(facilities).where(eq(facilities.id, id)).limit(1)
+    const rows = await getDb().select().from(facilities).where(eq(facilities.id, id)).limit(1)
 
     if (rows.length === 0) {
       return NextResponse.json({ detail: 'Facility not found' }, { status: 404 })
@@ -29,7 +29,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    const [updated] = await db
+    const [updated] = await getDb()
       .update(facilities)
       .set({ ...body, updatedAt: new Date() })
       .where(eq(facilities.id, id))
@@ -52,7 +52,7 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    const [deleted] = await db
+    const [deleted] = await getDb()
       .update(facilities)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(facilities.id, id))

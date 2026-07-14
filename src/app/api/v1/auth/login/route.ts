@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, verifyPassword } from '@/lib/auth'
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     let user: { id: string; email: string; firstname: string; lastname: string; role: string; facility_id?: string | null } | null = null
 
     try {
-      const rows = await db.select().from(users).where(eq(users.email, email)).limit(1)
+      const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
       if (rows.length > 0) {
         user = rows[0]
       }

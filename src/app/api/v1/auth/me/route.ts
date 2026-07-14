@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getTokenFromRequest, verifyToken } from '@/lib/auth'
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const rows = await db
+      const rows = await getDb()
         .select({
           id: users.id,
           facilityId: users.facilityId,

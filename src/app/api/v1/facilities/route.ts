@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
 
     const whereClause = and(...conditions)
 
-    const [countResult] = await db
+    const [countResult] = await getDb()
       .select({ value: count() })
       .from(facilities)
       .where(whereClause)
 
-    const items = await db
+    const items = await getDb()
       .select()
       .from(facilities)
       .where(whereClause)
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const [created] = await db.insert(facilities).values(body).returning()
+    const [created] = await getDb().insert(facilities).values(body).returning()
 
     return NextResponse.json(created, { status: 201 })
   } catch {

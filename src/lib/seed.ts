@@ -1,4 +1,4 @@
-import { db } from './db'
+import { getDb } from './db'
 import { facilities, users, patients, clinicalCases, auditLogs } from './schema'
 import { hashPassword } from './auth'
 
@@ -13,7 +13,7 @@ async function seed() {
     { name: 'Centre Medical Hydra', code: 'CTR-HYD-005', facilityType: 'LABORATORY' as const, address: 'Rue des Freres Abbas', city: 'Hydra', phone: '021 60 10 00', email: 'labo@centre-hydra.dz', bedCount: 0, departmentCount: 5, staffCount: 80 },
   ]
 
-  const insertedFacilities = await db.insert(facilities).values(facilityData).returning({ id: facilities.id })
+  const insertedFacilities = await getDb().insert(facilities).values(facilityData).returning({ id: facilities.id })
   console.log(`Inserted ${insertedFacilities.length} facilities`)
 
   const passwordHash = await hashPassword('admin123')
@@ -33,7 +33,7 @@ async function seed() {
     { firstname: 'Nadia', lastname: 'Bouazza', email: 'nadia@medinsight.dz', passwordHash: researcherHash, role: 'RESEARCHER' as const, facilityId: insertedFacilities[4].id },
   ]
 
-  const insertedUsers = await db.insert(users).values(userData).returning({ id: users.id })
+  const insertedUsers = await getDb().insert(users).values(userData).returning({ id: users.id })
   console.log(`Inserted ${insertedUsers.length} users`)
 
   const patientData = [
@@ -54,7 +54,7 @@ async function seed() {
     { facilityId: insertedFacilities[3].id, patientUuid: 'PAT-015', firstname: 'Tarek', lastname: 'Ferhat', sex: 'M', age: 48, bloodGroup: 'B-', phone: '0555 43 44 45', address: 'Constantine', dateOfBirth: '1977-03-09', allergies: [] },
   ]
 
-  const insertedPatients = await db.insert(patients).values(patientData).returning({ id: patients.id })
+  const insertedPatients = await getDb().insert(patients).values(patientData).returning({ id: patients.id })
   console.log(`Inserted ${insertedPatients.length} patients`)
 
   const caseData = [
@@ -79,10 +79,10 @@ async function seed() {
     { facilityId: insertedFacilities[0].id, patientId: insertedPatients[4].id, doctorId: insertedUsers[2].id, title: 'Sténose lombaire', description: 'Canal lombaire étroit L4-L5', symptomsJson: { description: 'Claudication marche, douleurs lombaires irradiées' }, provisionalDiagnosis: 'Sténose du canal lombaire L4-L5', treatment: 'Kinésithérapie + infiltrations épidurales', treatmentDuration: '3 mois', outcomeStatus: 'PENDING' as const, priority: 'medium', tagsJson: { tags: ['orthopédie', 'neurochirurgie'] } },
   ]
 
-  const insertedCases = await db.insert(clinicalCases).values(caseData).returning({ id: clinicalCases.id })
+  const insertedCases = await getDb().insert(clinicalCases).values(caseData).returning({ id: clinicalCases.id })
   console.log(`Inserted ${insertedCases.length} clinical cases`)
 
-  await db.insert(auditLogs).values([
+  await getDb().insert(auditLogs).values([
     { userId: insertedUsers[0].id, facilityId: insertedFacilities[0].id, action: 'LOGIN', resource: 'auth', resourceId: insertedUsers[0].id, details: { method: 'password' }, ipAddress: '192.168.1.1' },
     { userId: insertedUsers[2].id, facilityId: insertedFacilities[0].id, action: 'CREATE', resource: 'clinical_case', resourceId: insertedCases[0].id, details: { title: 'Migraine chronique' }, ipAddress: '192.168.1.10' },
     { userId: insertedUsers[3].id, facilityId: insertedFacilities[0].id, action: 'UPDATE', resource: 'clinical_case', resourceId: insertedCases[1].id, details: { field: 'outcome_status', old: 'PENDING', new: 'IN_PROGRESS' }, ipAddress: '192.168.1.15' },

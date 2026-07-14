@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { syncQueue } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { getTokenFromRequest, verifyToken } from '@/lib/auth'
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ detail: 'Invalid or expired token' }, { status: 401 })
     }
 
-    const items = await db
+    const items = await getDb()
       .select()
       .from(syncQueue)
       .where(eq(syncQueue.userId, payload.sub))

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { auditLogs, users } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
 
@@ -10,11 +10,11 @@ export async function GET(request: NextRequest) {
     const size = Math.min(100, parseInt(searchParams.get('size') || '20', 10))
     const offset = (page - 1) * size
 
-    const [countResult] = await db
+    const [countResult] = await getDb()
       .select({ value: count() })
       .from(auditLogs)
 
-    const items = await db
+    const items = await getDb()
       .select({
         id: auditLogs.id,
         userId: auditLogs.userId,
