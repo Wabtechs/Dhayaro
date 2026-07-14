@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    if (!body.name || !body.code || !body.facilityType) {
+      return NextResponse.json({ detail: 'name, code, and facilityType are required' }, { status: 400 })
+    }
+
     const [created] = await getDb().insert(facilities).values(body).returning()
 
     return NextResponse.json(created, { status: 201 })

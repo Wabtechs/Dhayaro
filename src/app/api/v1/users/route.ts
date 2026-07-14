@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
-import { eq, desc, ilike, and, count } from 'drizzle-orm'
+import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
 
     const conditions = [eq(users.isActive, true)]
     if (search) {
-      conditions.push(ilike(users.firstname, `%${search}%`))
+      conditions.push(or(
+        ilike(users.firstname, `%${search}%`),
+        ilike(users.lastname, `%${search}%`),
+        ilike(users.email, `%${search}%`),
+      )!)
     }
 
     const whereClause = and(...conditions)
@@ -60,14 +64,37 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    if (body.password) {
-      body.passwordHash = await hashPassword(body.password)
-      delete body.password
+    if (!body.email || !body.firstname || !body.lastname || !body.role) {
+      return NextResponse.json({ detail: 'email, firstname, lastname, and role are required' }, { status: 400 })
     }
 
-    const [created] = await getDb().insert(users).values(body).returning()
+    if (!body.password) {
+      return NextResponse.json({ detail: 'password is required' }, { status: 400 })
+    }
 
-    const { passwordHash: _, ...safe } = created as Record<string, unknown>
+    const passwordHash = await hashPassword(body.password)
+
+    const created = await getDb().insert(users).values({
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      role: body.role,
+      facilityId: body.facilityId || null,
+      passwordHash,
+    }).returning()
+
+    const row = created[0]
+    const safe = {
+      id: row.id,
+      facilityId: row.facilityId,
+      firstname: row.firstname,
+      lastname: row.lastname,
+      email: row.email,
+      role: row.role,
+      isActive: row.isActive,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }
     return NextResponse.json(safe, { status: 201 })
   } catch {
     return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })

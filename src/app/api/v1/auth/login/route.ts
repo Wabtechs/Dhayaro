@@ -40,9 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
     }
 
-    // If user came from DB, verify password with bcrypt
-    if (!MOCK_USERS.find((m) => m.email === email)) {
-      const valid = await verifyPassword(password, user && 'passwordHash' in user ? (user as { passwordHash: string }).passwordHash : '')
+    if ('passwordHash' in user) {
+      const valid = await verifyPassword(password, (user as { passwordHash: string }).passwordHash)
       if (!valid) {
         return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
       }

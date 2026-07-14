@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { clinicalCases, patients, users, facilities } from '@/lib/schema'
-import { eq, desc, ilike, and, count } from 'drizzle-orm'
+import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
 
     const conditions = []
     if (search) {
-      conditions.push(ilike(clinicalCases.title, `%${search}%`))
+      conditions.push(or(
+        ilike(clinicalCases.title, `%${search}%`),
+        ilike(clinicalCases.description, `%${search}%`),
+        ilike(clinicalCases.provisionalDiagnosis, `%${search}%`),
+      )!)
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -71,6 +75,27 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+
+    if (body.patientId) {
+      const patientCheck = await getDb().select({ id: patients.id }).from(patients).where(eq(patients.id, body.patientId)).limit(1)
+      if (patientCheck.length === 0) {
+        return NextResponse.json({ detail: 'Patient not found' }, { status: 400 })
+      }
+    }
+
+    if (body.doctorId) {
+      const doctorCheck = await getDb().select({ id: users.id }).from(users).where(eq(users.id, body.doctorId)).limit(1)
+      if (doctorCheck.length === 0) {
+        return NextResponse.json({ detail: 'Doctor not found' }, { status: 400 })
+      }
+    }
+
+    if (body.facilityId) {
+      const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, body.facilityId)).limit(1)
+      if (facilityCheck.length === 0) {
+        return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
+      }
+    }
 
     const [created] = await getDb().insert(clinicalCases).values(body).returning()
 

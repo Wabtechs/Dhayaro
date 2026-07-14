@@ -65,11 +65,11 @@ function mapBackendUser(bu: Record<string, unknown>): User {
     email: bu.email as string,
     name: `${bu.firstname || ''} ${bu.lastname || ''}`.trim() || bu.email as string,
     role: role as User['role'],
-    facility: bu.facility_id as string,
+    facility: (bu.facilityId || bu.facility_id) as string,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${bu.email}`,
-    createdAt: bu.created_at as string,
+    createdAt: (bu.createdAt || bu.created_at) as string,
     lastLogin: new Date().toISOString(),
-    isActive: bu.is_active as boolean,
+    isActive: (bu.isActive !== undefined ? bu.isActive : bu.is_active) as boolean,
   }
 }
 

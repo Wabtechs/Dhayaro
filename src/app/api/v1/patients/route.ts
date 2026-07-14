@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { patients } from '@/lib/schema'
-import { eq, desc, ilike, and, count } from 'drizzle-orm'
+import { patients, facilities } from '@/lib/schema'
+import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,12 @@ export async function GET(request: NextRequest) {
 
     const conditions = [eq(patients.isActive, true)]
     if (search) {
-      conditions.push(ilike(patients.firstname, `%${search}%`))
+      conditions.push(or(
+        ilike(patients.firstname, `%${search}%`),
+        ilike(patients.lastname, `%${search}%`),
+        ilike(patients.email, `%${search}%`),
+        ilike(patients.patientUuid, `%${search}%`),
+      )!)
     }
 
     const whereClause = and(...conditions)
@@ -48,6 +53,13 @@ export async function POST(request: NextRequest) {
 
     if (!body.patientUuid) {
       body.patientUuid = crypto.randomUUID()
+    }
+
+    if (body.facilityId) {
+      const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, body.facilityId)).limit(1)
+      if (facilityCheck.length === 0) {
+        return NextResponse.json({ detail: 'Facility not found' }, { status: 400 })
+      }
     }
 
     const [created] = await getDb().insert(patients).values(body).returning()
