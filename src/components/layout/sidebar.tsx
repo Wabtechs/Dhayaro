@@ -46,40 +46,40 @@ const navSections: NavSection[] = [
   {
     label: 'PRINCIPAL',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, href: '/app' },
-      { label: 'Établissements', icon: Building2, href: '/app/facilities' },
-      { label: 'Utilisateurs', icon: Users, href: '/app/users' },
-      { label: 'Patients', icon: UserRound, href: '/app/patients' },
+      { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+      { label: 'Établissements', icon: Building2, href: '/facilities' },
+      { label: 'Utilisateurs', icon: Users, href: '/users' },
+      { label: 'Patients', icon: UserRound, href: '/patients' },
     ],
   },
   {
     label: 'CLINIQUE',
     items: [
-      { label: 'Cas Cliniques', icon: FolderOpen, href: '/app/clinical-cases' },
-      { label: 'Historique des Traitements', icon: ClipboardList, href: '/app/treatment-history' },
+      { label: 'Cas Cliniques', icon: FolderOpen, href: '/clinical-cases' },
+      { label: 'Historique des Traitements', icon: ClipboardList, href: '/treatment-history' },
     ],
   },
   {
     label: 'ANALYTIQUE',
     items: [
-      { label: 'Statistiques', icon: BarChart3, href: '/app/analytics' },
-      { label: 'Chercheurs', icon: FlaskConical, href: '/app/research' },
+      { label: 'Statistiques', icon: BarChart3, href: '/analytics' },
+      { label: 'Chercheurs', icon: FlaskConical, href: '/research' },
     ],
   },
   {
     label: 'SYSTÈME',
     items: [
-      { label: 'Synchronisation', icon: RefreshCw, href: '/app/sync' },
-      { label: 'Paramètres', icon: Settings, href: '/app/settings' },
-      { label: 'Journal d\'Audit', icon: Shield, href: '/app/audit' },
+      { label: 'Synchronisation', icon: RefreshCw, href: '/sync' },
+      { label: 'Paramètres', icon: Settings, href: '/settings' },
+      { label: 'Journal d\'Audit', icon: Shield, href: '/audit' },
     ],
   },
 ]
 
 function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const pathname = usePathname()
-  const isActive = item.href === '/app'
-    ? pathname === '/app'
+  const isActive = item.href === '/dashboard'
+    ? pathname === '/dashboard'
     : pathname.startsWith(item.href)
 
   const linkContent = (

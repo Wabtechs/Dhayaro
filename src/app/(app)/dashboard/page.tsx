@@ -1,4 +1,4 @@
-import { DashboardPage } from '@/views/dashboard'
+import DashboardPage from '@/views/dashboard'
 
 export default function Page() {
   return <DashboardPage />

@@ -33,51 +33,51 @@ const navigationItems: CommandItem[] = [
   {
     icon: Building2,
     label: "Établissements",
-    href: "/app/facilities",
+    href: "/facilities",
     shortcut: "E",
   },
   {
     icon: Users,
     label: "Utilisateurs",
-    href: "/app/users",
+    href: "/users",
     shortcut: "U",
   },
-  { icon: UserRound, label: "Patients", href: "/app/patients", shortcut: "P" },
+  { icon: UserRound, label: "Patients", href: "/patients", shortcut: "P" },
   {
     icon: FolderOpen,
     label: "Cas Cliniques",
-    href: "/app/clinical-cases",
+    href: "/clinical-cases",
     shortcut: "C",
   },
   {
     icon: ClipboardList,
     label: "Historique des Traitements",
-    href: "/app/treatment-history",
+    href: "/treatment-history",
   },
   {
     icon: BarChart3,
     label: "Statistiques",
-    href: "/app/analytics",
+    href: "/analytics",
   },
   {
     icon: FlaskConical,
     label: "Chercheurs",
-    href: "/app/research",
+    href: "/research",
   },
-  { icon: Settings, label: "Paramètres", href: "/app/settings" },
+  { icon: Settings, label: "Paramètres", href: "/settings" },
 ];
 
 const actionItems: CommandItem[] = [
   {
     icon: Plus,
     label: "Créer un cas clinique",
-    href: "/app/clinical-cases",
+    href: "/clinical-cases",
     shortcut: "⌘N",
   },
   {
     icon: Plus,
     label: "Ajouter un patient",
-    href: "/app/patients",
+    href: "/patients",
     shortcut: "⌘P",
   },
   {

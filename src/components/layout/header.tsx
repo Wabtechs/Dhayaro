@@ -130,7 +130,7 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="justify-center text-sm text-primary"
-                onClick={() => router.push('/app/notifications')}
+                onClick={() => router.push('/notifications')}
               >
                 Voir toutes les notifications
               </DropdownMenuItem>
@@ -178,11 +178,11 @@ export function Header() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push('/app/profile')}>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 Mon profil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/app/settings')}>
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 Paramètres
               </DropdownMenuItem>
