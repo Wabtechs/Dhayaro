@@ -72,31 +72,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'password is required' }, { status: 400 })
     }
 
-    const passwordHash = await hashPassword(body.password)
-
-    const created = await getDb().insert(users).values({
-      email: body.email,
-      firstname: body.firstname,
-      lastname: body.lastname,
-      role: sql`'${body.role}'::user_role`,
-      facilityId: body.facilityId || null,
-      passwordHash,
-    }).returning()
-
-    const row = created[0]
-    const safe = {
-      id: row.id,
-      facilityId: row.facilityId,
-      firstname: row.firstname,
-      lastname: row.lastname,
-      email: row.email,
-      role: row.role,
-      isActive: row.isActive,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+    const validRoles = ['ADMIN', 'DOCTOR', 'RESEARCHER']
+    if (!validRoles.includes(body.role)) {
+      return NextResponse.json({ detail: `role must be one of: ${validRoles.join(', ')}` }, { status: 400 })
     }
-    return NextResponse.json(safe, { status: 201 })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+
+    const passwordHash = await hashPassword(body.password)
+    const db = getDb()
+
+    const rows = await db.execute(sql`
+      INSERT INTO users (email, firstname, lastname, role, facility_id, password_hash)
+      VALUES (${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}::user_role, ${body.facilityId || null}, ${passwordHash})
+      RETURNING id, facility_id, firstname, lastname, email, role, is_active, created_at, updated_at
+    `)
+
+    const row = rows.rows?.[0]
+    return NextResponse.json(row, { status: 201 })
+  } catch (e: unknown) {
+    console.error('POST /users error:', e)
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
   }
 }

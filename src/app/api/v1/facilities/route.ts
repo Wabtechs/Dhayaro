@@ -50,19 +50,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'name, code, and facilityType are required' }, { status: 400 })
     }
 
-    const [created] = await getDb().insert(facilities).values({
-      name: body.name,
-      code: body.code,
-      facilityType: sql`'${body.facilityType}'::facility_type`,
-      address: body.address,
-      city: body.city,
-      phone: body.phone,
-      email: body.email,
-      bedCount: body.bedCount,
-      departmentCount: body.departmentCount,
-      staffCount: body.staffCount,
-    }).returning()
+    const validTypes = ['HOSPITAL', 'CLINIC', 'LABORATORY', 'PHARMACY']
+    if (!validTypes.includes(body.facilityType)) {
+      return NextResponse.json({ detail: `facilityType must be one of: ${validTypes.join(', ')}` }, { status: 400 })
+    }
 
+    const db = getDb()
+    const rows = await db.execute(sql`
+      INSERT INTO facilities (name, code, facility_type, address, city, phone, email, bed_count)
+      VALUES (${body.name}, ${body.code}, ${body.facilityType}::facility_type, ${body.address || null}, ${body.city || null}, ${body.phone || null}, ${body.email || null}, ${body.bedCount || 0})
+      RETURNING id, name, code, facility_type, address, city, phone, email, bed_count, department_count, staff_count, is_active, created_at, updated_at
+    `)
+
+    const created = rows.rows?.[0]
     return NextResponse.json(created, { status: 201 })
   } catch (e: unknown) {
     console.error('POST /facilities error:', e)
