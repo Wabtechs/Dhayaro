@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /patients/
+Disallow: /clinical-cases/
+Disallow: /users/
+Disallow: /facilities/
+Disallow: /settings/
+
+Sitemap: https://medinsight-phi.vercel.app/sitemap.xml

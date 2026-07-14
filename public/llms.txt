@@ -1,0 +1,26 @@
+# MedInsight
+
+> MedInsight is an Offline-First PWA for managing clinical medical cases in Algerian hospitals. It allows doctors, hospitals, and researchers to document, analyze, and share clinical cases securely.
+
+## Key Features
+- Clinical case management (symptoms, diagnoses, treatments)
+- Offline/online synchronization
+- End-to-end encryption and RBAC access control
+- Interactive dashboards and statistics
+- Multi-user collaboration with role-based access
+- Medical research with anonymized data
+
+## Target Users
+- Hospitals and clinics in Algeria
+- Doctors and medical practitioners
+- Medical researchers
+- Pharmacies
+
+## Tech Stack
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- Backend: FastAPI, SQLAlchemy 2, Alembic, PostgreSQL
+- Deployment: Vercel (frontend + serverless backend)
+
+## Contact
+- Email: contact@medinsight.dz
+- Location: Alger, Algérie

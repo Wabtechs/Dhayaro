@@ -138,6 +138,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#features"
+        className="fixed left-4 top-4 z-[100] -translate-y-20 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-lg transition-transform focus:translate-y-0"
+      >
+        Aller au contenu principal
+      </a>
+
       {/* Navigation */}
       <header
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
@@ -350,7 +357,7 @@ export default function LandingPage() {
               </ul>
               <Button className="mt-8" asChild>
                 <Link href="/login">
-                  En savoir plus
+                  Demander une démo
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
@@ -394,12 +401,12 @@ export default function LandingPage() {
                     <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
                       {service.description}
                     </p>
-                    <a
-                      href="#"
+                    <Link
+                      href="/login"
                       className="inline-flex items-center gap-1 text-sm font-medium text-accent transition-colors hover:text-accent/80"
                     >
-                      En savoir plus <ChevronRight className="h-4 w-4" />
-                    </a>
+                      Commencer <ChevronRight className="h-4 w-4" />
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -514,18 +521,31 @@ export default function LandingPage() {
                 Liens Rapides
               </h4>
               <ul className="space-y-3">
-                {['Fonctionnalités', 'À Propos', 'Services', 'Contact', 'Documentation'].map(
-                  (link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="text-sm text-white/50 transition-colors hover:text-accent"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  )
-                )}
+                <li>
+                  <a href="#features" className="text-sm text-white/50 transition-colors hover:text-accent">
+                    Fonctionnalites
+                  </a>
+                </li>
+                <li>
+                  <a href="#about" className="text-sm text-white/50 transition-colors hover:text-accent">
+                    A Propos
+                  </a>
+                </li>
+                <li>
+                  <a href="#services" className="text-sm text-white/50 transition-colors hover:text-accent">
+                    Services
+                  </a>
+                </li>
+                <li>
+                  <a href="#testimonials" className="text-sm text-white/50 transition-colors hover:text-accent">
+                    Temoinages
+                  </a>
+                </li>
+                <li>
+                  <Link href="/login" className="text-sm text-white/50 transition-colors hover:text-accent">
+                    Connexion
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -553,21 +573,29 @@ export default function LandingPage() {
             {/* Legal */}
             <div>
               <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white/80">
-                Légal
+                Legal
               </h4>
               <ul className="space-y-3">
-                {['Politique de Confidentialité', 'Conditions d\'Utilisation', 'Mentions Légales', 'RGPD'].map(
-                  (link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="text-sm text-white/50 transition-colors hover:text-accent"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  )
-                )}
+                <li>
+                  <span className="text-sm text-white/30 cursor-not-allowed">
+                    Politique de Confidentialite
+                  </span>
+                </li>
+                <li>
+                  <span className="text-sm text-white/30 cursor-not-allowed">
+                    Conditions d&apos;Utilisation
+                  </span>
+                </li>
+                <li>
+                  <span className="text-sm text-white/30 cursor-not-allowed">
+                    Mentions Legales
+                  </span>
+                </li>
+                <li>
+                  <span className="text-sm text-white/30 cursor-not-allowed">
+                    RGPD
+                  </span>
+                </li>
               </ul>
             </div>
           </div>
