@@ -166,6 +166,22 @@ async function fetchWithFallback<T>(endpoint: string, mockData: T): Promise<T> {
   }
 }
 
+async function fetchDetailWithFallback<T extends { id?: string }>(
+  endpoint: string,
+  mockArray: T[],
+  id: string,
+): Promise<T> {
+  try {
+    const token = getToken();
+    const raw = await api.get<unknown>(endpoint, token);
+    return transformKeys(raw) as T;
+  } catch {
+    const match = mockArray.find((item) => (item as Record<string, unknown>).id === id)
+    if (!match) throw new Error('Not found')
+    return match
+  }
+}
+
 export function useDashboardData() {
   return useQuery({
     queryKey: ['dashboard'],
@@ -315,11 +331,7 @@ export function useStudiesData() {
 export function usePatientDetail(id: string) {
   return useQuery({
     queryKey: ['patient', id],
-    queryFn: async () => {
-      const token = getToken();
-      const raw = await api.get<unknown>(`/patients/${id}`, token);
-      return transformKeys(raw);
-    },
+    queryFn: () => fetchDetailWithFallback(`/patients/${id}`, mockPatients as unknown as { id?: string }[], id),
     enabled: !!id,
   });
 }
@@ -327,11 +339,7 @@ export function usePatientDetail(id: string) {
 export function useClinicalCaseDetail(id: string) {
   return useQuery({
     queryKey: ['clinical-case', id],
-    queryFn: async () => {
-      const token = getToken();
-      const raw = await api.get<unknown>(`/clinical-cases/${id}`, token);
-      return transformKeys(raw);
-    },
+    queryFn: () => fetchDetailWithFallback(`/clinical-cases/${id}`, mockClinicalCases as unknown as { id?: string }[], id),
     enabled: !!id,
   });
 }
@@ -339,11 +347,7 @@ export function useClinicalCaseDetail(id: string) {
 export function useFacilityDetail(id: string) {
   return useQuery({
     queryKey: ['facility', id],
-    queryFn: async () => {
-      const token = getToken();
-      const raw = await api.get<unknown>(`/facilities/${id}`, token);
-      return transformKeys(raw);
-    },
+    queryFn: () => fetchDetailWithFallback(`/facilities/${id}`, mockFacilities as unknown as { id?: string }[], id),
     enabled: !!id,
   });
 }
