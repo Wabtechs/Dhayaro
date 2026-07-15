@@ -5,43 +5,43 @@ const isDev = typeof window !== 'undefined' && window.location.hostname === 'loc
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000/api/v1' : '/api/v1')
 
 const mockUsers: Record<string, { password: string; user: User }> = {
-  'admin@medinsight.dz': {
+  'admin@medinsight.cd': {
     password: 'admin123',
     user: {
       id: 'usr_001',
-      email: 'admin@medinsight.dz',
-      name: 'Dr. Amira Benali',
+      email: 'admin@medinsight.cd',
+      name: 'Dr. Jean-Pierre Lukusa',
       role: 'admin',
       facility: 'fac_001',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin@medinsight.dz',
+      avatar: '',
       createdAt: '2025-01-15T08:00:00Z',
       lastLogin: new Date().toISOString(),
       isActive: true,
     },
   },
-  'dr.benali@medinsight.dz': {
+  'dr.kabongo@medinsight.cd': {
     password: 'doctor123',
     user: {
       id: 'usr_002',
-      email: 'dr.benali@medinsight.dz',
-      name: 'Dr. Karim Benali',
+      email: 'dr.kabongo@medinsight.cd',
+      name: 'Dr. Patrice Kabongo',
       role: 'doctor',
       facility: 'fac_001',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dr.benali@medinsight.dz',
+      avatar: '',
       createdAt: '2025-02-10T09:30:00Z',
       lastLogin: new Date().toISOString(),
       isActive: true,
     },
   },
-  'researcher@medinsight.dz': {
+  'researcher@medinsight.cd': {
     password: 'researcher123',
     user: {
       id: 'usr_003',
-      email: 'researcher@medinsight.dz',
-      name: 'Dr. Yacine Khelifi',
+      email: 'researcher@medinsight.cd',
+      name: 'Dr. Espérance Ilunga',
       role: 'researcher',
       facility: 'fac_002',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=researcher@medinsight.dz',
+      avatar: '',
       createdAt: '2025-03-05T14:00:00Z',
       lastLogin: new Date().toISOString(),
       isActive: true,
@@ -66,7 +66,7 @@ function mapBackendUser(bu: Record<string, unknown>): User {
     name: `${bu.firstname || ''} ${bu.lastname || ''}`.trim() || bu.email as string,
     role: role as User['role'],
     facility: (bu.facilityId || bu.facility_id) as string,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${bu.email}`,
+    avatar: '',
     createdAt: (bu.createdAt || bu.created_at) as string,
     lastLogin: new Date().toISOString(),
     isActive: (bu.isActive !== undefined ? bu.isActive : bu.is_active) as boolean,
@@ -89,12 +89,14 @@ function saveSession(user: User, token: string, refreshToken: string) {
   localStorage.setItem('medinsight_user', JSON.stringify(user))
   localStorage.setItem('medinsight_token', token)
   localStorage.setItem('medinsight_refresh_token', refreshToken)
+  document.cookie = `medinsight_token=${token}; path=/; max-age=86400; SameSite=Lax`
 }
 
 function clearSession() {
   localStorage.removeItem('medinsight_user')
   localStorage.removeItem('medinsight_token')
   localStorage.removeItem('medinsight_refresh_token')
+  document.cookie = 'medinsight_token=; path=/; max-age=0'
 }
 
 function generateMockToken(user: User): string {

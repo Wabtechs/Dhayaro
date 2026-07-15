@@ -1,6 +1,6 @@
 # MedInsight
 
-> MedInsight est une PWA Offline-First de gestion de cas cliniques médicaux pour les hôpitaux et médecins d'Algérie. Elle permet de documenter, analyser et partager des cas cliniques en toute sécurité.
+> MedInsight est une PWA Offline-First de gestion de cas cliniques médicaux pour les hôpitaux et médecins de la RD Congo (Kinshasa). Elle permet de documenter, analyser et partager des cas cliniques en toute sécurité.
 
 ## Fonctionnalités principales
 - Gestion des cas cliniques (symptômes, diagnostics, traitements)
@@ -11,7 +11,7 @@
 - Recherche médicale avec données anonymisées
 
 ## Utilisateurs cibles
-- Hôpitaux et cliniques en Algérie
+- Hôpitaux et cliniques en RD Congo
 - Médecins et praticiens
 - Chercheurs médicaux
 - Pharmacies
@@ -22,5 +22,5 @@
 - Déploiement : Vercel (frontend + backend serverless)
 
 ## Contact
-- Email : contact@medinsight.dz
-- Localisation : Alger, Algérie
+- Email : contact@medinsight.cd
+- Localisation : Kinshasa, RD Congo

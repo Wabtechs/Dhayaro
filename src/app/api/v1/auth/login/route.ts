@@ -5,9 +5,9 @@ import { eq } from 'drizzle-orm'
 import { createToken, verifyPassword } from '@/lib/auth'
 
 const MOCK_USERS = [
-  { id: '00000000-0000-0000-0000-000000000001', email: 'admin@medinsight.dz', password: 'admin123', firstname: 'Admin', lastname: 'System', role: 'ADMIN' as const },
-  { id: '00000000-0000-0000-0000-000000000002', email: 'dr.benali@medinsight.dz', password: 'doctor123', firstname: 'Karim', lastname: 'Benali', role: 'DOCTOR' as const },
-  { id: '00000000-0000-0000-0000-000000000003', email: 'researcher@medinsight.dz', password: 'researcher123', firstname: 'Amina', lastname: 'Hadj', role: 'RESEARCHER' as const },
+  { id: '00000000-0000-0000-0000-000000000001', email: 'admin@medinsight.cd', password: 'admin123', firstname: 'Jean-Pierre', lastname: 'Lukusa', role: 'ADMIN' as const },
+  { id: '00000000-0000-0000-0000-000000000002', email: 'dr.kabongo@medinsight.cd', password: 'doctor123', firstname: 'Patrice', lastname: 'Kabongo', role: 'DOCTOR' as const },
+  { id: '00000000-0000-0000-0000-000000000003', email: 'researcher@medinsight.cd', password: 'researcher123', firstname: 'Espérance', lastname: 'Ilunga', role: 'RESEARCHER' as const },
 ]
 
 export async function POST(request: NextRequest) {
@@ -47,9 +47,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const token = await createToken({ sub: user.id, email: user.email, role: user.role })
+    const token = await createToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      facilityId: (user as { facility_id?: string | null }).facility_id || null,
+    })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       access_token: token,
       refresh_token: token,
       token_type: 'bearer',
@@ -61,6 +66,16 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     })
+
+    response.cookies.set('medinsight_token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 86400,
+    })
+
+    return response
   } catch {
     return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
   }

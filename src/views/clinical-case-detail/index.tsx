@@ -55,6 +55,7 @@ import {
   useUpdateClinicalCase,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
+import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, formatDateTime, getInitials } from '@/lib/utils'
 import type { CaseStatus, CaseNote } from '@/types'
 
@@ -76,6 +77,7 @@ const priorityLabels: Record<string, string> = {
 export default function ClinicalCaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { can } = usePermissions()
 
   const { data: clinicalCase, isLoading, error } = useClinicalCaseDetail(id)
   const { data: patientsData } = usePatientsData()
@@ -266,10 +268,12 @@ export default function ClinicalCaseDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {can('clinical_cases:edit') && (
           <Button variant="outline" size="sm" onClick={openEditDialog}>
             <Pencil className="mr-2 h-4 w-4" />
             Modifier
           </Button>
+          )}
           {statusActions.map((action) => (
             <Button
               key={action.status}

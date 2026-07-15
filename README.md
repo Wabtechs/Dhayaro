@@ -244,9 +244,9 @@ VITE_API_URL=http://localhost:8000/api/v1
 
 | Rôle | Email | Mot de passe |
 |------|-------|-------------|
-| Admin | admin@medinsight.dz | admin123 |
-| Médecin | dr.benali@medinsight.dz | doctor123 |
-| Chercheur | researcher@medinsight.dz | researcher123 |
+| Admin | admin@medinsight.cd | admin123 |
+| Médecin | dr.kabongo@medinsight.cd | doctor123 |
+| Chercheur | researcher@medinsight.cd | researcher123 |
 
 ### Connexion
 
@@ -512,7 +512,7 @@ Assurez-vous de modifier :
 ```nginx
 server {
     listen 80;
-    server_name api.medinsight.dz;
+    server_name api.medinsight.cd;
 
     location / {
         proxy_pass http://localhost:8000;
@@ -523,7 +523,7 @@ server {
 
 server {
     listen 80;
-    server_name medinsight.dz;
+    server_name medinsight.cd;
 
     location / {
         proxy_pass http://localhost:5173;

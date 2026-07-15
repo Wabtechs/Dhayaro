@@ -16,6 +16,9 @@ import {
 } from '@/components/ui/tooltip'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth-store'
+import { usePermissions } from '@/hooks/use-permissions'
+import type { Permission } from '@/lib/permissions'
+import { ROLE_LABELS } from '@/lib/permissions'
 import {
   LayoutDashboard,
   Building2,
@@ -35,6 +38,7 @@ interface NavItem {
   label: string
   icon: React.ComponentType<{ className?: string }>
   href: string
+  permission?: Permission
 }
 
 interface NavSection {
@@ -47,31 +51,31 @@ const navSections: NavSection[] = [
     label: 'PRINCIPAL',
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-      { label: 'Établissements', icon: Building2, href: '/facilities' },
-      { label: 'Utilisateurs', icon: Users, href: '/users' },
-      { label: 'Patients', icon: UserRound, href: '/patients' },
+      { label: 'Établissements', icon: Building2, href: '/facilities', permission: 'facilities:list' },
+      { label: 'Utilisateurs', icon: Users, href: '/users', permission: 'users:list' },
+      { label: 'Patients', icon: UserRound, href: '/patients', permission: 'patients:list' },
     ],
   },
   {
     label: 'CLINIQUE',
     items: [
-      { label: 'Cas Cliniques', icon: FolderOpen, href: '/clinical-cases' },
-      { label: 'Historique des Traitements', icon: ClipboardList, href: '/treatment-history' },
+      { label: 'Cas Cliniques', icon: FolderOpen, href: '/clinical-cases', permission: 'clinical_cases:list' },
+      { label: 'Historique des Traitements', icon: ClipboardList, href: '/treatment-history', permission: 'clinical_cases:list' },
     ],
   },
   {
     label: 'ANALYTIQUE',
     items: [
-      { label: 'Statistiques', icon: BarChart3, href: '/analytics' },
-      { label: 'Chercheurs', icon: FlaskConical, href: '/research' },
+      { label: 'Statistiques', icon: BarChart3, href: '/analytics', permission: 'analytics:read' },
+      { label: 'Chercheurs', icon: FlaskConical, href: '/research', permission: 'analytics:read' },
     ],
   },
   {
     label: 'SYSTÈME',
     items: [
       { label: 'Synchronisation', icon: RefreshCw, href: '/sync' },
-      { label: 'Paramètres', icon: Settings, href: '/settings' },
-      { label: 'Journal d\'Audit', icon: Shield, href: '/audit' },
+      { label: 'Paramètres', icon: Settings, href: '/settings', permission: 'settings:read' },
+      { label: 'Journal d\'Audit', icon: Shield, href: '/audit', permission: 'audit:read' },
     ],
   },
 ]
@@ -126,7 +130,15 @@ function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
 export function Sidebar() {
   const { sidebarOpen } = useAppStore()
   const { user, logout } = useAuthStore()
+  const { can } = usePermissions()
   const collapsed = !sidebarOpen
+
+  const filteredSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => !item.permission || can(item.permission)),
+    }))
+    .filter(section => section.items.length > 0)
 
   return (
     <aside
@@ -147,7 +159,7 @@ export function Sidebar() {
       <ScrollArea className="flex-1 py-4">
         <TooltipProvider delayDuration={0}>
           <nav className="space-y-6 px-3">
-            {navSections.map((section) => (
+            {filteredSections.map((section) => (
               <div key={section.label}>
                 {!collapsed && (
                   <span className="mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -189,7 +201,7 @@ export function Sidebar() {
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8}>
               <p className="font-medium">{user?.name ?? 'Utilisateur'}</p>
-              <p className="text-xs text-muted-foreground">{user?.role ?? 'Rôle'}</p>
+              <p className="text-xs text-muted-foreground">{user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role : 'Rôle'}</p>
             </TooltipContent>
           </Tooltip>
         ) : (

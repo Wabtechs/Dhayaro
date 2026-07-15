@@ -95,8 +95,8 @@ const testimonials = [
   {
     quote:
       'MedInsight a transformé notre façon de gérer les cas cliniques. Le mode offline est un vrai plus pour nos équipes mobiles.',
-    name: 'Dr. Amira Bentaleb',
-    role: 'Cardiologue, CHU Mustapha',
+    name: 'Dr. Jean-Pierre Lukusa',
+    role: 'Cardiologue, Hôpital Général de Kinshasa',
   },
   {
     quote:
@@ -500,8 +500,8 @@ export default function LandingPage() {
               variant="outline"
               className="border-white/30 text-white hover:bg-white/10"
               onClick={() => {
-                navigator.clipboard.writeText("contact@medinsight.dz")
-                toast({ title: "Email copié", description: "contact@medinsight.dz a été copié dans le presse-papier" })
+                navigator.clipboard.writeText("contact@medinsight.cd")
+                toast({ title: "Email copié", description: "contact@medinsight.cd a été copié dans le presse-papier" })
               }}
             >
               <Mail className="mr-2 h-4 w-4" />
@@ -572,15 +572,15 @@ export default function LandingPage() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm text-white/50">
                   <MapPin className="h-4 w-4 shrink-0 text-accent" />
-                  Alger, Algérie
+                  Kinshasa, RD Congo
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white/50">
                   <Phone className="h-4 w-4 shrink-0 text-accent" />
-                  +213 555 010 001
+                  +243 81 222 0001
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white/50">
                   <Mail className="h-4 w-4 shrink-0 text-accent" />
-                  contact@medinsight.dz
+                  contact@medinsight.cd
                 </li>
               </ul>
             </div>

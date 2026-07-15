@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { usePatientsData, useFacilitiesData, useUpdatePatient, useDeletePatient } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { cn, formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
@@ -57,6 +58,7 @@ export default function PatientsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { can } = usePermissions()
   const [search, setSearch] = useState('')
   const [genderFilter, setGenderFilter] = useState('all')
   const [facilityFilter, setFacilityFilter] = useState('all')
@@ -221,12 +223,14 @@ export default function PatientsPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {can('patients:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau Patient
             </Button>
           </DialogTrigger>
+          )}
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Nouveau Patient</DialogTitle>
@@ -285,7 +289,7 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     required
@@ -412,7 +416,7 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   />
@@ -605,6 +609,7 @@ export default function PatientsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {can('patients:edit') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -612,6 +617,8 @@ export default function PatientsPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      )}
+                      {can('patients:delete') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -620,6 +627,7 @@ export default function PatientsPage() {
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

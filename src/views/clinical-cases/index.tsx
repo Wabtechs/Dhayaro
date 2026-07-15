@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/dialog'
 import { useClinicalCasesData, usePatientsData, useFacilitiesData, useUsersData, useUpdateClinicalCase, useDeleteClinicalCase } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
@@ -84,6 +85,7 @@ export default function ClinicalCasesPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { can } = usePermissions()
   const { data: casesData, isLoading } = useClinicalCasesData()
   const { data: patientsData } = usePatientsData()
   const { data: facilitiesData } = useFacilitiesData()
@@ -265,12 +267,14 @@ export default function ClinicalCasesPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {can('clinical_cases:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau Cas
             </Button>
           </DialogTrigger>
+          )}
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Créer un Nouveau Cas</DialogTitle>
@@ -728,6 +732,7 @@ export default function ClinicalCasesPage() {
                     <CardTitle className="line-clamp-1 text-base">
                       {c.title}
                     </CardTitle>
+                    {can('clinical_cases:edit') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -740,6 +745,8 @@ export default function ClinicalCasesPage() {
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
+                    )}
+                    {can('clinical_cases:delete') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -752,6 +759,7 @@ export default function ClinicalCasesPage() {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant={c.status}>{statusLabels[c.status]}</Badge>
@@ -858,6 +866,7 @@ export default function ClinicalCasesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {can('clinical_cases:edit') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -868,6 +877,8 @@ export default function ClinicalCasesPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      )}
+                      {can('clinical_cases:delete') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -879,6 +890,7 @@ export default function ClinicalCasesPage() {
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

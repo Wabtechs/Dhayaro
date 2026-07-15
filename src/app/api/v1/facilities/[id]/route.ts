@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 const FACILITY_KEYS = ['name', 'code', 'facilityType', 'address', 'city', 'phone', 'email', 'bedCount', 'departmentCount', 'staffCount'] as const
 
@@ -11,6 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const { id } = await params
     const [row] = await getDb().select().from(facilities).where(eq(facilities.id, id)).limit(1)
 
@@ -30,6 +34,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole(request, ['ADMIN'])
+    if ('error' in auth) return auth.error
+
     const { id } = await params
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, FACILITY_KEYS)
@@ -56,6 +63,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole(request, ['ADMIN'])
+    if ('error' in auth) return auth.error
+
     const { id } = await params
 
     const [deleted] = await getDb()

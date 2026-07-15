@@ -4,9 +4,13 @@ import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const { searchParams } = new URL(request.url)
     const { page, size, search, offset } = parsePagination(searchParams)
 
@@ -17,6 +21,11 @@ export async function GET(request: NextRequest) {
         ilike(clinicalCases.description, `%${search}%`),
         ilike(clinicalCases.provisionalDiagnosis, `%${search}%`),
       )!)
+    }
+
+    const role = auth.user.role.toLowerCase()
+    if ((role === 'doctor' || role === 'nurse') && auth.user.facilityId) {
+      conditions.push(eq(clinicalCases.facilityId, auth.user.facilityId))
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -71,6 +80,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const body = await request.json()
 
     const patientId = sanitizeUuid(body.patientId)

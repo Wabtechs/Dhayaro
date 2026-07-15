@@ -28,6 +28,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { usePermissions } from '@/hooks/use-permissions'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import {
@@ -93,6 +94,7 @@ const priorityColors: Record<CasePriority, string> = {
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { can } = usePermissions()
 
   const { data: patient, isLoading, error } = usePatientDetail(id)
   const { data: casesData } = useClinicalCasesData()
@@ -206,15 +208,17 @@ export default function PatientDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à la liste
         </Button>
+        {can('patients:edit') && (
         <Button variant="outline" size="sm" onClick={openEditDialog}>
           <Pencil className="mr-2 h-4 w-4" />
           Modifier
         </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <Avatar className="h-20 w-20">
-          <AvatarImage src={email ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${patientId}` : undefined} />
+          <AvatarImage src={undefined} />
           <AvatarFallback className="text-2xl">
             {(firstName || '?')[0]}{(lastName || '?')[0]}
           </AvatarFallback>

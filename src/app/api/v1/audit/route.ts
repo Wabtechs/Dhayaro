@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { auditLogs, users } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
+import { requireRole } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireRole(request, ['ADMIN'])
+    if ('error' in auth) return auth.error
+
     const { searchParams } = new URL(request.url)
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const size = Math.min(100, parseInt(searchParams.get('size') || '20', 10))

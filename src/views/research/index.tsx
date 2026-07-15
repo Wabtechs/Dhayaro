@@ -69,7 +69,7 @@ const activeStudies = [
     description:
       "Analyse des facteurs de risque cardiovasculaire dans une population de 5000 patients sur 3 centres hospitaliers.",
     progress: 68,
-    team: ["Dr. Amira Benali", "Dr. Karim Mansouri", "Dr. Sara Zidane"],
+    team: ["Dr. Jean-Pierre Lukusa", "Dr. Patrice Kabongo", "Dr. Solange Ngoy"],
   },
   {
     id: 2,

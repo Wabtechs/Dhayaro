@@ -3,9 +3,13 @@ import { getDb, getSql } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const { searchParams } = new URL(request.url)
     const { page, size, search, offset } = parsePagination(searchParams)
 
@@ -35,6 +39,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRole(request, ['ADMIN'])
+    if ('error' in auth) return auth.error
+
     const body = await request.json()
 
     if (!body.name || !body.code || !body.facilityType) {

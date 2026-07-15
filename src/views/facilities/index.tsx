@@ -40,6 +40,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFacilitiesData, useUpdateFacility, useDeleteFacility } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import type { Facility } from '@/types'
 
@@ -61,6 +62,7 @@ export default function Facilities() {
   const { data, isLoading } = useFacilitiesData()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { can } = usePermissions()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -235,12 +237,14 @@ export default function Facilities() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {can('facilities:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Nouvel Établissement
             </Button>
           </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Nouvel Établissement</DialogTitle>
@@ -303,7 +307,7 @@ export default function Facilities() {
                     id="fac-phone"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -402,7 +406,7 @@ export default function Facilities() {
                     id="edit-fac-phone"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -539,6 +543,7 @@ export default function Facilities() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
+                    {can('facilities:edit') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -547,6 +552,8 @@ export default function Facilities() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    )}
+                    {can('facilities:delete') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -555,6 +562,7 @@ export default function Facilities() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    )}
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/facilities/${facility.id}`}>
                         Voir détails →

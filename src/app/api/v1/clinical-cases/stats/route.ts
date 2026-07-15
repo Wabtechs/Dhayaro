@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { clinicalCases } from '@/lib/schema'
 import { count } from 'drizzle-orm'
+import { requireAuth } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const rows = await getDb()
       .select({
         status: clinicalCases.outcomeStatus,

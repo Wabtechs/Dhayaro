@@ -47,6 +47,7 @@ import { useUsersData, useFacilitiesData, useUpdateUser } from '@/hooks/use-data
 import { api } from '@/services/api'
 import { formatDate, getInitials } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
 
@@ -84,6 +85,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 export default function Users() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { can } = usePermissions()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -315,12 +317,14 @@ export default function Users() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {can('users:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Nouvel Utilisateur
             </Button>
           </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Nouvel Utilisateur</DialogTitle>
@@ -346,7 +350,7 @@ export default function Users() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="jean.dupont@medinsight.dz"
+                  placeholder="jean.dupont@medinsight.cd"
                   required
                 />
               </div>
@@ -401,7 +405,7 @@ export default function Users() {
                     id="user-phone"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -454,7 +458,7 @@ export default function Users() {
                   type="email"
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  placeholder="jean.dupont@medinsight.dz"
+                  placeholder="jean.dupont@medinsight.cd"
                   required
                 />
               </div>
@@ -656,6 +660,7 @@ export default function Users() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {can('users:edit') && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -664,6 +669,8 @@ export default function Users() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        )}
+                        {can('users:delete') && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -674,6 +681,7 @@ export default function Users() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

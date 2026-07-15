@@ -4,6 +4,7 @@ import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { sanitizeUuid } from '@/lib/validation'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 const CLINICAL_CASE_KEYS = ['title', 'description', 'patientId', 'doctorId', 'facilityId', 'symptomsJson', 'provisionalDiagnosis', 'treatment', 'treatmentDuration', 'outcomeStatus', 'outcomeNotes', 'priority', 'tagsJson'] as const
 
@@ -12,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const { id } = await params
     const [row] = await getDb().select().from(clinicalCases).where(eq(clinicalCases.id, id)).limit(1)
 
@@ -31,6 +35,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
     const { id } = await params
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, CLINICAL_CASE_KEYS)
@@ -83,6 +90,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole(request, ['ADMIN', 'DOCTOR'])
+    if ('error' in auth) return auth.error
+
     const { id } = await params
 
     const [deleted] = await getDb()

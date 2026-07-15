@@ -5,7 +5,7 @@ const SITE_URL = 'https://medinsight-phi.vercel.app'
 const SITE_NAME = 'MedInsight'
 const TITLE = 'MedInsight - Gestion de Cas Cliniques Médicaux'
 const DESCRIPTION =
-  "PWA Offline-First de gestion de cas cliniques pour les hôpitaux et médecins d'Algérie. Documentez, analysez et partagez vos cas en toute sécurité."
+  "PWA Offline-First de gestion de cas cliniques pour les hôpitaux et médecins de la RD Congo. Documentez, analysez et partagez vos cas en toute sécurité."
 const OG_IMAGE = 'https://i.ibb.co/zWyNytSq/t-l-chargement.png'
 
 export const viewport: Viewport = {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: [
     'gestion cas cliniques',
-    'médecine Algérie',
+    'médecine RD Congo',
     'PWA médicale',
     'dossier patient',
     'hôpital',

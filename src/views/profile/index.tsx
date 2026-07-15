@@ -125,13 +125,13 @@ export default function ProfilePage() {
   const { darkMode, toggleDarkMode } = useAppStore();
   const updateUser = useUpdateUser();
 
-  const [name, setName] = useState(user?.name ?? "Dr. Amira Benali");
-  const [email, setEmail] = useState(user?.email ?? "amira.benali@medinsight.dz");
-  const [phone, setPhone] = useState("+213 555 123 456");
+  const [name, setName] = useState(user?.name ?? "Dr. Jean-Pierre Lukusa");
+  const [email, setEmail] = useState(user?.email ?? "admin@medinsight.cd");
+  const [phone, setPhone] = useState("+243 81 200 001");
   const [department, setDepartment] = useState("Cardiologie");
 
   const [prefLanguage, setPrefLanguage] = useState("fr");
-  const [prefTimezone, setPrefTimezone] = useState("Africa/Algiers");
+  const [prefTimezone, setPrefTimezone] = useState("Africa/Kinshasa");
   const [emailNotif, setEmailNotif] = useState(true);
   const [itemsPerPage, setItemsPerPage] = useState("25");
 
@@ -159,8 +159,8 @@ export default function ProfilePage() {
     }
   };
 
-  const displayName = user?.name ?? "Dr. Amira Benali";
-  const displayEmail = user?.email ?? "amira.benali@medinsight.dz";
+  const displayName = user?.name ?? "Dr. Jean-Pierre Lukusa";
+  const displayEmail = user?.email ?? "admin@medinsight.cd";
   const displayRole = user?.role ?? "researcher";
   const initials = displayName
     .split(" ")
@@ -374,7 +374,7 @@ export default function ProfilePage() {
                       <SelectValue placeholder="Sélectionner un fuseau" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Africa/Algiers">Africa/Algiers (UTC+1)</SelectItem>
+                      <SelectItem value="Africa/Kinshasa">Africa/Kinshasa (UTC+1/+2)</SelectItem>
                       <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
                       <SelectItem value="UTC">UTC (UTC+0)</SelectItem>
                     </SelectContent>
