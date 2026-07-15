@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb, getSql } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
@@ -54,18 +54,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const sql = getSql()
-    const allergiesStr = body.allergies ? JSON.stringify(body.allergies) : '[]'
-    const id = crypto.randomUUID()
-    const now = new Date().toISOString()
+    const now = new Date()
 
-    const rows = await sql`
-      INSERT INTO patients (id, patient_uuid, firstname, lastname, email, sex, date_of_birth, blood_group, facility_id, allergies, is_active, created_at, updated_at)
-      VALUES (${id}, ${patientUuid}, ${body.firstname || null}, ${body.lastname || null}, ${body.email || null}, ${body.sex || null}, ${body.dateOfBirth || null}, ${body.bloodGroup || null}, ${facilityId}, ${allergiesStr}::jsonb, true, ${now}, ${now})
-      RETURNING id, facility_id, patient_uuid, firstname, lastname, email, sex, date_of_birth, blood_group, is_active, created_at, updated_at
-    `
+    const [row] = await getDb().insert(patients).values({
+      id: crypto.randomUUID(),
+      patientUuid,
+      firstname: body.firstname || null,
+      lastname: body.lastname || null,
+      email: body.email || null,
+      sex: body.sex || null,
+      age: body.age ?? 0,
+      bloodGroup: body.bloodGroup || null,
+      phone: body.phone || null,
+      address: body.address || null,
+      dateOfBirth: body.dateOfBirth || null,
+      facilityId,
+      allergies: body.allergies || [],
+      medicalHistoryJson: body.medicalHistoryJson || {},
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    }).returning()
 
-    return NextResponse.json(rows[0], { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (e) {
     logError('POST /patients', e)
     return apiError(500, 'Internal server error')
