@@ -17,10 +17,21 @@ const R = {
   VIEWER: 'VIEWER' as const,
 }
 
-const PENDING = 'PENDING' as const
-const IN_PROGRESS = 'IN_PROGRESS' as const
-const SUCCESS = 'SUCCESS' as const
-const FAILURE = 'FAILURE' as const
+function daysAgo(n: number): Date {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  d.setHours(8 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60), 0, 0)
+  return d
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function pickN<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, n)
+}
 
 const facilityData = [
   { name: 'Hôpital Général de Kinshasa', code: 'HGK-001', facilityType: F.HOSPITAL, address: 'Avenue de l\'Hôpital, Gombe', city: 'Kinshasa', phone: '+243 81 222 0001', email: 'info@hgr-kinshasa.cd', bedCount: 2000, departmentCount: 40, staffCount: 4500 },
@@ -49,6 +60,8 @@ const userData = [
   { firstname: 'Gilbert', lastname: 'Ilunga', email: 'dr.ilinga@medinsight.cd', role: R.DOCTOR, facilityIndex: 6 },
   { firstname: 'Monique', lastname: 'Kenge', email: 'dr.kenge@medinsight.cd', role: R.DOCTOR, facilityIndex: 7 },
   { firstname: 'Augustin', lastname: 'Tshilombo', email: 'dr.tshilombo@medinsight.cd', role: R.DOCTOR, facilityIndex: 8 },
+  { firstname: 'Joséphine', lastname: 'Mukendi', email: 'dr.josephine@medinsight.cd', role: R.DOCTOR, facilityIndex: 9 },
+  { firstname: 'Serge', lastname: 'Bakajika', email: 'dr.serge@medinsight.cd', role: R.DOCTOR, facilityIndex: 4 },
   { firstname: 'Consolée', lastname: 'Bakonga', email: 'nurse.consolee@medinsight.cd', role: R.NURSE, facilityIndex: 0 },
   { firstname: 'Pierrette', lastname: 'Nlandu', email: 'nurse.pierrette@medinsight.cd', role: R.NURSE, facilityIndex: 1 },
   { firstname: 'Norbert', lastname: 'Kasongo', email: 'nurse.norbert@medinsight.cd', role: R.NURSE, facilityIndex: 5 },
@@ -58,109 +71,116 @@ const userData = [
   { firstname: 'Bernadette', lastname: 'Mbuyi', email: 'bernadette.viewer@medinsight.cd', role: R.VIEWER, facilityIndex: 5 },
 ]
 
-const patientData = [
-  { facilityIndex: 0, patientUuid: 'PAT-001', firstname: 'Félix', lastname: 'Tshisekedi', sex: 'M', age: 52, bloodGroup: 'A+', phone: '+243 81 301 0001', email: 'felix.tshisekedi@email.cd', address: 'Avenue de la Paix, Gombe, Kinshasa', dateOfBirth: '1973-03-15', allergies: ['Pénicilline'] },
-  { facilityIndex: 0, patientUuid: 'PAT-002', firstname: 'Jeanne', lastname: 'Lubaya', sex: 'F', age: 34, bloodGroup: 'O+', phone: '+243 81 301 0002', email: 'jeanne.lubaya@email.cd', address: 'Boulevard du 30 Juin, Lingwala, Kinshasa', dateOfBirth: '1991-07-22', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-003', firstname: 'Aristide', lastname: 'Kabila', sex: 'M', age: 61, bloodGroup: 'B-', phone: '+243 81 301 0003', email: 'aristide.kabila@email.cd', address: 'Rue de l\'Évangéli, Barumbu, Kinshasa', dateOfBirth: '1964-11-08', allergies: ['Aspirine', 'Iode'] },
-  { facilityIndex: 1, patientUuid: 'PAT-004', firstname: 'Hélène', lastname: 'Diangienda', sex: 'F', age: 43, bloodGroup: 'AB+', phone: '+243 81 301 0004', email: 'helene.diangienda@email.cd', address: 'Avenue Tombalbaye, Kinshasa', dateOfBirth: '1982-01-30', allergies: ['Latex'] },
-  { facilityIndex: 1, patientUuid: 'PAT-005', firstname: 'Célestin', lastname: 'Mobutu', sex: 'M', age: 69, bloodGroup: 'O-', phone: '+243 81 301 0005', email: 'celestin.mobutu@email.cd', address: 'Boulevard Lumumba, Limete, Kinshasa', dateOfBirth: '1956-05-12', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-006', firstname: 'Béatrice', lastname: 'Ngoma', sex: 'F', age: 28, bloodGroup: 'A-', phone: '+243 81 301 0006', email: 'beatrice.ngoma@email.cd', address: 'Avenue Sendwe, Ngaliema, Kinshasa', dateOfBirth: '1997-09-03', allergies: ['Pollens'] },
-  { facilityIndex: 2, patientUuid: 'PAT-007', firstname: 'Sylvain', lastname: 'Kasai', sex: 'M', age: 55, bloodGroup: 'B+', phone: '+243 81 301 0007', email: 'sylvain.kasai@email.cd', address: 'Rue Kasa-Vubu, Kintambo, Kinshasa', dateOfBirth: '1970-12-18', allergies: ['AINS'] },
-  { facilityIndex: 0, patientUuid: 'PAT-008', firstname: 'Cécile', lastname: 'Kalonji', sex: 'F', age: 40, bloodGroup: 'O+', phone: '+243 81 301 0008', email: 'cecile.kalonji@email.cd', address: 'Avenue des Aviateurs, Gombe, Kinshasa', dateOfBirth: '1985-04-25', allergies: [] },
-  { facilityIndex: 3, patientUuid: 'PAT-009', firstname: 'Augustin', lastname: 'Lumumba', sex: 'M', age: 74, bloodGroup: 'A+', phone: '+243 81 301 0009', email: 'augustin.lumumba@email.cd', address: 'Boulevard du 30 Juin, Lingwala, Kinshasa', dateOfBirth: '1951-08-07', allergies: ['Morphine'] },
-  { facilityIndex: 0, patientUuid: 'PAT-010', firstname: 'Monique', lastname: 'Kasa', sex: 'F', age: 46, bloodGroup: 'AB-', phone: '+243 81 301 0010', email: 'monique.kasa@email.cd', address: 'Avenue Mombo, Ngaliema, Kinshasa', dateOfBirth: '1979-06-14', allergies: [] },
-  { facilityIndex: 1, patientUuid: 'PAT-011', firstname: 'Félix', lastname: 'Tshombe', sex: 'M', age: 37, bloodGroup: 'O+', phone: '+243 81 301 0011', email: 'felix.tshombe@email.cd', address: 'Rue de Kinshasa, Bandalungwa', dateOfBirth: '1988-02-20', allergies: ['Crustacés'] },
-  { facilityIndex: 0, patientUuid: 'PAT-012', firstname: 'Grâce', lastname: 'Nsenda', sex: 'F', age: 52, bloodGroup: 'B+', phone: '+243 81 301 0012', email: 'grace.nsenda@email.cd', address: 'Avenue Kasa-Vubu, Kalamu, Kinshasa', dateOfBirth: '1973-10-11', allergies: [] },
-  { facilityIndex: 2, patientUuid: 'PAT-013', firstname: 'Aristide', lastname: 'Kalonji', sex: 'M', age: 29, bloodGroup: 'A-', phone: '+243 81 301 0013', email: 'aristide.kalonji@email.cd', address: 'Boulevard Mangengeng, Masina, Kinshasa', dateOfBirth: '1996-01-05', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-014', firstname: 'Espérance', lastname: 'Kabongo', sex: 'F', age: 63, bloodGroup: 'O-', phone: '+243 81 301 0014', email: 'esperance.kabongo@email.cd', address: 'Avenue de la République, Gombe, Kinshasa', dateOfBirth: '1962-07-28', allergies: ['Pénicilline', 'Sulfamides'] },
-  { facilityIndex: 3, patientUuid: 'PAT-015', firstname: 'Norbert', lastname: 'Luyindula', sex: 'M', age: 50, bloodGroup: 'B-', phone: '+243 81 301 0015', email: 'norbert.luyindula@email.cd', address: 'Rue des Écoles, Ndjili, Kinshasa', dateOfBirth: '1975-03-09', allergies: [] },
-  { facilityIndex: 5, patientUuid: 'PAT-016', firstname: 'Françoise', lastname: 'Batumona', sex: 'F', age: 38, bloodGroup: 'A+', phone: '+243 81 301 0016', email: 'francoise.batumona@email.cd', address: 'Avenue de Limete, Limete, Kinshasa', dateOfBirth: '1987-05-17', allergies: [] },
-  { facilityIndex: 5, patientUuid: 'PAT-017', firstname: 'Clovis', lastname: 'Kilangi', sex: 'M', age: 57, bloodGroup: 'O+', phone: '+243 81 301 0017', email: 'clovis.kilangi@email.cd', address: 'Boulevard Katumbi, Ngaba, Kinshasa', dateOfBirth: '1968-09-23', allergies: ['Pénicilline'] },
-  { facilityIndex: 0, patientUuid: 'PAT-018', firstname: 'Bernadette', lastname: 'Ngalula', sex: 'F', age: 26, bloodGroup: 'B+', phone: '+243 81 301 0018', email: 'bernadette.ngalula@email.cd', address: 'Avenue Tombalbaye, Makala, Kinshasa', dateOfBirth: '1999-12-01', allergies: [] },
-  { facilityIndex: 6, patientUuid: 'PAT-019', firstname: 'Gilbert', lastname: 'Kanku', sex: 'M', age: 64, bloodGroup: 'AB+', phone: '+243 81 301 0019', email: 'gilbert.kanku@email.cd', address: 'Route de Limete, Limete, Kinshasa', dateOfBirth: '1961-04-11', allergies: ['Iode', 'Latex'] },
-  { facilityIndex: 0, patientUuid: 'PAT-020', firstname: 'Marie', lastname: 'Lokwa', sex: 'F', age: 49, bloodGroup: 'A-', phone: '+243 81 301 0020', email: 'marie.lokwa@email.cd', address: 'Avenue Kasa-Vubu, Kintambo, Kinshasa', dateOfBirth: '1976-08-30', allergies: [] },
-  { facilityIndex: 1, patientUuid: 'PAT-021', firstname: 'Emmanuel', lastname: 'Nzemba', sex: 'M', age: 41, bloodGroup: 'O-', phone: '+243 81 301 0021', email: 'emmanuel.nzemba@email.cd', address: 'Boulevard Lumumba, Kalamu, Kinshasa', dateOfBirth: '1984-01-19', allergies: [] },
-  { facilityIndex: 7, patientUuid: 'PAT-022', firstname: 'Solange', lastname: 'Kabinda', sex: 'F', age: 59, bloodGroup: 'B-', phone: '+243 81 301 0022', email: 'solange.kabinda@email.cd', address: 'Avenue de la Paix, Gombe, Kinshasa', dateOfBirth: '1966-06-05', allergies: ['Aspirine'] },
-  { facilityIndex: 8, patientUuid: 'PAT-023', firstname: 'Dieudonné', lastname: 'Mwanza', sex: 'M', age: 45, bloodGroup: 'A+', phone: '+243 81 301 0023', email: 'dieudonne.mwanza@email.cd', address: 'Rue Kalembe-Lembe, Bandalungwa, Kinshasa', dateOfBirth: '1980-10-14', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-024', firstname: 'Consolée', lastname: 'Ngalula', sex: 'F', age: 33, bloodGroup: 'O+', phone: '+243 81 301 0024', email: 'consolee.ngalula@email.cd', address: 'Avenue Sendwe, Barumbu, Kinshasa', dateOfBirth: '1992-02-28', allergies: ['Pollens', 'Acariens'] },
-  { facilityIndex: 5, patientUuid: 'PAT-025', firstname: 'Augustin', lastname: 'Katumbi', sex: 'M', age: 72, bloodGroup: 'AB-', phone: '+243 81 301 0025', email: 'augustin.katumbi@email.cd', address: 'Boulevard Kasavubu, Kinshasa', dateOfBirth: '1953-12-20', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-026', firstname: 'Monique', lastname: 'Luyindula', sex: 'F', age: 54, bloodGroup: 'B+', phone: '+243 81 301 0026', email: 'monique.luyindula@email.cd', address: 'Avenue du Cinquantenaire, Lingwala, Kinshasa', dateOfBirth: '1971-07-09', allergies: [] },
-  { facilityIndex: 1, patientUuid: 'PAT-027', firstname: 'Olivier', lastname: 'Tshilombo', sex: 'M', age: 36, bloodGroup: 'A-', phone: '+243 81 301 0027', email: 'olivier.tshilombo@email.cd', address: 'Rue de l\'Étoile, Masina, Kinshasa', dateOfBirth: '1989-11-03', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-028', firstname: 'Pierrette', lastname: 'Kalembe', sex: 'F', age: 28, bloodGroup: 'O+', phone: '+243 81 301 0028', email: 'pierrette.kalembe@email.cd', address: 'Avenue Mombo, Ngaliema, Kinshasa', dateOfBirth: '1997-04-16', allergies: [] },
-  { facilityIndex: 6, patientUuid: 'PAT-029', firstname: 'Bertin', lastname: 'Mobutu', sex: 'M', age: 67, bloodGroup: 'A+', phone: '+243 81 301 0029', email: 'bertin.mobutu@email.cd', address: 'Route de Kintambo, Kintambo, Kinshasa', dateOfBirth: '1958-08-22', allergies: ['Morphine', 'AINS'] },
-  { facilityIndex: 0, patientUuid: 'PAT-030', firstname: 'Bernadette', lastname: 'Lukusa', sex: 'F', age: 42, bloodGroup: 'B-', phone: '+243 81 301 0030', email: 'bernadette.lukusa@email.cd', address: 'Avenue Kasavubu, Limete, Kinshasa', dateOfBirth: '1983-03-07', allergies: [] },
-  { facilityIndex: 5, patientUuid: 'LAT-001', firstname: 'Félix', lastname: 'Kasongo', sex: 'M', age: 30, bloodGroup: 'O+', phone: '+243 81 301 0031', email: 'felix.kasongo@email.cd', address: 'Avenue de la République, Gombe, Kinshasa', dateOfBirth: '1995-07-05', allergies: [] },
-  { facilityIndex: 5, patientUuid: 'LAT-002', firstname: 'Jeanne', lastname: 'Mbuyi', sex: 'F', age: 51, bloodGroup: 'A+', phone: '+243 81 301 0032', email: 'jeanne.mbuyi@email.cd', address: 'Boulevard Lumumba, Kalamu, Kinshasa', dateOfBirth: '1974-11-28', allergies: ['Pénicilline'] },
-  { facilityIndex: 0, patientUuid: 'PAT-031', firstname: 'Aristide', lastname: 'Nsenda', sex: 'M', age: 35, bloodGroup: 'B+', phone: '+243 81 301 0033', email: 'aristide.nsenda@email.cd', address: 'Avenue Tombalbaye, Makala, Kinshasa', dateOfBirth: '1990-09-12', allergies: [] },
-  { facilityIndex: 3, patientUuid: 'PAT-032', firstname: 'Hélène', lastname: 'Kalonji', sex: 'F', age: 58, bloodGroup: 'O-', phone: '+243 81 301 0034', email: 'helene.kalonji@email.cd', address: 'Avenue des Aviateurs, Gombe, Kinshasa', dateOfBirth: '1967-01-25', allergies: ['Iode'] },
-  { facilityIndex: 0, patientUuid: 'PAT-033', firstname: 'Gilbert', lastname: 'Lualaba', sex: 'M', age: 44, bloodGroup: 'AB+', phone: '+243 81 301 0035', email: 'gilbert.lualaba@email.cd', address: 'Rue de Kinshasa, Bandalungwa', dateOfBirth: '1981-06-30', allergies: [] },
-  { facilityIndex: 1, patientUuid: 'PAT-034', firstname: 'Françoise', lastname: 'Kenge', sex: 'F', age: 39, bloodGroup: 'A-', phone: '+243 81 301 0036', email: 'francoise.kenge@email.cd', address: 'Boulevard Katumbi, Ngaba, Kinshasa', dateOfBirth: '1986-10-08', allergies: [] },
-  { facilityIndex: 0, patientUuid: 'PAT-035', firstname: 'Clovis', lastname: 'Tshisekedi', sex: 'M', age: 62, bloodGroup: 'O+', phone: '+243 81 301 0037', email: 'clovis.tshisekedi@email.cd', address: 'Avenue de la Paix, Gombe, Kinshasa', dateOfBirth: '1963-02-14', allergies: ['Sulfamides'] },
+const firstNamesM = ['Félix','Aristide','Célestin','Sylvain','Augustin','Norbert','Clovis','Gilbert','Emmanuel','Olivier','Bertin','Dieudonné','Théodore','Vianney','Serge','Blaise','Justin','Modeste','Pascal','Rodrigue','Fabrice','Gaëtan','Hervé','Landry','Marcel','Prosper','Stanis','Thierry','Yves']
+const firstNamesF = ['Jeanne','Hélène','Béatrice','Cécile','Monique','Grâce','Espérance','Bernadette','Consolée','Françoise','Pierrette','Solange','Marie','Françoise','Joséphine','Clémentine','Furaha','Gloria','Hortense','Inès','Josiane','Léontine','Mireille','Nadine','Olga','Patricia','Régine','Sylvie','Thérèse','Yvette']
+const lastNames = ['Tshisekedi','Lubaya','Kabila','Diangienda','Mobutu','Ngoma','Kasai','Kalonji','Lumumba','Kasa','Tshombe','Nsenda','Kabongo','Luyindula','Batumona','Kilangi','Ngalula','Kanku','Lokwa','Nzemba','Kabinda','Mwanza','Katumbi','Lualaba','Kenge','Mbuyi','Lukusa','Mutombo','Ilunga','Tshimanga','Mukendi','Bakajika',' Kasongo','Bakonga','Tshilombo']
+const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O+','O+','O-']
+const streets = ['Avenue de la Paix','Boulevard du 30 Juin','Avenue Sendwe','Boulevard Lumumba','Rue Kasa-Vubu','Avenue Mombo','Avenue Tombalbaye','Boulevard Kasavubu','Rue des Écoles','Avenue Kasa-Vubu','Boulevard Katumbi','Route de Limete','Avenue du Cinquantenaire','Avenue Kasavubu','Boulevard Mangengeng']
+const communes = ['Gombe','Lingwala','Ngaliema','Limete','Kalamu','Bandalungwa','Masina','Kintambo','Ngaba','Makala','Barumbu','Ndjili']
+const allergies = ['Pénicilline','Aspirine','Iode','Latex','AINS','Morphine','Sulfamides','Pollens','Crustacés','Acariens','Arachides','Null']
+
+const clinicalTemplates = [
+  { title: 'Paludisme sévère à Plasmodium falciparum', desc: 'Fièvre élevée depuis 5 jours, parasitémie à 200 000/µL. Hb 8g/dL.', symptoms: 'Fièvre 40°C, frissons, sueurs, anémie, splénomégalie', diag: 'Paludisme sévère - P. falciparum', treatment: 'Artesunate IV 2.4mg/kg puis ACT per os', duration: '7 jours', tags: ['infectiologie','paludisme','urgence'], priority: 'critical' },
+  { title: 'Diabète de type 2 décompensé', desc: 'Glycémie 3.2g/L. HbA1c 10.5%. IMC 32.', symptoms: 'Polyurie, polydipsie, fatigue, perte de poids', diag: 'Diabète type 2 - HbA1c 10.5%', treatment: 'Metformine 1000mg 2x/j + Gliclazide 80mg', duration: '6 mois', tags: ['endocrinologie','chronique'], priority: 'high' },
+  { title: 'Hypertension artérielle sévère', desc: 'HTA sévère PAS 185/115. Risque cardiovasculaire élevé.', symptoms: 'Céphalées occipitales, vertiges, épistaxis', diag: 'HTA sévère - Risque CV élevé', treatment: 'Amlodipine 10mg + Lisinopril 20mg + Indapamide 1.5mg LP', duration: 'Indéterminé', tags: ['cardiologie','chronique'], priority: 'high' },
+  { title: 'Asthme bronchique persistant', desc: 'Asthme déclenché par pollens. VEMS 65%.', symptoms: 'Dyspnée paroxystique, sifflements, toux nocturne', diag: 'Asthme allergique persistant - VEMS 65%', treatment: 'Beclométasone 400mcg/j + Formotérol 12mcg', duration: 'Permanente', tags: ['pneumologie','allergie'], priority: 'medium' },
+  { title: 'Insuffisance cardiaque aiguë', desc: 'ICFE décompensée. FEVG 28%. Antécédent IAM.', symptoms: 'Dyspnée de repos, orthopnée, œdèmes MI', diag: 'ICFE NYHA III - FEVG 28%', treatment: 'Furosémide IV + Ramipril + Carvedilol + Spironolactone', duration: 'Longue durée', tags: ['cardiologie','urgence'], priority: 'critical' },
+  { title: 'Gastrite à Helicobacter pylori', desc: 'Douleurs gastriques depuis 3 semaines. Hp positif.', symptoms: 'Douleur épigastrique, brûlures, ballonnements', diag: 'Gastrite antrale - Hp positif', treatment: 'IPP + Amoxicilline 1g + Clarithromycine 500mg (14j)', duration: '2 semaines', tags: ['gastro','infection'], priority: 'medium' },
+  { title: 'Colique néphrétique', desc: 'Lithiase rénale droite 9mm. Douleur aiguë.', symptoms: 'Douleur lombaire fulgurante, nausées, hématurie', diag: 'Lithiase rénale droite 9mm', treatment: 'Métamizole 2g IV + Tamsulosine + Lithotripsie', duration: '1 mois', tags: ['urologie','urgence'], priority: 'high' },
+  { title: 'Appendicite aiguë', desc: 'Appendicite confirmée au scanner. Alvarado 9.', symptoms: 'Douleur FID aiguë, fièvre 38.8°C, nausées', diag: 'Appendicite aiguë non compliquée', treatment: 'Appendicoscopie sous coelioscopie', duration: '1 semaine', tags: ['chirurgie','urgence'], priority: 'critical' },
+  { title: 'Infection urinaire basse', desc: 'Cystite aiguë. E.coli 10^6 UFC/mL.', symptoms: 'Dysurie, pollakiurie, brûlures mictionnelles', diag: 'Cystite aiguë - E.coli', treatment: 'Fosfomycine 3g dose unique', duration: '3 jours', tags: ['infectiologie','urologie'], priority: 'low' },
+  { title: 'Pneumonie communautaire', desc: 'Pneumonie lobaire droite. CRP 190.', symptoms: 'Fièvre 39.8°C, toux productive, dyspnée', diag: 'Pneumonie lobaire - CRB-65: 1', treatment: 'Amoxicilline 1g 3x/j + Azithromycine', duration: '10 jours', tags: ['pneumologie','infection'], priority: 'high' },
+  { title: 'Fibrillation atriale paroxystique', desc: 'FA paroxystique. CHA2DS2-VASc 2.', symptoms: 'Palpitations, dyspnée d\'effort, pouls irrégulier', diag: 'FA paroxystique - CHA2DS2-VASc 2', treatment: 'Apixaban 5mg 2x/j + Bisoprolol 5mg', duration: 'Indéterminé', tags: ['cardiologie','arythmie'], priority: 'high' },
+  { title: 'Dépression majeure', desc: 'Épisode dépressif sévère. PHQ-9 score 20.', symptoms: 'Tristesse persistante, anhédonie, insomnie', diag: 'TDM sévère - PHQ-9: 20', treatment: 'Sertraline 100mg/j + TCC', duration: '12 mois', tags: ['psychiatrie','santé-mentale'], priority: 'high' },
+  { title: 'Syndrome métabolique', desc: 'IMC 33, PA 145/95, glycémie 1.20g/L.', symptoms: 'Obésité abdominale, fatigue, essoufflement', diag: 'Syndrome métabolique - ATP III', treatment: 'Régime hypocalorique + Metformine 850mg', duration: '12 mois', tags: ['endocrinologie','métabolisme'], priority: 'high' },
+  { title: 'Hernie discale L5-S1', desc: 'Hernie discale compressive racine S1 gauche.', symptoms: 'Douleur sciatique, déficit sensitif S1', diag: 'Hernie discale L5-S1 gauche', treatment: 'Corticoïdes périduraux + Pregabaline + Kiné', duration: '3 mois', tags: ['neurochirurgie','douleur'], priority: 'high' },
+  { title: 'Urticaire chronique', desc: 'Urticaire spontanée depuis 7 mois.', symptoms: 'Plaques urticariennes prurigineuses', diag: 'Urticaire chronique spontanée', treatment: 'Cétirizine 20mg/j + Omalizumab si échec', duration: '6 mois', tags: ['dermatologie','allergie'], priority: 'medium' },
+  { title: 'Insuffisance rénale chronique', desc: 'IRC stade 4 - DFG 20. Néphropathie diabétique.', symptoms: 'Fatigue, prurit, œdèmes, nausées', diag: 'IRC stade 4 - Néphropathie diabétique', treatment: 'EPO + Fer IV + Régime hyposodé + IEC', duration: 'Longue durée', tags: ['néphrologie','dialyse'], priority: 'critical' },
+  { title: 'Grossesse normale - Suivi', desc: 'G2P1 - SA 28 semaines. Grossesse évolutive.', symptoms: 'Suivi de grossesse normale', diag: 'Grossesse unique SA 28 semaines', treatment: 'Acide folique + Fer + Calcium', duration: '12 semaines', tags: ['obstétrique','grossesse'], priority: 'medium' },
+  { title: 'Gonarthrose bilatérale', desc: 'Arthrose genou stade 2-3. IMC 29.', symptoms: 'Douleur mécanique, raideur matinale', diag: 'Gonarthrose stade 2-3', treatment: 'Paracétamol + AINS topique + Kiné', duration: '6 mois', tags: ['rhumatologie','orthopédie'], priority: 'medium' },
+  { title: 'Polyarthrite rhumatoïde', desc: 'PR séropositive. FR 130, anti-CCP 280.', symptoms: 'Raideur matinale >2h, douleurs articulaires', diag: 'PR séropositive - stade erosif', treatment: 'Méthotrexate 15mg/semaine SC + Prednisone', duration: 'Longue durée', tags: ['rhumatologie','auto-immune'], priority: 'high' },
+  { title: 'Céphalées de tension chronique', desc: 'Céphalées quotidiennes depuis 2 ans.', symptoms: 'Douleur oppressante bilatérale, casque', diag: 'Céphalées tensionnelles + Overuse', treatment: 'Amitriptyline 25mg + Arrêt AINS + Relaxation', duration: '3 mois', tags: ['neurologie','douleur'], priority: 'medium' },
+  { title: 'MPOC GOLD stade II', desc: 'VEMS/CVF 52%. Fumeur 35 paquets-années.', symptoms: 'Dyspnée d\'effort, toux productive', diag: 'MPOC GOLD II - VEMS/CVF 52%', treatment: 'Tiotropium 18mcg/j + Salbutamol PRN', duration: 'Longue durée', tags: ['pneumologie','chronique'], priority: 'high' },
+  { title: 'Névralgie du trijumeau', desc: 'Douleur faciale paroxystique V2-V3 depuis 7 mois.', symptoms: 'Douleur fulgurante joue et mâchoire', diag: 'Névralgie trijumeau classique V2/V3', treatment: 'Carbamazépine 200mg 2x/j + IRM', duration: '6 mois', tags: ['neurologie','douleur'], priority: 'high' },
+  { title: 'Anémie ferriprive sévère', desc: 'Hb 6.5g/dL, ferritine 3 ng/mL.', symptoms: 'Fatigue extrême, pâleur, dyspnée', diag: 'Anémie ferriprive sévère', treatment: 'Venofer 200mg IV x5 + Fer oral', duration: '3 mois', tags: ['hématologie','nutrition'], priority: 'high' },
+  { title: 'Cataracte sénile bilatérale', desc: 'Baisse AV depuis 1 an. AV OD 2/10, OG 3/10.', symptoms: 'Baisse acuité visuelle, éblouissement', diag: 'Cataracte sénile bilatérale', treatment: 'Phacoémulsification + IOL', duration: '2 semaines', tags: ['ophtalmologie','chirurgie'], priority: 'medium' },
+  { title: 'Lupus érythémateux systémique', desc: 'PLESS. ANA+, anti-dsDNA+. Atteinte rénale.', symptoms: 'Érythème ailes de papillon, arthralgies', diag: 'PLESS - SLICC 9 - Néphropathie IV', treatment: 'Corticoïdes + Mycophénolate + Hydroxychloroquine', duration: 'Longue durée', tags: ['rhumatologie','auto-immune'], priority: 'critical' },
+  { title: 'Diabète type 1 - Mauvais contrôle', desc: 'DT1 jeune adulte. HbA1c 11.2%. DKA il y a 8 mois.', symptoms: 'Polyurie, polydipsie, amaigrissement', diag: 'DT1 - HbA1c 11.2%', treatment: 'Pompe à insuline + Éducation thérapeutique', duration: 'Indéterminé', tags: ['endocrinologie','diabète'], priority: 'critical' },
+  { title: 'Cancer du côlon stade II', desc: 'Adénocarcinome côlon ascendant pT3N0M0.', symptoms: 'Rectorragies, amaigrissement 9kg, anémie', diag: 'Adénocarcinome côlon pT3N0M0', treatment: 'Hémicollectomie + FOLFOX 12 cycles', duration: '6 mois', tags: ['oncologie','chirurgie'], priority: 'critical' },
+  { title: 'BPCO aiguë surinfectée', desc: 'Exacerbation BPCO. VEMS 32%. Expectoration purulente.', symptoms: 'Dyspnée aiguë, fièvre 39.5°C, wheezing', diag: 'Exacerbation BPCO - Infection', treatment: 'Amoxicilline-clavulanique + Prednisone 40mg', duration: '10 jours', tags: ['pneumologie','infection'], priority: 'high' },
+  { title: 'Arthrose cervicale', desc: 'Spondylarthrose C5-C7. Douleurs chroniques.', symptoms: 'Douleurs cervicales, céphalées postérieures', diag: 'Spondylarthrose cervicale C5-C7', treatment: 'Kiné cervicale + AINS + Collier nocturne', duration: '3 mois', tags: ['orthopédie','rachis'], priority: 'medium' },
+  { title: 'Gastropathie par AINS', desc: 'Ulcération gastrique. Hématémèse.', symptoms: 'Hématémèse, méléna, douleur épigastrique', diag: 'Ulcère gastrique induit par AINS', treatment: 'Arrêt AINS + Esoméprazole 40mg IV', duration: '2 mois', tags: ['gastro','urgence'], priority: 'high' },
+  { title: 'Dermatite atopique sévère', desc: 'Eczéma chronique. SCORAD 55.', symptoms: 'Prurit intense nocturne, lichenification', diag: 'Dermatite atopique sévère - SCORAD 55', treatment: 'Corticoïde + Émollients + Dupilumab', duration: '6 mois', tags: ['dermatologie','chronique'], priority: 'high' },
+  { title: 'Hypothyroïdie subclinique', desc: 'TSH 9.0 mUI/L. Fatigue chronique.', symptoms: 'Fatigue, prise de poids, intolérance froid', diag: 'Hypothyroïdie subclinique', treatment: 'Lévothyroxine 50mcg/j', duration: 'Indéterminé', tags: ['endocrinologie','thyroïde'], priority: 'medium' },
 ]
 
-const caseData = [
-  { facilityIndex: 0, patientIndex: 0, doctorIndex: 2, title: 'Paludisme sévère à Plasmodium falciparum', description: 'Patient de 52 ans, fièvre élevée depuis 5 jours, parasitémie à 200 000/µL. Hémoglobine 8g/dL.', symptomsJson: { description: 'Fièvre 40°C, frissons, sueurs, anémie, splénomégalie, parasitémie 200 000/µL' }, provisionalDiagnosis: 'Paludisme sévère - P. falciparum - Parasitémie 200 000/µL', treatment: 'Artesunate IV 2.4mg/kg puis Perfloxine per os, transfusion si Hb <7', treatmentDuration: '7 jours', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['infectiologie', 'paludisme', 'urgence'] } },
-  { facilityIndex: 0, patientIndex: 1, doctorIndex: 3, title: 'Diabète de type 2 décompensé', description: 'Découverte fortuite glycémie 3.2g/L. HbA1c 10.5%. IMC 32.', symptomsJson: { description: 'Polyurie, polydipsie, fatigue, perte de poids inexpliquée' }, provisionalDiagnosis: 'Diabète type 2 - HbA1c 10.5%', treatment: 'Metformine 1000mg 2x/j + Gliclazide 80mg + régime hygiéno-diététique', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['endocrinologie', 'chronique', 'dmi'] } },
-  { facilityIndex: 0, patientIndex: 2, doctorIndex: 2, title: 'Hypertension artérielle sévère', description: 'HTA sévère PAS 185/115. Débutée depuis 8 mois sans traitement. Risque cardiovasculaire élevé.', symptomsJson: { description: 'Céphalées occipitales, vertiges, épistaxis récurrente, dyspnée d\'effort' }, provisionalDiagnosis: 'HTA sévère - Risque CV élevé', treatment: 'Amlodipine 10mg + Lisinopril 20mg + Indapamide 1.5mg LP', treatmentDuration: 'Indéterminé', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['cardiologie', 'chronique', 'risque-cv'] } },
-  { facilityIndex: 1, patientIndex: 3, doctorIndex: 4, title: 'Asthme bronchique persistant', description: 'Asthme déclenché par les pollens et la poussière. VEMS 65% pré-bronchodilatateur.', symptomsJson: { description: 'Dyspnée paroxystique, sifflements, toux nocturne, oppression thoracique' }, provisionalDiagnosis: 'Asthme allergique persistant léger - VEMS 65%', treatment: 'Beclométasone 400mcg/j + Formotérol 12mcg + Salbutamol PRN', treatmentDuration: 'Permanente', outcomeStatus: SUCCESS, priority: 'medium', tagsJson: { tags: ['pneumologie', 'allergie', 'pollen'] } },
-  { facilityIndex: 0, patientIndex: 4, doctorIndex: 3, title: 'Insuffisance cardiaque aiguë', description: 'ICFE décompensée. FEVG 28%. Patient de 69 ans, antécédent IAM 2018. Hospitalisation en urgence.', symptomsJson: { description: 'Dyspnée de repos, orthopnée 3/4, œdèmes des MI, râles crépitants bilatéraux' }, provisionalDiagnosis: 'ICFE NYHA III - FEVG 28% - Décompensation aiguë', treatment: 'Furosémide IV 80mg + Ramipril 5mg + Carvedilol 12.5mg 2x/j + Spironolactone 25mg', treatmentDuration: 'Longue durée', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['cardiologie', 'urgence', 'hospitalisation'] } },
-  { facilityIndex: 2, patientIndex: 5, doctorIndex: 6, title: 'Dermatite atopique sévère', description: 'Eczéma chronique des plis du coude et du genou depuis l\'enfance. SCORAD 55.', symptomsJson: { description: 'Prurit intense nocturne, lichenification, surinfection staphylococcique' }, provisionalDiagnosis: 'Dermatite atopique sévère - SCORAD 55', treatment: 'Crème corticoïde bétaméthasone + émollients quotidiens + Dupilumab 300mg/2sem', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['dermatologie', 'biologie', 'chronique'] } },
-  { facilityIndex: 0, patientIndex: 6, doctorIndex: 2, title: 'Gastrite à Helicobacter pylori', description: 'Douleurs gastriques depuis 3 semaines. Test urea breath test positif. FGDS gastrique avec érosions.', symptomsJson: { description: 'Douleur épigastrique post-prandiale, brûlures, ballonnements, perte d\'appétit' }, provisionalDiagnosis: 'Gastrite antrale - Hp positif', treatment: 'IPP Esoméprazole 40mg + Amoxicilline 1g 2x/j + Clarithromycine 500mg 2x/j (14j)', treatmentDuration: '2 semaines', outcomeStatus: PENDING, priority: 'medium', tagsJson: { tags: ['gastro', 'infection', 'hp'] } },
-  { facilityIndex: 1, patientIndex: 7, doctorIndex: 5, title: 'Gonarthrose bilatérale', description: 'Arthrose du genou bilatérale stade 2-3. IMC 29. Sédentaire. Douleurs invalidantes.', symptomsJson: { description: 'Douleur mécanique, raideur matinale 30min, craquements, gonflement récurrent' }, provisionalDiagnosis: 'Gonarthrose bilatérale stade 2-3 - Kellgren 3', treatment: 'Paracétamol 3g/j + AINS topique + Kinésithérapie 3x/semaine + Infiltration hyaluronique', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'medium', tagsJson: { tags: ['rhumatologie', 'orthopédie', 'douleur'] } },
-  { facilityIndex: 3, patientIndex: 8, doctorIndex: 7, title: 'Polyarthrite rhumatoïde séropositive', description: 'PR séropositive diagnostiquée depuis 4 mois. FR 130 UI/mL, anti-CCP 280. Érosions précoces.', symptomsJson: { description: 'Raideur matinale >2h, douleurs articulaires symétriques MTP, poignets, MCP' }, provisionalDiagnosis: 'PR séropositive - stade précoce erosif', treatment: 'Méthotrexate 15mg/semaine SC + Acide folique 5mg + Prednisone 10mg décroissant', treatmentDuration: 'Longue durée', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['rhumatologie', 'auto-immune', 'biologie'] } },
-  { facilityIndex: 0, patientIndex: 9, doctorIndex: 3, title: 'Anémie ferriprive sévère', description: 'Hb 6.5g/dL, ferritine 3 ng/mL, sat transferrine 5%. Ménorragies abondantes.', symptomsJson: { description: 'Fatigue extrême, pâleur, dyspnée d\'effort, palpitations, ongles koilonychies' }, provisionalDiagnosis: 'Anémie ferriprive sévère - Hb 6.5g/dL', treatment: 'Venofer 200mg IV x5 + Fer oral Sulfate ferreux 200mg/j après perfusions', treatmentDuration: '3 mois', outcomeStatus: PENDING, priority: 'high', tagsJson: { tags: ['hématologie', 'nutrition', 'urgence'] } },
-  { facilityIndex: 0, patientIndex: 0, doctorIndex: 2, title: 'Trouble dépressif majeur', description: 'Épisode dépressif récurrent sévère. PHQ-9 score 20. Idéations suicidaires passives.', symptomsJson: { description: 'Tristesse persistante, anhédonie, insomnie précoce, perte d\'appétit, fatigue, concentration altérée' }, provisionalDiagnosis: 'TDM sévère sans trouble bipolaire - PHQ-9: 20', treatment: 'Sertraline 100mg/j + TCC psychothérapie hebdomadaire', treatmentDuration: '12 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['psychiatrie', 'santé-mentale', 'suivi'] } },
-  { facilityIndex: 2, patientIndex: 10, doctorIndex: 6, title: 'Colique néphrétique', description: 'Lithiase rénale droite 9mm. Douleur aiguë aux urgences. Hématurie microscopique.', symptomsJson: { description: 'Douleur lombaire droite fulgurante, irradiation fosse iliaque, nausées, hématurie' }, provisionalDiagnosis: 'Lithiase rénale droite 9mm - Colique néphrétique', treatment: 'Métamizole 2g IV + Tamsulosine 0.4mg/j + Hydratation 3L/j + Lithotripsie extracorporelle', treatmentDuration: '1 mois', outcomeStatus: SUCCESS, priority: 'high', tagsJson: { tags: ['urologie', 'urgence', 'lithiase'] } },
-  { facilityIndex: 1, patientIndex: 11, doctorIndex: 4, title: 'Hypothyroïdie subclinique', description: 'TSH 9.0 mUI/L, T4L normale. Fatigue chronique, prise de poids 7kg en 3 mois.', symptomsJson: { description: 'Fatigue, prise de poids, intolérance au froid, constipation, peau sèche' }, provisionalDiagnosis: 'Hypothyroïdie subclinique - TSH 9.0', treatment: 'Lévothyroxine 50mcg/j à jeune - Réévaluation TSH dans 6 semaines', treatmentDuration: 'Indéterminé', outcomeStatus: IN_PROGRESS, priority: 'medium', tagsJson: { tags: ['endocrinologie', 'thyroïde'] } },
-  { facilityIndex: 0, patientIndex: 12, doctorIndex: 3, title: 'Appendicite aiguë non compliquée', description: 'Appendicite confirmée au scanner. Algie fosse iliaque droite depuis 14h. Pas de péritonite.', symptomsJson: { description: 'Douleur FID aiguë, fièvre 38.8°C, nausées, défense musculaire' }, provisionalDiagnosis: 'Appendicite aiguë non compliquée - Alvarado 9', treatment: 'Appendicoscopie sous coelioscopie - Antibiothérapie peropératoire', treatmentDuration: '1 semaine', outcomeStatus: SUCCESS, priority: 'critical', tagsJson: { tags: ['chirurgie', 'urgence', 'coelioscopie'] } },
-  { facilityIndex: 3, patientIndex: 13, doctorIndex: 7, title: 'Cataracte sénile bilatérale', description: 'Baisse de l\'AV depuis 1 an. Cataracte nucléaire bilatérale. AV count digits OD 2/10, OG 3/10.', symptomsJson: { description: 'Baisse progressive acuité visuelle, éblouissement, dédoublement des images' }, provisionalDiagnosis: 'Cataracte sénile bilatérale - stade核成熟', treatment: 'Phacoémulsification + IOL bilatérale sous anesthésie topique', treatmentDuration: '2 semaines', outcomeStatus: PENDING, priority: 'medium', tagsJson: { tags: ['ophtalmologie', 'chirurgie', 'cataracte'] } },
-  { facilityIndex: 0, patientIndex: 14, doctorIndex: 2, title: 'Infection urinaire basse', description: 'ITU basse récidivante (5 épisodes/an). Cystite aiguë. ECBU positif E.coli 10^6 UFC/mL.', symptomsJson: { description: 'Dysurie, pollakiurie, brûlures mictionnelles, urine trouble' }, provisionalDiagnosis: 'Cystite aiguë - E.coli sensible', treatment: 'Fosfomycine 3g dose unique + Hydratation abondante', treatmentDuration: '3 jours', outcomeStatus: SUCCESS, priority: 'low', tagsJson: { tags: ['infectiologie', 'urologie'] } },
-  { facilityIndex: 0, patientIndex: 1, doctorIndex: 3, title: 'Névralgie du trijumeau', description: 'Douleur faciale paroxystique type V2-V3 depuis 7 mois. Déclenchée par le mastication.', symptomsJson: { description: 'Douleur fulgurante joue et mâchoire, déclenchée par mastication et toucher' }, provisionalDiagnosis: 'Névralgie du trijumeau type classique - V2/V3', treatment: 'Carbamazépine 200mg 2x/j titration progressive + IRM cérébrale', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['neurologie', 'douleur', 'trijumeau'] } },
-  { facilityIndex: 1, patientIndex: 3, doctorIndex: 5, title: 'MPOC GOLD stade II', description: 'Bronchopneumopathie chronique obstructive. VEMS/CVF 52%. Fumeur 35 paquets-années.', symptomsJson: { description: 'Dyspnée d\'effort chronique, toux productive matinale, sifflements' }, provisionalDiagnosis: 'MPOC GOLD stade II - VEMS/CVF 52%', treatment: 'Tiotropium 18mcg/j + Salbutamol 100mcg PRN + Réhabilitation respiratoire', treatmentDuration: 'Longue durée', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['pneumologie', 'chronique', 'tabac'] } },
-  { facilityIndex: 0, patientIndex: 4, doctorIndex: 2, title: 'Sténose du canal lombaire', description: 'Canal lombaire étroit L4-L5 avec compression racinaire. Claudication marche 180m.', symptomsJson: { description: 'Claudication marche lombaire, douleurs lombaires irradiées aux membres inférieurs' }, provisionalDiagnosis: 'Sténose du canal lombaire L4-L5 - Claudication marche 180m', treatment: 'Kinésithérapie lombaire + Infiltrations épidurales + Pregabaline 75mg 2x/j', treatmentDuration: '3 mois', outcomeStatus: PENDING, priority: 'medium', tagsJson: { tags: ['orthopédie', 'neurochirurgie', 'lombalgie'] } },
-  { facilityIndex: 5, patientIndex: 15, doctorIndex: 8, title: 'Syndrome métabolique', description: 'Patient 38 ans, IMC 33, PA 145/95, glycémie 1.20g/L, TG 3.0g/L, HDL 0.32g/L.', symptomsJson: { description: 'Obésité abdominale, fatigue, essoufflement, acrosurie' }, provisionalDiagnosis: 'Syndrome métabolique - ATP III critères', treatment: 'Régime hypocalorique - Activité physique 150min/sem + Metformine 850mg', treatmentDuration: '12 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['endocrinologie', 'métabolisme', 'obésité'] } },
-  { facilityIndex: 5, patientIndex: 16, doctorIndex: 9, title: 'Cancer du côlon stade II', description: 'Adénocarcinome du côlon ascendant pT3N0M0. Score d\'Amsterdam négatif. Chirurgie programmée.', symptomsJson: { description: 'Rectorragies, troubles du transit, amaigrissement 9kg, anémie' }, provisionalDiagnosis: 'Adénocarcinome côlon ascendant pT3N0M0', treatment: 'Hémicollectomie droite + chimiothérapie adjuvante FOLFOX 12 cycles', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['oncologie', 'chirurgie', 'coloscopie'] } },
-  { facilityIndex: 0, patientIndex: 17, doctorIndex: 2, title: 'Lupus érythémateux systémique', description: 'PLESS chez femme jeune. Anticorps ANA +, anti-dsDNA +, complément bas. Atteinte rénale + cutanée.', symptomsJson: { description: 'Érythème papulocraâneux en ailes de papillon, arthralgies, protéinurie 1.8g/j' }, provisionalDiagnosis: 'PLESS - Score SLICC 9 - Néphropathie classe IV', treatment: 'Corticoïdes 1mg/kg + Mycophénolate 2g/j + Hydroxychloroquine 400mg/j', treatmentDuration: 'Longue durée', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['rhumatologie', 'auto-immune', 'néphrologie'] } },
-  { facilityIndex: 1, patientIndex: 20, doctorIndex: 4, title: 'Hernie discale L5-S1', description: 'Hernie discale postérieure L5-S1 compressive racine S1 gauche. Sciatique fulgurante.', symptomsJson: { description: 'Douleur sciatique gauche, déficit sensitif S1, Lasègue +25°' }, provisionalDiagnosis: 'Hernie discale L5-S1 gauche compressive', treatment: 'Corticoïdes périduraux + Pregabaline + Kinésithérapie - Chirurgie si échec 3 mois', treatmentDuration: '3 mois', outcomeStatus: PENDING, priority: 'high', tagsJson: { tags: ['neurochirurgie', 'douleur', 'rachis'] } },
-  { facilityIndex: 0, patientIndex: 19, doctorIndex: 3, title: 'Dépression post-partum', description: 'Trouble dépressif majeur post-partum. Edinburgh score 19. A allaité 4 mois.', symptomsJson: { description: 'Tristesse, anxiété, insomnie, irritabilité, culpabilité, idées noires' }, provisionalDiagnosis: 'Dépression post-partum sévère - Edinburgh 19', treatment: 'Sertraline 50mg (compatible allaitement) + Soutien psychologique', treatmentDuration: '12 mois', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['psychiatrie', 'post-partum', 'santé-mentale'] } },
-  { facilityIndex: 2, patientIndex: 12, doctorIndex: 6, title: 'Urticaire chronique', description: 'Urticaire spontanée depuis 7 mois. Éruptions quotidiennes. Pas d\'étiologie identifiée.', symptomsJson: { description: 'Plaques urticariennes prurigineuses, papules, angioedème périoculaire' }, provisionalDiagnosis: 'Urticaire chronique spontanée', treatment: 'Antihistaminiques dose double (Cétirizine 20mg/j) + Omalizumab si échec', treatmentDuration: '6 mois', outcomeStatus: IN_PROGRESS, priority: 'medium', tagsJson: { tags: ['dermatologie', 'allergie', 'chronique'] } },
-  { facilityIndex: 6, patientIndex: 18, doctorIndex: 10, title: 'Insuffisance rénale chronique', description: 'IRC stade 4 - DFG 20 mL/min/1.73m². Néphropathie diabétique. Anémie chronique.', symptomsJson: { description: 'Fatigue, prurit, œdèmes, nausées, pollakiurie nocturne' }, provisionalDiagnosis: 'IRC stade 4 - Néphropathie diabétique', treatment: 'EPO 4000UI/semaine + Fer IV + Régime hyposodé + IEC + Phosphateurs', treatmentDuration: 'Longue durée', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['néphrologie', 'dialyse', 'chronique'] } },
-  { facilityIndex: 0, patientIndex: 23, doctorIndex: 2, title: 'Paludisme récurrent', description: 'Patient sans comorbidité. 4ème épisode de paludisme cette année. P. falciparum confirmé.', symptomsJson: { description: 'Fièvre 39.5°C, frissons, céphalée, myalgies, parasitémie 80 000/µL' }, provisionalDiagnosis: 'Paludisme récidivant - P. falciparum', treatment: 'ACT (Arthéméther-Luméfantrine) 3 jours + prophylaxie recommandée', treatmentDuration: '3 jours', outcomeStatus: SUCCESS, priority: 'high', tagsJson: { tags: ['infectiologie', 'paludisme', 'prévention'] } },
-  { facilityIndex: 5, patientIndex: 24, doctorIndex: 8, title: 'BPCO aiguë surinfectée', description: 'Exacerbation aiguë de BPCO avec expectoration purulente. VEMS 32%.', symptomsJson: { description: 'Dyspnée aiguë, expectoration purulente, fièvre 39.5°C, wheezing' }, provisionalDiagnosis: 'Exacerbation aiguë BPCO - Infection - VEMS 32%', treatment: 'Amoxicilline-clavulanique 1g 3x/j + Prednisone 40mg + Nébulisation Salbutamol', treatmentDuration: '10 jours', outcomeStatus: SUCCESS, priority: 'high', tagsJson: { tags: ['pneumologie', 'infection', 'urgence'] } },
-  { facilityIndex: 0, patientIndex: 25, doctorIndex: 3, title: 'Céphalées de tension chronique', description: 'Céphalées tensionnelles chroniques quotidiennes depuis 2 ans. Consommation d\'AINS excessive.', symptomsJson: { description: 'Douleur oppressante bilatérale, sensation de casque, raideur cervicale' }, provisionalDiagnosis: 'Céphalées de tension chronique + Médicament overuse', treatment: 'Amitriptyline 25mg NS + Arrêt AINS + Relaxation + Physiothérapie', treatmentDuration: '3 mois', outcomeStatus: PENDING, priority: 'medium', tagsJson: { tags: ['neurologie', 'douleur', 'chronique'] } },
-  { facilityIndex: 1, patientIndex: 26, doctorIndex: 5, title: 'Diabète type 1 - Mauvais contrôle', description: 'DT1 chez jeune adulte. HbA1c 11.2%. Pas d\'autosurveillance glycémique. DKA il y a 8 mois.', symptomsJson: { description: 'Polyurie, polydipsie, amaigrissement, cétonurie' }, provisionalDiagnosis: 'DT1 - HbA1c 11.2% - Mauvais contrôle', treatment: 'Pompe à insuline + Formation auto-injection + Éducation thérapeutique', treatmentDuration: 'Indéterminé', outcomeStatus: IN_PROGRESS, priority: 'critical', tagsJson: { tags: ['endocrinologie', 'diabète', 'éducation'] } },
-  { facilityIndex: 3, patientIndex: 21, doctorIndex: 7, title: 'Arthrose cervicale', description: 'Spondylarthrose cervicale avec douleurs chroniques. C5-C6 et C6-C7.', symptomsJson: { description: 'Douleurs cervicales chroniques, céphalées postérieures, vertiges positionnels' }, provisionalDiagnosis: 'Spondylarthrose cervicale C5-C7', treatment: 'Kinésithérapie cervicale + Anti-inflammatoires + Collier cervical nocturne', treatmentDuration: '3 mois', outcomeStatus: PENDING, priority: 'medium', tagsJson: { tags: ['orthopédie', 'rachis', 'chronique'] } },
-  { facilityIndex: 0, patientIndex: 27, doctorIndex: 2, title: 'Grossesse normale - Suivi', description: 'G2P1 - SA 28 semaines. Grossesse évolutive. TDA 23cm, BCF 145/min. RAI négatif.', symptomsJson: { description: 'Suivi de grossesse normale - Aucun symptôme pathologique' }, provisionalDiagnosis: 'Grossesse unique SA 28 semaines - Normale', treatment: 'Acide folique + Fer + Calcium + Échographie T3 prévue', treatmentDuration: '12 semaines', outcomeStatus: IN_PROGRESS, priority: 'medium', tagsJson: { tags: ['obstétrique', 'grossesse', 'suivi'] } },
-  { facilityIndex: 0, patientIndex: 28, doctorIndex: 3, title: 'Gastropathie par AINS', description: 'Ulcération gastrique suite à traitement AINS prolongé pour lombalgie. Hématémèse.', symptomsJson: { description: 'Hématémèse, méléna, douleur épigastrique, pâleur' }, provisionalDiagnosis: 'Ulcère gastrique induit par AINS', treatment: 'Arrêt AINS + Esoméprazole 40mg IV + Transfusion si Hb<7 + Gastroscopie contrôle', treatmentDuration: '2 mois', outcomeStatus: SUCCESS, priority: 'high', tagsJson: { tags: ['gastro', 'urg', 'médecament'] } },
-  { facilityIndex: 5, patientIndex: 30, doctorIndex: 9, title: 'Pneumonie communautaire', description: 'Pneumonie lobaire droite. CRP 190, Leucocytes 16000. Scanner typique.', symptomsJson: { description: 'Fièvre 39.8°C, toux productive, douleur thoracique, dyspnée' }, provisionalDiagnosis: 'Pneumonie lobaire droite - CRB-65: 1', treatment: 'Amoxicilline 1g 3x/j + Azithromycine 500mg 1/j + Hospitalisation', treatmentDuration: '10 jours', outcomeStatus: SUCCESS, priority: 'high', tagsJson: { tags: ['pneumologie', 'infection', 'hospitalisation'] } },
-  { facilityIndex: 0, patientIndex: 29, doctorIndex: 2, title: 'Fibrillation atriale paroxystique', description: 'FA paroxystique découverte lors d\'ECG de contrôle. CHA2DS2-VASc 2. HAS-BLED 1.', symptomsJson: { description: 'Palpitations, dyspnée d\'effort, fatigue, pouls irrégulier' }, provisionalDiagnosis: 'Fibrillation atriale paroxystique - CHA2DS2-VASc 2', treatment: 'Anticoagulation Apixaban 5mg 2x/j + Bêtabloqueur Bisoprolol 5mg', treatmentDuration: 'Indéterminé', outcomeStatus: IN_PROGRESS, priority: 'high', tagsJson: { tags: ['cardiologie', 'arythmie', 'anticoagulation'] } },
-]
+function generatePatients(count: number) {
+  const pts: Array<{ facilityIndex: number; firstname: string; lastname: string; sex: string; age: number; bloodGroup: string; phone: string; address: string; dateOfBirth: string; allergies: string[] }> = []
+  for (let i = 0; i < count; i++) {
+    const sex = Math.random() > 0.48 ? 'M' : 'F'
+    const age = 2 + Math.floor(Math.random() * 85)
+    const birthYear = 2026 - age
+    const birthMonth = 1 + Math.floor(Math.random() * 12)
+    const birthDay = 1 + Math.floor(Math.random() * 28)
+    const allg = pick(allergies)
+    pts.push({
+      facilityIndex: Math.floor(Math.random() * 10),
+      firstname: sex === 'M' ? pick(firstNamesM) : pick(firstNamesF),
+      lastname: pick(lastNames).trim(),
+      sex,
+      age,
+      bloodGroup: pick(bloodGroups),
+      phone: `+243 81 ${300 + Math.floor(Math.random() * 700)} ${String(1000 + i).padStart(4, '0')}`,
+      address: `${pick(streets)}, ${pick(communes)}, Kinshasa`,
+      dateOfBirth: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
+      allergies: allg === 'Null' ? [] : [allg],
+    })
+  }
+  return pts
+}
 
-const auditData = [
-  { action: 'LOGIN', resource: 'auth', details: { method: 'password', ip: '192.168.1.1' }, ip: '192.168.1.1' },
-  { action: 'CREATE', resource: 'clinical_case', details: { title: 'Paludisme sévère à Plasmodium falciparum' }, ip: '192.168.1.10' },
-  { action: 'UPDATE', resource: 'clinical_case', details: { field: 'outcome_status', old: 'PENDING', new: 'IN_PROGRESS' }, ip: '192.168.1.15' },
-  { action: 'CREATE', resource: 'user', details: { name: 'Espérance Ilunga', role: 'RESEARCHER' }, ip: '192.168.1.1' },
-  { action: 'VIEW', resource: 'patient', details: { name: 'Félix Tshisekedi' }, ip: '192.168.1.10' },
-  { action: 'LOGIN', resource: 'auth', details: { method: 'password', ip: '192.168.1.20' }, ip: '192.168.1.20' },
-  { action: 'CREATE', resource: 'clinical_case', details: { title: 'Diabète de type 2 décompensé' }, ip: '192.168.1.10' },
-  { action: 'UPDATE', resource: 'patient', details: { field: 'allergies', added: ['Pénicilline'] }, ip: '192.168.1.10' },
-  { action: 'VIEW', resource: 'clinical_case', details: { title: 'Insuffisance cardiaque aiguë' }, ip: '192.168.1.15' },
-  { action: 'CREATE', resource: 'clinical_case', details: { title: 'Syndrome métabolique' }, ip: '192.168.1.30' },
-  { action: 'UPDATE', resource: 'clinical_case', details: { field: 'treatment', new: 'Protocole FOLFOX modifié' }, ip: '192.168.1.30' },
-  { action: 'LOGIN', resource: 'auth', details: { method: 'password', ip: '10.0.0.5' }, ip: '10.0.0.5' },
-  { action: 'VIEW', resource: 'patient', details: { name: 'Françoise Batumona' }, ip: '192.168.1.30' },
-  { action: 'UPDATE', resource: 'facility', details: { field: 'bed_count', old: 1990, new: 2000 }, ip: '192.168.1.1' },
-  { action: 'CREATE', resource: 'clinical_case', details: { title: 'Grossesse normale - Suivi' }, ip: '192.168.1.10' },
-  { action: 'DELETE', resource: 'sync_queue', details: { count: 18 }, ip: '192.168.1.1' },
-  { action: 'LOGIN', resource: 'auth', details: { method: 'password', ip: '192.168.1.50' }, ip: '192.168.1.50' },
-  { action: 'UPDATE', resource: 'clinical_case', details: { field: 'outcome_status', old: 'IN_PROGRESS', new: 'SUCCESS' }, ip: '192.168.1.10' },
-  { action: 'VIEW', resource: 'audit', details: { query: 'last_30_days' }, ip: '192.168.1.1' },
-  { action: 'CREATE', resource: 'clinical_case', details: { title: 'Pneumonie communautaire' }, ip: '192.168.1.30' },
-]
+function generateCases(
+  patientCount: number,
+  doctorIndices: number[],
+  facilityCount: number,
+) {
+  const cases: Array<{
+    facilityIndex: number
+    patientIndex: number
+    doctorIndex: number
+    template: typeof clinicalTemplates[number]
+    daysAgo: number
+    status: string
+  }> = []
+
+  for (let i = 0; i < 150; i++) {
+    const pi = Math.floor(Math.random() * patientCount)
+    const di = pick(doctorIndices)
+    const template = pick(clinicalTemplates)
+    const age = Math.floor(Math.random() * 180)
+
+    let status: string
+    if (age > 150) status = 'SUCCESS'
+    else if (age > 120) status = Math.random() > 0.3 ? 'SUCCESS' : 'FAILURE'
+    else if (age > 60) status = Math.random() > 0.4 ? 'IN_PROGRESS' : 'SUCCESS'
+    else if (age > 30) status = Math.random() > 0.5 ? 'IN_PROGRESS' : 'PENDING'
+    else status = 'PENDING'
+
+    cases.push({
+      facilityIndex: Math.floor(Math.random() * facilityCount),
+      patientIndex: pi,
+      doctorIndex: di,
+      template,
+      daysAgo: age,
+      status,
+    })
+  }
+
+  return cases.sort((a, b) => a.daysAgo - b.daysAgo)
+}
 
 async function seed() {
-  console.log('🌱 Seeding database with Kinshasa medical data...')
+  console.log('🌱 Seeding database with 6 months of Kinshasa medical data...')
 
   const db = getDb()
 
@@ -175,7 +195,7 @@ async function seed() {
     ...f,
     id: crypto.randomUUID(),
     isActive: true,
-    createdAt: new Date(),
+    createdAt: daysAgo(180),
     updatedAt: new Date(),
   }))).returning({ id: facilities.id })
   console.log(`  ✓ ${insertedFacilities.length} facilities`)
@@ -195,7 +215,7 @@ async function seed() {
   }
 
   const insertedUsers = await db.insert(users).values(
-    userData.map((u) => ({
+    userData.map((u, i) => ({
       id: crypto.randomUUID(),
       firstname: u.firstname,
       lastname: u.lastname,
@@ -204,14 +224,16 @@ async function seed() {
       role: u.role,
       facilityId: insertedFacilities[u.facilityIndex].id,
       isActive: true,
-      createdAt: new Date(),
+      createdAt: daysAgo(180 - i),
       updatedAt: new Date(),
     }))
   ).returning({ id: users.id })
   console.log(`  ✓ ${insertedUsers.length} users`)
 
+  const patientData = generatePatients(100)
+
   const insertedPatients = await db.insert(patients).values(
-    patientData.map((p) => ({
+    patientData.map((p, i) => ({
       id: crypto.randomUUID(),
       facilityId: insertedFacilities[p.facilityIndex].id,
       patientUuid: crypto.randomUUID(),
@@ -221,17 +243,20 @@ async function seed() {
       age: p.age,
       bloodGroup: p.bloodGroup,
       phone: p.phone,
-      email: p.email,
+      email: `${p.firstname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.${p.lastname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}@email.cd`,
       address: p.address,
       dateOfBirth: p.dateOfBirth,
       allergies: p.allergies,
       medicalHistoryJson: {},
       isActive: true,
-      createdAt: new Date(),
+      createdAt: daysAgo(180 - i),
       updatedAt: new Date(),
     }))
   ).returning({ id: patients.id })
   console.log(`  ✓ ${insertedPatients.length} patients`)
+
+  const doctorIndices = [2,3,4,5,6,7,8,9,10,11,12,13,14]
+  const caseData = generateCases(insertedPatients.length, doctorIndices, insertedFacilities.length)
 
   const insertedCases = await db.insert(clinicalCases).values(
     caseData.map((c) => ({
@@ -239,43 +264,81 @@ async function seed() {
       facilityId: insertedFacilities[c.facilityIndex].id,
       patientId: insertedPatients[c.patientIndex].id,
       doctorId: insertedUsers[c.doctorIndex].id,
-      title: c.title,
-      description: c.description,
-      symptomsJson: c.symptomsJson,
-      provisionalDiagnosis: c.provisionalDiagnosis,
-      treatment: c.treatment,
-      treatmentDuration: c.treatmentDuration,
-      outcomeStatus: c.outcomeStatus,
-      priority: c.priority,
-      tagsJson: c.tagsJson,
+      title: c.template.title,
+      description: c.template.desc,
+      symptomsJson: { description: c.template.symptoms },
+      provisionalDiagnosis: c.template.diag,
+      treatment: c.template.treatment,
+      treatmentDuration: c.template.duration,
+      outcomeStatus: c.status as 'PENDING' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE',
+      outcomeNotes: c.status === 'SUCCESS' ? 'Patient guéri, suivi programmé' : c.status === 'FAILURE' ? 'Échec du traitement, réorientation' : undefined,
+      priority: c.template.priority,
+      tagsJson: { tags: c.template.tags },
       isSynced: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: daysAgo(c.daysAgo),
+      updatedAt: daysAgo(Math.max(0, c.daysAgo - Math.floor(Math.random() * 15))),
     }))
   ).returning({ id: clinicalCases.id })
   console.log(`  ✓ ${insertedCases.length} clinical cases`)
 
-  await db.insert(auditLogs).values(
-    auditData.map((a, i) => ({
+  const auditActions = ['LOGIN','CREATE','UPDATE','VIEW','DELETE'] as const
+  const auditResources = ['auth','clinical_case','patient','facility','user','audit'] as const
+  const ips = ['192.168.1.1','192.168.1.10','192.168.1.15','192.168.1.20','192.168.1.30','10.0.0.5','10.0.0.12','172.16.0.8']
+
+  const auditEntries: Array<{
+    userId: string
+    facilityId: string
+    action: string
+    resource: string
+    resourceId: string
+    details: Record<string, unknown>
+    ipAddress: string
+    timestamp: Date
+  }> = []
+
+  for (let i = 0; i < 100; i++) {
+    const action = pick([...auditActions])
+    const resource = pick([...auditResources])
+    const userIndex = Math.floor(Math.random() * insertedUsers.length)
+    const patientIndex = Math.floor(Math.random() * insertedPatients.length)
+    const caseIndex = Math.floor(Math.random() * insertedCases.length)
+
+    let details: Record<string, unknown> = {}
+    if (action === 'CREATE') details = { title: insertedCases[caseIndex]?.title || 'Nouveau cas' }
+    else if (action === 'UPDATE') details = { field: 'outcome_status', old: 'PENDING', new: 'IN_PROGRESS' }
+    else if (action === 'VIEW') details = { name: `${patientData[patientIndex].firstname} ${patientData[patientIndex].lastname}` }
+    else if (action === 'LOGIN') details = { method: 'password' }
+
+    auditEntries.push({
       id: crypto.randomUUID(),
-      userId: insertedUsers[i % insertedUsers.length].id,
-      facilityId: insertedFacilities[i % insertedFacilities.length].id,
-      action: a.action,
-      resource: a.resource,
-      resourceId: insertedPatients[i % insertedPatients.length].id,
-      details: a.details,
-      ipAddress: a.ip,
-      timestamp: new Date(),
-    }))
-  )
-  console.log(`  ✓ ${auditData.length} audit logs`)
+      userId: insertedUsers[userIndex].id,
+      facilityId: insertedFacilities[Math.floor(Math.random() * insertedFacilities.length)].id,
+      action,
+      resource,
+      resourceId: resource === 'patient' ? insertedPatients[patientIndex].id : resource === 'clinical_case' ? insertedCases[caseIndex].id : insertedUsers[userIndex].id,
+      details,
+      ipAddress: pick(ips),
+      timestamp: daysAgo(Math.floor(Math.random() * 180)),
+    })
+  }
+
+  await db.insert(auditLogs).values(auditEntries)
+  console.log(`  ✓ ${auditEntries.length} audit logs`)
+
+  const statusCounts = { PENDING: 0, IN_PROGRESS: 0, SUCCESS: 0, FAILURE: 0 }
+  caseData.forEach(c => { statusCounts[c.status as keyof typeof statusCounts]++ })
 
   console.log('\n🎉 Seed completed successfully!')
   console.log(`   Facilities: ${insertedFacilities.length}`)
   console.log(`   Users: ${insertedUsers.length}`)
   console.log(`   Patients: ${insertedPatients.length}`)
   console.log(`   Clinical Cases: ${insertedCases.length}`)
-  console.log(`   Audit Logs: ${auditData.length}`)
+  console.log(`     - PENDING: ${statusCounts.PENDING}`)
+  console.log(`     - IN_PROGRESS: ${statusCounts.IN_PROGRESS}`)
+  console.log(`     - SUCCESS: ${statusCounts.SUCCESS}`)
+  console.log(`     - FAILURE: ${statusCounts.FAILURE}`)
+  console.log(`   Audit Logs: ${auditEntries.length}`)
+  console.log(`   Data span: 6 months (Jan 2026 - Jul 2026)`)
 }
 
 seed().catch((e) => {
