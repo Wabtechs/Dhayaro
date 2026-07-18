@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       sub: user.id,
       email: user.email,
       role: user.role,
-      facilityId: user.facility_id || null,
+      facilityId: (user as any).facilityId || (user as any).facility_id || null,
     })
 
     const response = NextResponse.json({
