@@ -2,9 +2,9 @@
 
 # Dhayaro
 
-### Plateforme Hospitalière Intégrée
+### Écosystème Numérique Résilient pour la Gestion Hospitalière
 
-**Offline-First | Multi-Tenant | RBAC | PWA**
+**Offline-First | Edge Computing | Résilient | PWA**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript)](https://typescriptlang.org)
@@ -19,30 +19,48 @@
 
 ## Table des Matières
 
-1. [Aperçu du Projet](#aperçu-du-projet)
-2. [Architecture](#architecture)
-3. [Stack Technique](#stack-technique)
-4. [Installation](#installation)
-5. [Configuration](#configuration)
-6. [Modules](#modules)
-7. [Rôles et Permissions](#rôles-et-permissions)
-8. [Sécurité](#sécurité)
-9. [Structure du Projet](#structure-du-projet)
-10. [Déploiement](#déploiement)
+1. [Contexte Académique](#contexte-académique)
+2. [Aperçu du Projet](#aperçu-du-projet)
+3. [Résilience et Edge Computing](#résilience-et-edge-computing)
+4. [Architecture](#architecture)
+5. [Stack Technique](#stack-technique)
+6. [Installation](#installation)
+7. [Configuration](#configuration)
+8. [Modules](#modules)
+9. [Rôles et Permissions](#rôles-et-permissions)
+10. [Sécurité](#sécurité)
+11. [Structure du Projet](#structure-du-projet)
+12. [Déploiement](#déploiement)
+
+---
+
+## Contexte Académique
+
+Ce projet est réalisé dans le cadre du mémoire de fin d'études :
+
+> **« Modélisation et implémentation d'un écosystème numérique résilient pour la gestion hospitalière et l'archivage pérenne des protocoles de soins en zones décentralisées. Cas de la Zone de Santé d'Alimbongo/Nord-Kivu »**
+
+**Université** : Université de Bukavu — Faculté des Sciences Appliquées, Département d'Informatique
+
+**Problématique** : Comment concevoir et implémenter un écosystème numérique qui soit à la fois performant pour la gestion hospitalière et assez résilient pour survivre aux contraintes techniques d'une zone décentralisée comme Alimbongo ?
+
+**Hypothèse** : Un écosystème numérique hybride (Offline-first), fonctionnant sur des infrastructures à basse consommation énergétique et intégrant des protocoles de soins interactifs, permettrait de garantir la continuité du service et la pérennité des archives médicales, indépendamment des aléas de connexion et d'énergie.
 
 ---
 
 ## Aperçu du Projet
 
-**Dhayaro** est une plateforme hospitalière moderne conçue pour les hôpitaux et cliniques d'Algérie. Elle permet de :
+**Dhayaro** est une plateforme hospitalière résiliente conçue pour les zones de santé décentralisées de la RDC, notamment la Zone de Santé d'Alimbongo dans la province du Nord-Kivu. Elle permet de :
 
 - **Gérer les patients** : dossier médical complet, contacts, assurance, antécédents
 - **Suivre les consultations** : motif, symptômes, signes vitaux, diagnostics
 - **Administrer les traitements** : prescriptions, posologie, suivi
 - **Gérer le laboratoire** : demandes d'examens, résultats, validation
+- **Digitaliser les protocoles de soins** : arbres décisionnels interactifs, aide à la décision clinique
 - **Organiser la file d'attente** : workflow complet en temps réel
 - **Générer des documents** : ordonnances, certificats, rapports médicaux (PDF)
-- **Analyser les données** : tableaux de bord, graphiques, rapports
+- **Générer les rapports SNIS** : automatisation des rapports mensuels pour le Bureau Central de la Zone
+- **Archiver pérennement** : formats PDF/A, sauvegardes redondantes, réplication
 
 ### Modules Fonctionnels
 
@@ -52,15 +70,66 @@
 | **Consultations** | Motif, symptômes, signes vitaux, notes, diagnostic provisoire |
 | **Diagnostics** | Diagnostic principal/secondaires, validation, historique |
 | **Maladies** | CRUD, classification CIM-10, symptômes, complications |
+| **Protocoles de Soins** | Arbres décisionnels interactifs, aide à la décision, alertes |
 | **Traitements** | Prescription, médicaments, posologie, suivi, évolution |
 | **Laboratoire** | Demandes d'examens, catégories, résultats, validation |
 | **File d'attente** | Workflow : Réception → Médecin → Labo → Traitement → Fin |
 | **Documents** | Ordonnances, certificats, rapports, export PDF |
-| **Archives** | Archivage automatique de tous les éléments |
-| **Tableau de bord** | Widgets, graphiques, statistiques en temps réel |
+| **Archives** | Archivage pérenne (PDF/A), réplication redondante |
+| **Tableau de bord** | Widgets, graphiques, statistiques SNIS en temps réel |
 | **Notifications** | Système de notifications temps réel |
-| **Rapports** | PDF et Excel avec filtres avancés |
+| **Rapports** | PDF, Excel, rapports SNIS avec filtres avancés |
 | **Auth/RBAC** | 10 rôles avec permissions granulaires |
+| **Synchronisation** | Sync intermittente Edge → Cloud, file d'attente locale |
+
+---
+
+## Résilience et Edge Computing
+
+### Architecture Offline-First
+
+Le système est conçu pour fonctionner **sans connexion internet**. Les données sont stockées localement sur un serveur Edge et synchronisées avec le cloud provincial/national dès qu'une connexion est disponible.
+
+### Niveaux de résilience
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Cloud Provincial (Goma/Kinshasa)                       │
+│  → Backup de sécurité, consolidation SNIS (DHIS2)      │
+├─────────────────────────────────────────────────────────┤
+│  Gateway (Routeur 4G/LTE ou VSAT)                      │
+│  → Synchronisation intermittente, tunnel VPN sécurisé   │
+├─────────────────────────────────────────────────────────┤
+│  Nœud Local — Edge Computing (Alimbongo)                │
+│  → Raspberry Pi 5 / Intel NUC                           │
+│  → Docker : OpenMRS + Nextcloud + CouchDB               │
+│  → Alimentation solaire + batterie (48h autonomie)      │
+├─────────────────────────────────────────────────────────┤
+│  Points de Soin (Tablettes / Smartphones)               │
+│  → Client léger (navigateur) + Wi-Fi local sécurisé    │
+│  → Saisie hors-ligne, consultation protocoles           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Flux en mode dégradé (sans internet)
+
+1. L'infirmier saisit les données sur sa tablette
+2. La donnée est enregistrée dans le serveur local (instantané)
+3. Le serveur tente de joindre le serveur central
+4. Si échec → la donnée est mise en file d'attente (Queue)
+5. Dès retour du réseau → synchronisation automatique via VPN
+
+### Résilience énergétique
+
+- Serveurs à basse consommation (Raspberry Pi 5, Intel NUC)
+- Alimentation hybride solaire + batterie (autonomie 48h minimum)
+- Optimisation Green IT pour réduire la consommation
+
+### Archivage pérenne
+
+- Formats standards ouverts (PDF/A, XML) pour une lisibilité à long terme
+- Réplication redondante sur deux supports physiques différents
+- Stockage immuable pour garantir l'intégrité des données
 
 ---
 
@@ -79,7 +148,7 @@ src/
 ├── views/                 # Composants pages
 ├── hooks/                 # Custom hooks React
 ├── store/                 # Zustand stores
-├── services/              # API client
+├── services/              # API client + sync engine
 ├── lib/                   # Utils, schema DB, auth, seed
 └── types/                 # TypeScript types
 ```
@@ -98,10 +167,13 @@ src/
 | Drizzle ORM | 0.44 | ORM PostgreSQL |
 | Neon | - | PostgreSQL serverless |
 | Zustand | 5 | Client state |
-| TanStack Query | 5 | Server state |
+| TanStack Query | 5 | Server state + sync |
 | Recharts | 2 | Graphiques |
 | jose | 6 | JWT tokens |
 | bcryptjs | 3 | Hachage mots de passe |
+| CouchDB | - | Base locale Edge (sync) |
+| Docker | - | Conteneurisation Edge |
+| Nextcloud | - | Archivage protocoles PDF/A |
 
 ---
 
@@ -162,32 +234,38 @@ Diagnostic principal, diagnostics secondaires, historique, validation, médecin 
 ### 4. Maladies
 CRUD complet, classification CIM-10, symptômes, complications, historique.
 
-### 5. Traitements
+### 5. Protocoles de Soins
+Arbres décisionnels interactifs, intégration des guides OMS/Ministère, alertes si non-conformité, aide à la décision en temps réel pour le personnel soignant.
+
+### 6. Traitements
 Prescription, médicaments, posologie, durée, historique, suivi, évolution.
 
-### 6. Laboratoire
+### 7. Laboratoire
 Demande d'examen, catégories, résultats, validation, historique, impression.
 
-### 7. File d'attente
+### 8. File d'attente
 Workflow : Réception → Salle d'attente → Médecin → Laboratoire → Retour médecin → Traitement → Fin. Statut en temps réel.
 
-### 8. Documents médicaux
+### 9. Documents médicaux
 Génération PDF, impression, export : consultations, diagnostics, ordonnances, prescriptions, résultats, certificats, rapports médicaux.
 
-### 9. Tableau de bord
-Widgets : patients, consultations, laboratoire, diagnostics, maladies, activité, utilisateurs, file d'attente. Graphiques interactifs.
+### 10. Tableau de bord
+Widgets : patients, consultations, laboratoire, diagnostics, maladies, activité, utilisateurs, file d'attente. Graphiques interactifs. Rapports SNIS automatisés.
 
-### 10. Notifications
+### 11. Notifications
 Temps réel : nouveau patient, diagnostic, résultats, ordonnance, consultation terminée.
 
-### 11. Rapports
-PDF et Excel : patients, médecins, consultations, maladies, laboratoire, activités, utilisateurs, traitements. Filtres : date, médecin, patient, maladie.
+### 12. Rapports
+PDF et Excel : patients, médecins, consultations, maladies, laboratoire, activités, utilisateurs, traitements. Rapports SNIS mensuels. Filtres : date, médecin, patient, maladie.
 
-### 12. Archives
-Archivage automatique de toutes les entités. Recherche rapide.
+### 13. Archives
+Archivage pérenne de toutes les entités en format PDF/A. Réplication redondante. Recherche rapide.
 
-### 13. Authentification et RBAC
+### 14. Authentification et RBAC
 10 rôles avec permissions granulaires, routes protégées, API protégées.
+
+### 15. Synchronisation
+Sync intermittente entre serveur Edge local et cloud. Gestion des conflits. File d'attente locale en mode dégradé.
 
 ---
 
@@ -204,7 +282,7 @@ Archivage automatique de toutes les entités. Recherche rapide.
 | **Pharmacien** | Gestion des médicaments |
 | **Infirmier** | Soins, suivi patients |
 | **Comptable** | Facturation, rapports financiers |
-| **Archiviste** | Gestion des archives |
+| **Archiviste** | Gestion des archives pérennes |
 
 ---
 
@@ -217,6 +295,8 @@ Archivage automatique de toutes les entités. Recherche rapide.
 - Audit Log complet
 - Protection XSS et SQL Injection
 - Permissions granulaires par rôle
+- Chiffrement des données médicales (secret médical)
+- Sauvegardes redondantes (miroir)
 
 ---
 
@@ -232,6 +312,7 @@ Dhayaro/
 │   │   │   ├── consultations/
 │   │   │   ├── diagnostics/
 │   │   │   ├── diseases/
+│   │   │   ├── protocols/      # Protocoles de soins
 │   │   │   ├── treatments/
 │   │   │   ├── laboratory/
 │   │   │   ├── queue/
@@ -253,6 +334,7 @@ Dhayaro/
 │   │       ├── consultations/
 │   │       ├── diagnostics/
 │   │       ├── diseases/
+│   │       ├── protocols/
 │   │       ├── treatments/
 │   │       ├── laboratory/
 │   │       ├── queue/
@@ -262,12 +344,14 @@ Dhayaro/
 │   │       ├── users/
 │   │       ├── facilities/
 │   │       ├── audit/
+│   │       ├── sync/           # Endpoint de synchronisation
 │   │       └── reports/
 │   ├── components/
 │   ├── views/
 │   ├── hooks/
 │   ├── store/
 │   ├── services/
+│   │   └── sync-engine.ts      # Moteur de synchronisation
 │   ├── lib/
 │   └── types/
 ├── public/
@@ -279,13 +363,23 @@ Dhayaro/
 
 ## Déploiement
 
-### Vercel
+### Mode Cloud (Vercel)
 
 ```bash
 # Le projet est prêt pour Vercel
 # Frontend : Next.js static
 # Backend : Next.js API Routes (serverless)
 vercel deploy
+```
+
+### Mode Edge (Alimbongo)
+
+```bash
+# Déploiement sur serveur local (Raspberry Pi 5 / Intel NUC)
+docker compose up -d
+
+# Alimentation : système solaire + batterie (48h autonomie)
+# Connexion : Wi-Fi local + synchronisation intermittente 4G/VSAT
 ```
 
 ### Variables de production
@@ -304,6 +398,8 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 <div align="center">
 
-**Dhayaro** - Plateforme hospitalière moderne pour l'Algérie
+**Dhayaro** — Écosystème numérique résilient pour la Zone de Santé d'Alimbongo/Nord-Kivu, RDC
+
+*Mémoire de fin d'études — Université de Bukavu, FSA, 2026*
 
 </div>

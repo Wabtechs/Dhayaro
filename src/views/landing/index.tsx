@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Logo } from '@/components/ui/logo'
@@ -266,14 +265,14 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden animate-fade-in-up lg:block" style={{ animationDelay: '0.2s' }}>
-            <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
               src="/hero-illustration.png"
               alt="Dhayaro Dashboard"
               width={800}
               height={600}
               className="aspect-[4/3] w-full rounded-3xl border border-white/10 shadow-2xl object-cover"
-              priority
-            />
+          />
           </div>
         </div>
 
@@ -371,7 +370,8 @@ export default function LandingPage() {
               </Button>
             </div>
 
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/about-illustration.png"
               alt="Dhayaro Team"
               width={600}
