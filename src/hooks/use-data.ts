@@ -1,18 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import type { ClinicalCase } from '@/types';
-import {
-  mockClinicalCases,
-  mockPatients,
-  mockFacilities,
-  mockUsers,
-  mockAuditEntries,
-  mockChartData,
-  mockSyncQueue,
-  mockNotifications,
-  mockTreatments,
-  mockStudies,
-} from '@/lib/mock-data';
 
 function getToken(): string {
   return localStorage.getItem('dhayaro_token') || '';
@@ -161,30 +149,10 @@ function transformKeys(obj: unknown): unknown {
   return obj;
 }
 
-async function fetchWithFallback<T>(endpoint: string, mockData: T): Promise<T> {
-  try {
-    const token = getToken();
-    const raw = await api.get<unknown>(endpoint, token);
-    return transformKeys(raw) as T;
-  } catch {
-    return mockData;
-  }
-}
-
-async function fetchDetailWithFallback<T extends { id?: string }>(
-  endpoint: string,
-  mockArray: T[],
-  id: string,
-): Promise<T> {
-  try {
-    const token = getToken();
-    const raw = await api.get<unknown>(endpoint, token);
-    return transformKeys(raw) as T;
-  } catch {
-    const match = mockArray.find((item) => (item as Record<string, unknown>).id === id)
-    if (!match) throw new Error('Not found')
-    return match
-  }
+async function fetchData<T>(endpoint: string): Promise<T> {
+  const token = getToken();
+  const raw = await api.get<unknown>(endpoint, token);
+  return transformKeys(raw) as T;
 }
 
 export function useDashboardData() {
@@ -204,11 +172,11 @@ export function useDashboardData() {
         const patients = transformKeys(rawPatients) as { total?: number } | null;
         const facilities = transformKeys(rawFacilities) as { total?: number } | null;
 
-        const totalCases = apiStats?.total ?? cases?.items?.length ?? mockClinicalCases.length;
-        const totalPatients = patients?.total ?? mockPatients.length;
-        const totalFacilities = facilities?.total ?? mockFacilities.length;
+        const totalCases = apiStats?.total ?? cases?.items?.length ?? 0;
+        const totalPatients = patients?.total ?? 0;
+        const totalFacilities = facilities?.total ?? 0;
         const successCount = apiStats?.success ?? 0;
-        const resolutionRate = totalCases > 0 ? Math.round((successCount / totalCases) * 100) : 78;
+        const resolutionRate = totalCases > 0 ? Math.round((successCount / totalCases) * 100) : 0;
 
         const patientItems = (patients as unknown as { items?: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> })?.items || [];
         const facilityItems = (facilities as unknown as { items?: Array<{ id: string; name: string }> })?.items || [];
@@ -255,15 +223,18 @@ export function useDashboardData() {
       } catch {
         return {
           stats: {
-            total_cases: mockClinicalCases.length,
-            total_patients: mockPatients.length,
-            total_facilities: mockFacilities.length,
-            resolution_rate: 78,
+            total_cases: 0,
+            total_patients: 0,
+            total_facilities: 0,
+            resolution_rate: 0,
           },
-          recentCases: mockClinicalCases.slice(0, 5),
-          patientMap: Object.fromEntries(mockPatients.map((p) => [p.id, `${p.firstName} ${p.lastName}`])),
-          facilityMap: Object.fromEntries(mockFacilities.map((f) => [f.id, f.name])),
-          chartData: mockChartData,
+          recentCases: [],
+          patientMap: {},
+          facilityMap: {},
+          chartData: {
+            casesByMonth: [],
+            casesByStatus: [],
+          },
         };
       }
     },
@@ -273,70 +244,78 @@ export function useDashboardData() {
 export function useClinicalCasesData() {
   return useQuery({
     queryKey: ['clinical-cases'],
-    queryFn: () => fetchWithFallback('/clinical-cases', { items: mockClinicalCases, total: mockClinicalCases.length }),
+    queryFn: () => fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases'),
   });
 }
 
 export function usePatientsData() {
   return useQuery({
     queryKey: ['patients'],
-    queryFn: () => fetchWithFallback('/patients', { items: mockPatients, total: mockPatients.length }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/patients'),
   });
 }
 
 export function useFacilitiesData() {
   return useQuery({
     queryKey: ['facilities'],
-    queryFn: () => fetchWithFallback('/facilities', { items: mockFacilities, total: mockFacilities.length }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/facilities'),
   });
 }
 
 export function useUsersData() {
   return useQuery({
     queryKey: ['users'],
-    queryFn: () => fetchWithFallback('/users', { items: mockUsers, total: mockUsers.length }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users'),
   });
 }
 
 export function useAuditData() {
   return useQuery({
     queryKey: ['audit'],
-    queryFn: () => fetchWithFallback('/audit', { items: mockAuditEntries, total: mockAuditEntries.length }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/audit'),
   });
 }
 
 export function useSyncData() {
   return useQuery({
     queryKey: ['sync'],
-    queryFn: () => fetchWithFallback('/sync/pull', { items: mockSyncQueue, total: mockSyncQueue.length }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/sync/pull'),
   });
 }
 
 export function useNotificationsData() {
   return useQuery({
     queryKey: ['notifications'],
-    queryFn: async () => mockNotifications,
+    queryFn: () => fetchData<{ items: unknown[]; total: number; unreadCount: number }>('/notifications'),
   });
 }
 
 export function useTreatmentsData() {
   return useQuery({
     queryKey: ['treatments'],
-    queryFn: async () => mockTreatments,
+    queryFn: async () => {
+      const data = await fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases');
+      const withTreatment = data.items.filter((c) => c.treatment);
+      return { items: withTreatment, total: withTreatment.length };
+    },
   });
 }
 
 export function useStudiesData() {
   return useQuery({
     queryKey: ['studies'],
-    queryFn: async () => mockStudies,
+    queryFn: async () => {
+      const data = await fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases');
+      const resolved = data.items.filter((c) => c.status === 'resolved');
+      return { items: resolved, total: resolved.length };
+    },
   });
 }
 
 export function usePatientDetail(id: string) {
   return useQuery({
     queryKey: ['patient', id],
-    queryFn: () => fetchDetailWithFallback(`/patients/${id}`, mockPatients as unknown as { id?: string }[], id),
+    queryFn: () => fetchData<unknown>(`/patients/${id}`),
     enabled: !!id,
   });
 }
@@ -344,7 +323,7 @@ export function usePatientDetail(id: string) {
 export function useClinicalCaseDetail(id: string) {
   return useQuery({
     queryKey: ['clinical-case', id],
-    queryFn: () => fetchDetailWithFallback(`/clinical-cases/${id}`, mockClinicalCases as unknown as { id?: string }[], id),
+    queryFn: () => fetchData<unknown>(`/clinical-cases/${id}`),
     enabled: !!id,
   });
 }
@@ -352,7 +331,7 @@ export function useClinicalCaseDetail(id: string) {
 export function useFacilityDetail(id: string) {
   return useQuery({
     queryKey: ['facility', id],
-    queryFn: () => fetchDetailWithFallback(`/facilities/${id}`, mockFacilities as unknown as { id?: string }[], id),
+    queryFn: () => fetchData<unknown>(`/facilities/${id}`),
     enabled: !!id,
   });
 }
@@ -478,55 +457,55 @@ export function useDeleteUser() {
 export function useConsultationsData(params?: string) {
   return useQuery({
     queryKey: ['consultations', params],
-    queryFn: () => fetchWithFallback(`/consultations${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/consultations${params ? '?' + params : ''}`),
   });
 }
 
 export function useDiagnosticsData(params?: string) {
   return useQuery({
     queryKey: ['diagnostics', params],
-    queryFn: () => fetchWithFallback(`/diagnostics${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/diagnostics${params ? '?' + params : ''}`),
   });
 }
 
 export function useDiseasesData(params?: string) {
   return useQuery({
     queryKey: ['diseases', params],
-    queryFn: () => fetchWithFallback(`/diseases${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/diseases${params ? '?' + params : ''}`),
   });
 }
 
 export function useTreatmentsListData(params?: string) {
   return useQuery({
     queryKey: ['treatments-list', params],
-    queryFn: () => fetchWithFallback(`/treatments${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/treatments${params ? '?' + params : ''}`),
   });
 }
 
 export function useLabExamsData(params?: string) {
   return useQuery({
     queryKey: ['lab-exams', params],
-    queryFn: () => fetchWithFallback(`/lab/exams${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/lab/exams${params ? '?' + params : ''}`),
   });
 }
 
 export function useQueueData(params?: string) {
   return useQuery({
     queryKey: ['queue', params],
-    queryFn: () => fetchWithFallback(`/queue${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/queue${params ? '?' + params : ''}`),
   });
 }
 
 export function useDocumentsData(params?: string) {
   return useQuery({
     queryKey: ['documents', params],
-    queryFn: () => fetchWithFallback(`/documents${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/documents${params ? '?' + params : ''}`),
   });
 }
 
 export function useArchivesData(params?: string) {
   return useQuery({
     queryKey: ['archives', params],
-    queryFn: () => fetchWithFallback(`/archives${params ? '?' + params : ''}`, { items: [], total: 0 }),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/archives${params ? '?' + params : ''}`),
   });
 }

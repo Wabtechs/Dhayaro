@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { mockClinicalCases, mockChartData } from "@/lib/mock-data";
+import { useClinicalCasesData } from "@/hooks/use-data";
 import { useAuthStore } from "@/store/auth-store";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +28,7 @@ const recentAnalyses = [
   {
     id: 1,
     title: "Étude comparative des traitements cardiovasculaires",
-    facility: "Hôpital Central",
+    facility: "Hôpital Général de Kinshasa",
     date: "2026-07-10",
     status: "En cours",
     type: "Étude",
@@ -36,7 +36,7 @@ const recentAnalyses = [
   {
     id: 2,
     title: "Analyse de l'efficacité des antibiotiques",
-    facility: "Clinique Sainte-Marie",
+    facility: "Cliniques Universitaires de Kinshasa",
     date: "2026-07-08",
     status: "Terminé",
     type: "Recherche",
@@ -44,15 +44,15 @@ const recentAnalyses = [
   {
     id: 3,
     title: "Recherche sur les facteurs de risque diabète",
-    facility: "Centre Médical du Nord",
+    facility: "Clinique Ngaliema",
     date: "2026-07-05",
     status: "En cours",
     type: "Analyse",
   },
   {
     id: 4,
-    title: "Étude épidémiologique COVID-19",
-    facility: "Hôpital Central",
+    title: "Étude épidémiologique Ebola",
+    facility: "Hôpital Général de Kinshasa",
     date: "2026-07-01",
     status: "En révision",
     type: "Étude",
@@ -60,7 +60,7 @@ const recentAnalyses = [
   {
     id: 5,
     title: "Analyse des effets secondaires vaccins",
-    facility: "Clinique Sainte-Marie",
+    facility: "Clinique Ngaliema",
     date: "2026-06-28",
     status: "Terminé",
     type: "Recherche",
@@ -72,9 +72,9 @@ const activeStudies = [
     id: 1,
     title: "Étude cardiovasculaire multicentrique",
     description:
-      "Analyse des facteurs de risque cardiovasculaire dans une population de 5000 patients sur 3 centres hospitaliers.",
+      "Analyse des facteurs de risque cardiovasculaire dans une population de 5000 patients sur 3 centres hospitaliers à Kinshasa.",
     progress: 68,
-    team: ["Dr. Jean-Pierre Lukusa", "Dr. Patrice Kabongo", "Dr. Solange Ngoy"],
+    team: ["Dr. Patrice Kabongo", "Dr. Clovis Lukusa", "Dr. Grâce Nsenda"],
   },
   {
     id: 2,
@@ -82,7 +82,7 @@ const activeStudies = [
     description:
       "Étude longitudinale de l'impact des nouvelles thérapies sur la glycémie chez les patients diabétiques.",
     progress: 42,
-    team: ["Dr. Youcef Hamidi", "Dr. Nadia Boudiaf"],
+    team: ["Dr. Espérance Ilunga", "Dr. Cécile Kalonji"],
   },
   {
     id: 3,
@@ -90,7 +90,7 @@ const activeStudies = [
     description:
       "Étude comparative de l'efficacité des nouvelles classes d'antibiotiques contre les infections résistantes.",
     progress: 85,
-    team: ["Dr. Ahmed Kaci", "Dr. Leila Merah", "Dr. Omar Tlemçani", "Dr. Houda Benmoussa"],
+    team: ["Dr. Sylvain Kasai", "Dr. Béatrice Ngoy", "Dr. Joseph Tshisekedi", "Dr. Monique Bakonga"],
   },
 ];
 
@@ -109,6 +109,30 @@ const typeColor: Record<string, string> = {
 export default function ResearchPage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
+  const { data: casesData } = useClinicalCasesData();
+
+  const casesCount = (casesData as unknown as { items?: unknown[] })?.items?.length ?? 0;
+
+  const casesByFacilityMap = new Map<string, number>();
+  const casesByMonthMap = new Map<string, number>();
+  const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+  monthNames.forEach(m => casesByMonthMap.set(m, 0));
+
+  const allCases = (casesData as unknown as { items?: Array<{ facilityId?: string; createdAt?: string }> })?.items || [];
+  allCases.forEach(c => {
+    if (c.facilityId) {
+      casesByFacilityMap.set(c.facilityId, (casesByFacilityMap.get(c.facilityId) || 0) + 1);
+    }
+    if (c.createdAt) {
+      const date = new Date(c.createdAt);
+      if (!isNaN(date.getTime())) {
+        const month = monthNames[date.getMonth()];
+        casesByMonthMap.set(month, (casesByMonthMap.get(month) || 0) + 1);
+      }
+    }
+  });
+  const casesByFacility = Array.from(casesByFacilityMap.entries()).map(([name, value]) => ({ name, value }));
+  const casesByMonth = monthNames.map(name => ({ name, value: casesByMonthMap.get(name) || 0 }));
 
   return (
     <div className="space-y-6">
@@ -121,7 +145,6 @@ export default function ResearchPage() {
 
       <Separator />
 
-      {/* Stats Row */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -129,7 +152,7 @@ export default function ResearchPage() {
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockClinicalCases.length}</div>
+            <div className="text-2xl font-bold">{casesCount}</div>
             <p className="text-xs text-muted-foreground">+12% par rapport au mois dernier</p>
           </CardContent>
         </Card>
@@ -157,7 +180,6 @@ export default function ResearchPage() {
         </Card>
       </div>
 
-      {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -170,7 +192,7 @@ export default function ResearchPage() {
           <CardContent>
             <LazyRechartsChart
               type="bar"
-              data={mockChartData.casesByFacility}
+              data={casesByFacility}
               dataKey="value"
               xAxisKey="name"
             />
@@ -188,7 +210,7 @@ export default function ResearchPage() {
           <CardContent>
             <LazyRechartsChart
               type="line"
-              data={mockChartData.casesByMonth}
+              data={casesByMonth}
               dataKey="value"
               xAxisKey="name"
             />
@@ -196,7 +218,6 @@ export default function ResearchPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Actions Rapides</CardTitle>
@@ -218,7 +239,6 @@ export default function ResearchPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Analyses Table */}
       <Card>
         <CardHeader>
           <CardTitle>Analyses Récentes</CardTitle>
@@ -260,7 +280,6 @@ export default function ResearchPage() {
         </CardContent>
       </Card>
 
-      {/* Active Studies */}
       <div>
         <h2 className="mb-4 text-lg font-semibold">Études Actives</h2>
         <div className="grid gap-4 md:grid-cols-3">

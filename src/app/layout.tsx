@@ -5,7 +5,7 @@ const SITE_URL = 'https://dhayaro.vercel.app'
 const SITE_NAME = 'Dhayaro'
 const TITLE = 'Dhayaro - Gestion Hospitalière Intégrée'
 const DESCRIPTION =
-  "Plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. Algérie."
+  "Plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. RD Congo."
 const OG_IMAGE = 'https://i.ibb.co/zWyNytSq/t-l-chargement.png'
 
 export const viewport: Viewport = {
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'fr_DZ',
+    locale: 'fr_CD',
     url: SITE_URL,
     siteName: SITE_NAME,
     title: TITLE,
@@ -104,7 +104,7 @@ const jsonLd = {
   offers: {
     '@type': 'Offer',
     price: '0',
-    priceCurrency: 'DZD',
+    priceCurrency: 'CDF',
   },
   author: {
     '@type': 'Organization',
@@ -114,7 +114,7 @@ const jsonLd = {
   inLanguage: 'fr',
   countryOfOrigin: {
     '@type': 'Country',
-    name: 'Algerie',
+    name: 'RD Congo',
   },
 }
 

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { mockChartData } from '@/lib/mock-data'
+import { useDashboardData } from '@/hooks/use-data'
 
 const LazyRechartsChart = dynamic(
   () => import('@/components/charts/recharts-chart').then(m => ({ default: m.RechartsChart })),
@@ -29,32 +29,37 @@ const PERIODS = [
   { value: 'year', label: 'Cette Année' },
 ]
 
-const statCards = [
-  {
-    title: 'Total Traitements',
-    value: 247,
-    icon: Activity,
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    title: 'Taux de Succès',
-    value: '78%',
-    icon: CheckCircle,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-100',
-  },
-  {
-    title: 'Cas en Cours',
-    value: 42,
-    icon: Clock,
-    color: 'text-amber-600',
-    bg: 'bg-amber-100',
-  },
-]
-
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState('month')
+  const { data } = useDashboardData()
+
+  const totalTreatments = data?.stats?.total_cases ?? 0
+  const resolutionRate = data?.stats?.resolution_rate ?? 0
+  const activeCases = data?.chartData?.casesByStatus?.find((s: { name: string; value: number }) => s.name === 'Actif')?.value ?? 0
+
+  const statCards = [
+    {
+      title: 'Total Traitements',
+      value: totalTreatments,
+      icon: Activity,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+    },
+    {
+      title: 'Taux de Succès',
+      value: `${resolutionRate}%`,
+      icon: CheckCircle,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-100',
+    },
+    {
+      title: 'Cas en Cours',
+      value: activeCases,
+      icon: Clock,
+      color: 'text-amber-600',
+      bg: 'bg-amber-100',
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -114,7 +119,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <LazyRechartsChart
           type="bar"
-          data={mockChartData.casesByFacility}
+          data={data?.chartData?.casesByMonth ?? []}
           dataKey="value"
           xAxisKey="name"
           title="Cas par Établissement"
@@ -123,7 +128,7 @@ export default function AnalyticsPage() {
         />
         <LazyRechartsChart
           type="pie"
-          data={mockChartData.treatmentOutcomes}
+          data={data?.chartData?.casesByStatus ?? []}
           dataKey="value"
           xAxisKey="name"
           title="Résultats des Traitements"
@@ -132,7 +137,7 @@ export default function AnalyticsPage() {
         />
         <LazyRechartsChart
           type="line"
-          data={mockChartData.casesByMonth}
+          data={data?.chartData?.casesByMonth ?? []}
           dataKey="value"
           xAxisKey="name"
           title="Évolution Mensuelle"
@@ -142,7 +147,7 @@ export default function AnalyticsPage() {
         />
         <LazyRechartsChart
           type="bar"
-          data={mockChartData.casesByStatus}
+          data={data?.chartData?.casesByStatus ?? []}
           dataKey="value"
           xAxisKey="name"
           title="Cas par Statut"

@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import type { Notification } from '@/types'
-import { mockNotifications } from '@/lib/mock-data'
 
 interface AppState {
   sidebarOpen: boolean
@@ -56,7 +55,7 @@ export const useAppStore = create<AppState>((set) => ({
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
-  notifications: [...mockNotifications],
+  notifications: [],
   markNotificationRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((n) =>

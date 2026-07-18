@@ -4,50 +4,6 @@ import type { User } from '@/types'
 const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000/api/v1' : '/api/v1')
 
-const mockUsers: Record<string, { password: string; user: User }> = {
-  'admin@dhayaro.cd': {
-    password: 'admin123',
-    user: {
-      id: 'usr_001',
-      email: 'admin@dhayaro.cd',
-      name: 'Dr. Jean-Pierre Lukusa',
-      role: 'admin',
-      facility: 'fac_001',
-      avatar: '',
-      createdAt: '2025-01-15T08:00:00Z',
-      lastLogin: new Date().toISOString(),
-      isActive: true,
-    },
-  },
-  'dr.kabongo@dhayaro.cd': {
-    password: 'doctor123',
-    user: {
-      id: 'usr_002',
-      email: 'dr.kabongo@dhayaro.cd',
-      name: 'Dr. Patrice Kabongo',
-      role: 'doctor',
-      facility: 'fac_001',
-      avatar: '',
-      createdAt: '2025-02-10T09:30:00Z',
-      lastLogin: new Date().toISOString(),
-      isActive: true,
-    },
-  },
-  'nurse.mohamed@dhayaro.cd': {
-    password: 'nurse123',
-    user: {
-      id: '550e8400-e29b-41d4-a716-446655440004',
-      email: 'nurse.mohamed@dhayaro.cd',
-      role: 'NURSE',
-      facility: 'fac_001',
-      avatar: '',
-      createdAt: '2025-03-05T14:00:00Z',
-      lastLogin: new Date().toISOString(),
-      isActive: true,
-    },
-  },
-}
-
 interface AuthState {
   user: User | null
   token: string | null
@@ -96,13 +52,6 @@ function clearSession() {
   localStorage.removeItem('dhayaro_token')
   localStorage.removeItem('dhayaro_refresh_token')
   document.cookie = 'dhayaro_token=; path=/; max-age=0'
-}
-
-function generateMockToken(user: User): string {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-  const payload = btoa(JSON.stringify({ sub: user.id, email: user.email, role: user.role, exp: Date.now() + 86400000 }))
-  const sig = btoa('mock-signature')
-  return `${header}.${payload}.${sig}`
 }
 
 const saved = loadSession()
@@ -156,19 +105,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user, token, refreshToken: data.refresh_token || null })
       return
     } catch {
-      // Backend indisponible → mode fallback mock
+      throw new Error('Le serveur est indisponible. Veuillez réessayer.')
     }
-
-    const entry = mockUsers[email]
-    if (!entry || entry.password !== password) {
-      throw new Error('Identifiant ou mot de passe incorrect')
-    }
-
-    const user = { ...entry.user, lastLogin: new Date().toISOString() }
-    const token = generateMockToken(user)
-
-    saveSession(user, token, 'mock-refresh')
-    set({ user, token, refreshToken: 'mock-refresh' })
   },
 
   logout: () => {

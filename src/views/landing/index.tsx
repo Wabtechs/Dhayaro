@@ -101,14 +101,14 @@ const testimonials = [
   {
     quote:
       'La synchronisation automatique nous fait gagner un temps précieux au quotidien. Je recommande vivement cette plateforme.',
-    name: 'Dr. Karim Mansouri',
-    role: 'Chef de Service Neurologie',
+    name: 'Dr. Patrice Kabongo',
+    role: 'Chef de Service Neurologie, Cliniques Universitaires de Kinshasa',
   },
   {
     quote:
       "Enfin une plateforme qui respecte les normes de sécurité tout en étant facile à utiliser au quotidien.",
-    name: 'Prof. Nadia Cherif',
-    role: 'Directrice de Recherche Médicale',
+    name: 'Prof. Espérance Ilunga',
+    role: 'Directrice de Recherche Médicale, Hôpital Général de Kinshasa',
   },
 ]
 

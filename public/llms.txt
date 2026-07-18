@@ -1,6 +1,6 @@
 # Dhayaro
 
-> Dhayaro est une plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. Conçue pour les hôpitaux et cliniques d'Algérie.
+> Dhayaro est une plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. Conçue pour les hôpitaux et cliniques de la RD Congo.
 
 ## Fonctionnalités principales
 - Gestion complète des patients (dossier médical, contacts, assurance, antécédents)
@@ -17,7 +17,7 @@
 - Authentification JWT sécurisée
 
 ## Utilisateurs cibles
-- Hôpitaux et cliniques en Algérie
+- Hôpitaux et cliniques en RD Congo
 - Médecins généralistes et spécialistes
 - Personnel soignant (infirmiers, laborantins, pharmaciens)
 - Administration hospitalière
@@ -31,4 +31,4 @@
 
 ## Contact
 - Email : contact@dhayaro.cd
-- Localisation : Alger, Algérie
+- Localisation : Kinshasa, RD Congo

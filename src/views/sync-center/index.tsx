@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { mockSyncLogs } from '@/lib/mock-data'
+import { useSyncData } from '@/hooks/use-data'
 import { formatDateTime } from '@/lib/utils'
 import type { SyncLog } from '@/types'
 
@@ -135,7 +135,8 @@ export default function SyncCenterPage() {
   const [isOnline] = useState(true)
   const [autoSync, setAutoSync] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [logs, setLogs] = useState<SyncLog[]>(mockSyncLogs)
+  const { data: syncData } = useSyncData()
+  const [logs, setLogs] = useState<SyncLog[]>((syncData?.items as SyncLog[]) || [])
 
   const lastSync = logs.length > 0
     ? logs.reduce((latest, l) => new Date(l.timestamp) > new Date(latest.timestamp) ? l : latest, logs[0])

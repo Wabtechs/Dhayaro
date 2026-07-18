@@ -40,8 +40,7 @@ import {
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { useAuditData } from '@/hooks/use-data'
-import { mockUsers } from '@/lib/mock-data'
+import { useAuditData, useUsersData } from '@/hooks/use-data'
 import { formatDateTime, getInitials } from '@/lib/utils'
 import type { AuditEntry } from '@/types'
 
@@ -115,8 +114,6 @@ const actionConfig: Record<
   },
 }
 
-const userMap = Object.fromEntries(mockUsers.map((u) => [u.id, u]))
-
 function getDateString(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', {
     year: 'numeric',
@@ -136,7 +133,10 @@ export default function AuditLogPage() {
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table')
 
   const { data, isLoading } = useAuditData()
+  const { data: usersData } = useUsersData()
   const auditEntries = data?.items ?? []
+  const users = (usersData as unknown as { items?: Array<Record<string, unknown>> })?.items ?? []
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]))
 
   const filtered = useMemo(() => {
     return auditEntries.filter((entry) => {
@@ -324,9 +324,9 @@ export default function AuditLogPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                {mockUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
+                {users.map((u) => (
+                  <SelectItem key={u.id as string} value={u.id as string}>
+                    {(u.name as string) || `${u.firstname} ${u.lastname}`}
                   </SelectItem>
                 ))}
               </SelectContent>
