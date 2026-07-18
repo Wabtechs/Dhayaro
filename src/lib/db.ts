@@ -6,7 +6,8 @@ let _db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let _sql: ReturnType<typeof neon> | null = null
 
 function getNeonUrl(): string {
-  const raw = process.env.DATABASE_URL
+  const raw = process.env.DATABASE_URL_UNPOOLED
+    || process.env.DATABASE_URL
     || process.env.NEON_DATABASE_URL
     || process.env.POSTGRES_PRISMA_URL
     || process.env.POSTGRES_URL
