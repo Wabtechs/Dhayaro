@@ -8,4 +8,4 @@ Disallow: /users/
 Disallow: /facilities/
 Disallow: /settings/
 
-Sitemap: https://medinsight-phi.vercel.app/sitemap.xml
+Sitemap: https://dhayaro.vercel.app/sitemap.xml

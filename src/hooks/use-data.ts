@@ -15,7 +15,7 @@ import {
 } from '@/lib/mock-data';
 
 function getToken(): string {
-  return localStorage.getItem('medinsight_token') || '';
+  return localStorage.getItem('dhayaro_token') || '';
 }
 
 function toCamelCase(key: string): string {
@@ -38,11 +38,16 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const ROLE_MAP: Record<string, string> = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
+  RECEPTIONIST: 'receptionist',
   DOCTOR: 'doctor',
-  RESEARCHER: 'researcher',
+  SPECIALIST: 'specialist',
+  LABORATORY: 'laboratory',
+  PHARMACIST: 'pharmacist',
   NURSE: 'nurse',
-  VIEWER: 'viewer',
+  ACCOUNTANT: 'accountant',
+  ARCHIVIST: 'archivist',
 };
 
 const FACILITY_TYPE_MAP: Record<string, string> = {
@@ -467,5 +472,61 @@ export function useDeleteUser() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
+  });
+}
+
+export function useConsultationsData(params?: string) {
+  return useQuery({
+    queryKey: ['consultations', params],
+    queryFn: () => fetchWithFallback(`/consultations${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useDiagnosticsData(params?: string) {
+  return useQuery({
+    queryKey: ['diagnostics', params],
+    queryFn: () => fetchWithFallback(`/diagnostics${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useDiseasesData(params?: string) {
+  return useQuery({
+    queryKey: ['diseases', params],
+    queryFn: () => fetchWithFallback(`/diseases${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useTreatmentsListData(params?: string) {
+  return useQuery({
+    queryKey: ['treatments-list', params],
+    queryFn: () => fetchWithFallback(`/treatments${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useLabExamsData(params?: string) {
+  return useQuery({
+    queryKey: ['lab-exams', params],
+    queryFn: () => fetchWithFallback(`/lab/exams${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useQueueData(params?: string) {
+  return useQuery({
+    queryKey: ['queue', params],
+    queryFn: () => fetchWithFallback(`/queue${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useDocumentsData(params?: string) {
+  return useQuery({
+    queryKey: ['documents', params],
+    queryFn: () => fetchWithFallback(`/documents${params ? '?' + params : ''}`, { items: [], total: 0 }),
+  });
+}
+
+export function useArchivesData(params?: string) {
+  return useQuery({
+    queryKey: ['archives', params],
+    queryFn: () => fetchWithFallback(`/archives${params ? '?' + params : ''}`, { items: [], total: 0 }),
   });
 }

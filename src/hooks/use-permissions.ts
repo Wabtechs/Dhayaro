@@ -38,10 +38,10 @@ export function usePermissions() {
       return ROLE_LABELS[role] ?? role
     },
 
-    isAdmin: () => role === 'admin',
-    isDoctor: () => role === 'doctor',
+    isAdmin: () => role === 'admin' || role === 'super_admin',
+    isDoctor: () => role === 'doctor' || role === 'specialist',
     isNurse: () => role === 'nurse',
-    isResearcher: () => role === 'researcher',
-    isViewer: () => role === 'viewer',
+    isLab: () => role === 'laboratory',
+    isPharmacist: () => role === 'pharmacist',
   }
 }

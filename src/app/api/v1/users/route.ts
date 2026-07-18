@@ -2,21 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, getSql } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
-import { hashPassword, verifyToken, getTokenFromRequest } from '@/lib/auth'
+import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const token = getTokenFromRequest(request)
-    if (!token) {
-      return apiError(401, 'Authentication required')
-    }
-
-    const payload = await verifyToken(token)
-    if (!payload) {
-      return apiError(401, 'Invalid or expired token')
-    }
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
     const { page, size, search, offset } = parsePagination(searchParams)
@@ -41,7 +35,10 @@ export async function GET(request: NextRequest) {
         lastname: users.lastname,
         email: users.email,
         role: users.role,
+        phone: users.phone,
+        avatar: users.avatar,
         isActive: users.isActive,
+        lastLogin: users.lastLogin,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         facilityName: facilities.name,
@@ -69,17 +66,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = getTokenFromRequest(request)
-    if (!token) {
-      return apiError(401, 'Authentication required')
-    }
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
 
-    const payload = await verifyToken(token)
-    if (!payload) {
-      return apiError(401, 'Invalid or expired token')
-    }
-
-    if (payload.role !== 'ADMIN') {
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
       return apiError(403, 'Only administrators can create users')
     }
 
@@ -93,7 +83,7 @@ export async function POST(request: NextRequest) {
       return apiError(400, 'password is required')
     }
 
-    const validRoles = ['ADMIN', 'DOCTOR', 'RESEARCHER', 'NURSE', 'VIEWER']
+    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST']
     if (!validRoles.includes(body.role)) {
       return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
     }
@@ -102,13 +92,12 @@ export async function POST(request: NextRequest) {
     const sql = getSql()
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
-
     const facilityId = sanitizeUuid(body.facilityId)
 
     const rows = await sql`
-      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash, is_active, created_at, updated_at)
-      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${facilityId}, ${passwordHash}, true, ${now}, ${now})
-      RETURNING id, facility_id, firstname, lastname, email, role, is_active, created_at, updated_at
+      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash, phone, is_active, created_at, updated_at)
+      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${facilityId}, ${passwordHash}, ${body.phone || null}, true, ${now}, ${now})
+      RETURNING id, facility_id, firstname, lastname, email, role, phone, is_active, created_at, updated_at
     `
 
     return NextResponse.json(rows[0], { status: 201 })

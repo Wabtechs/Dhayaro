@@ -126,7 +126,7 @@ export default function ProfilePage() {
   const updateUser = useUpdateUser();
 
   const [name, setName] = useState(user?.name ?? "Dr. Jean-Pierre Lukusa");
-  const [email, setEmail] = useState(user?.email ?? "admin@medinsight.cd");
+  const [email, setEmail] = useState(user?.email ?? "admin@dhayaro.cd");
   const [phone, setPhone] = useState("+243 81 200 001");
   const [department, setDepartment] = useState("Cardiologie");
 
@@ -160,7 +160,7 @@ export default function ProfilePage() {
   };
 
   const displayName = user?.name ?? "Dr. Jean-Pierre Lukusa";
-  const displayEmail = user?.email ?? "admin@medinsight.cd";
+  const displayEmail = user?.email ?? "admin@dhayaro.cd";
   const displayRole = user?.role ?? "researcher";
   const initials = displayName
     .split(" ")

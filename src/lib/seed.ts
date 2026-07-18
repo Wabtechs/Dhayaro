@@ -1,20 +1,12 @@
 import { getDb } from './db'
-import { facilities, users, patients, clinicalCases, auditLogs } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs } from './schema'
 import { hashPassword } from './auth'
 
-const F = {
-  HOSPITAL: 'HOSPITAL' as const,
-  CLINIC: 'CLINIC' as const,
-  LABORATORY: 'LABORATORY' as const,
-  PHARMACY: 'PHARMACY' as const,
-}
-
+const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
 const R = {
-  ADMIN: 'ADMIN' as const,
-  DOCTOR: 'DOCTOR' as const,
-  NURSE: 'NURSE' as const,
-  RESEARCHER: 'RESEARCHER' as const,
-  VIEWER: 'VIEWER' as const,
+  SUPER_ADMIN: 'SUPER_ADMIN' as const, ADMIN: 'ADMIN' as const, RECEPTIONIST: 'RECEPTIONIST' as const,
+  DOCTOR: 'DOCTOR' as const, SPECIALIST: 'SPECIALIST' as const, LABORATORY: 'LABORATORY' as const,
+  PHARMACIST: 'PHARMACIST' as const, NURSE: 'NURSE' as const, ACCOUNTANT: 'ACCOUNTANT' as const, ARCHIVIST: 'ARCHIVIST' as const,
 }
 
 function daysAgo(n: number): Date {
@@ -23,325 +15,307 @@ function daysAgo(n: number): Date {
   d.setHours(8 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60), 0, 0)
   return d
 }
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-function pickN<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, n)
-}
+function pick<T>(arr: readonly T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
 
 const facilityData = [
-  { name: 'Hôpital Général de Kinshasa', code: 'HGK-001', facilityType: F.HOSPITAL, address: 'Avenue de l\'Hôpital, Gombe', city: 'Kinshasa', phone: '+243 81 222 0001', email: 'info@hgr-kinshasa.cd', bedCount: 2000, departmentCount: 40, staffCount: 4500 },
-  { name: 'Cliniques Universitaires de Kinshasa', code: 'CUK-002', facilityType: F.HOSPITAL, address: 'Boulevard du 30 Juin, Gombe', city: 'Kinshasa', phone: '+243 81 222 0002', email: 'contact@cukinshasa.cd', bedCount: 1200, departmentCount: 30, staffCount: 3200 },
-  { name: 'Clinique Ngaliema', code: 'CLN-003', facilityType: F.CLINIC, address: 'Avenue Mombo, Ngaliema', city: 'Kinshasa', phone: '+243 81 222 0003', email: 'accueil@cliniquengaliema.cd', bedCount: 300, departmentCount: 12, staffCount: 600 },
-  { name: 'Hôpital du Cinquantenaire', code: 'HDC-004', facilityType: F.HOSPITAL, address: 'Avenue du Cinquantenaire, Lingwala', city: 'Kinshasa', phone: '+243 81 222 0004', email: 'administration@hopital-cinquantenaire.cd', bedCount: 500, departmentCount: 15, staffCount: 1100 },
-  { name: 'Hôpital Saint Joseph', code: 'HSJ-005', facilityType: F.HOSPITAL, address: 'Avenue Sendwe, Kinshasa', city: 'Kinshasa', phone: '+243 81 222 0005', email: 'info@hopital-saintjoseph.cd', bedCount: 400, departmentCount: 14, staffCount: 800 },
-  { name: 'Centre Hospitalier Monkole', code: 'CHM-006', facilityType: F.HOSPITAL, address: 'Route de Monkole, Limete', city: 'Kinshasa', phone: '+243 81 222 0006', email: 'contact@ch-monkole.cd', bedCount: 350, departmentCount: 12, staffCount: 700 },
-  { name: 'H.J. Hospitals Limete', code: 'HJH-007', facilityType: F.HOSPITAL, address: 'Avenue Kasavubu, Limete', city: 'Kinshasa', phone: '+243 81 222 0007', email: 'info@hjhospitals.cd', bedCount: 250, departmentCount: 10, staffCount: 500 },
-  { name: 'CHU Renaissance', code: 'CHR-008', facilityType: F.HOSPITAL, address: 'Avenue Lumumba, Kalamu', city: 'Kinshasa', phone: '+243 81 222 0008', email: 'admin@chu-renaissance.cd', bedCount: 800, departmentCount: 22, staffCount: 2000 },
-  { name: 'Hôpital Pédiatrique de Kalembe-Lembe', code: 'HPK-009', facilityType: F.HOSPITAL, address: 'Avenue Kalembe-Lembe, Bandalungwa', city: 'Kinshasa', phone: '+243 81 222 0009', email: 'info@hopital-kalembe.cd', bedCount: 400, departmentCount: 10, staffCount: 900 },
-  { name: 'Hôpital Général de Référence de Kintambo', code: 'HGRK-010', facilityType: F.HOSPITAL, address: 'Boulevard Kasa-Vubu, Kintambo', city: 'Kinshasa', phone: '+243 81 222 0010', email: 'contact@hgr-kintambo.cd', bedCount: 350, departmentCount: 12, staffCount: 750 },
+  { name: 'Hôpital Central d\'Alger', code: 'HCA-001', facilityType: F.HOSPITAL, address: 'Rue Didouche Mourad', city: 'Alger', phone: '+213 21 23 00 01', email: 'info@hca.dz', bedCount: 1500, departmentCount: 35, staffCount: 3500 },
+  { name: 'CHU Bab-Ezzouar', code: 'CHB-002', facilityType: F.HOSPITAL, address: 'Bab-Ezzouar', city: 'Alger', phone: '+213 21 23 00 02', email: 'contact@chb.dz', bedCount: 800, departmentCount: 20, staffCount: 1800 },
+  { name: 'Clinique El djazairia', code: 'CED-003', facilityType: F.CLINIC, address: 'Rue Abane Ramdane', city: 'Alger', phone: '+213 21 23 00 03', email: 'accueil@ced.dz', bedCount: 200, departmentCount: 10, staffCount: 400 },
+  { name: 'CHU Mustapha', code: 'CHM-004', facilityType: F.HOSPITAL, address: 'Place du 1er Novembre', city: 'Alger', phone: '+213 21 23 00 04', email: 'admin@chm.dz', bedCount: 2000, departmentCount: 45, staffCount: 5000 },
+  { name: 'Hôpital Pierre-Bénite Alger', code: 'HPB-005', facilityType: F.HOSPITAL, address: 'Rue Larbi Ben M\'hidi', city: 'Alger', phone: '+213 21 23 00 05', email: 'info@hpb.dz', bedCount: 600, departmentCount: 18, staffCount: 1200 },
+  { name: 'Clinique Saint-Augustin', code: 'CSA-006', facilityType: F.CLINIC, address: 'Rue Ahmed Bey', city: 'Alger', phone: '+213 21 23 00 06', email: 'contact@csa.dz', bedCount: 150, departmentCount: 8, staffCount: 300 },
+  { name: 'Laboratoire Central CNRPH', code: 'LCC-007', facilityType: F.LABORATORY, address: 'Rue des Martyrs', city: 'Alger', phone: '+213 21 23 00 07', email: 'lab@lcc.dz', bedCount: 0, departmentCount: 5, staffCount: 200 },
+  { name: 'Pharmacie Centrale Hôpital', code: 'PCH-008', facilityType: F.PHARMACY, address: 'Avenue Houari Boumediene', city: 'Alger', phone: '+213 21 23 00 08', email: 'pharm@pch.dz', bedCount: 0, departmentCount: 3, staffCount: 80 },
+  { name: 'CHU Tizi-Ouzou', code: 'CHT-009', facilityType: F.HOSPITAL, address: 'Avenue de la République', city: 'Tizi-Ouzou', phone: '+213 36 00 00 01', email: 'info@cht.dz', bedCount: 700, departmentCount: 18, staffCount: 1500 },
+  { name: 'Hôpital Annaba', code: 'HAN-010', facilityType: F.HOSPITAL, address: 'Rue de la Liberté', city: 'Annaba', phone: '+213 38 00 00 01', email: 'admin@han.dz', bedCount: 500, departmentCount: 14, staffCount: 1000 },
 ]
 
 const userData = [
-  { firstname: 'Jean-Pierre', lastname: 'Lukusa', email: 'admin@medinsight.cd', role: R.ADMIN, facilityIndex: 0 },
-  { firstname: 'Marie', lastname: 'Mbuyi', email: 'admin2@medinsight.cd', role: R.ADMIN, facilityIndex: 0 },
-  { firstname: 'Patrice', lastname: 'Kabongo', email: 'dr.kabongo@medinsight.cd', role: R.DOCTOR, facilityIndex: 0 },
-  { firstname: 'Grâce', lastname: 'Tshimanga', email: 'dr.grace@medinsight.cd', role: R.DOCTOR, facilityIndex: 0 },
-  { firstname: 'Emmanuel', lastname: 'Kalubi', email: 'dr.kalubi@medinsight.cd', role: R.DOCTOR, facilityIndex: 1 },
-  { firstname: 'Solange', lastname: 'Ngoy', email: 'dr.solange@medinsight.cd', role: R.DOCTOR, facilityIndex: 1 },
-  { firstname: 'Dieudonné', lastname: 'Mutombo', email: 'dr.mutombo@medinsight.cd', role: R.DOCTOR, facilityIndex: 2 },
-  { firstname: 'Béatrice', lastname: 'Kasongo', email: 'dr.beatrice@medinsight.cd', role: R.DOCTOR, facilityIndex: 3 },
-  { firstname: 'Olivier', lastname: 'Lualaba', email: 'dr.lualaba@medinsight.cd', role: R.DOCTOR, facilityIndex: 5 },
-  { firstname: 'Cécile', lastname: 'Mwamba', email: 'dr.cecile@medinsight.cd', role: R.DOCTOR, facilityIndex: 5 },
-  { firstname: 'Gilbert', lastname: 'Ilunga', email: 'dr.ilinga@medinsight.cd', role: R.DOCTOR, facilityIndex: 6 },
-  { firstname: 'Monique', lastname: 'Kenge', email: 'dr.kenge@medinsight.cd', role: R.DOCTOR, facilityIndex: 7 },
-  { firstname: 'Augustin', lastname: 'Tshilombo', email: 'dr.tshilombo@medinsight.cd', role: R.DOCTOR, facilityIndex: 8 },
-  { firstname: 'Joséphine', lastname: 'Mukendi', email: 'dr.josephine@medinsight.cd', role: R.DOCTOR, facilityIndex: 9 },
-  { firstname: 'Serge', lastname: 'Bakajika', email: 'dr.serge@medinsight.cd', role: R.DOCTOR, facilityIndex: 4 },
-  { firstname: 'Consolée', lastname: 'Bakonga', email: 'nurse.consolee@medinsight.cd', role: R.NURSE, facilityIndex: 0 },
-  { firstname: 'Pierrette', lastname: 'Nlandu', email: 'nurse.pierrette@medinsight.cd', role: R.NURSE, facilityIndex: 1 },
-  { firstname: 'Norbert', lastname: 'Kasongo', email: 'nurse.norbert@medinsight.cd', role: R.NURSE, facilityIndex: 5 },
-  { firstname: 'Espérance', lastname: 'Ilunga', email: 'researcher@medinsight.cd', role: R.RESEARCHER, facilityIndex: 0 },
-  { firstname: 'Françoise', lastname: 'Kenge', email: 'francoise.research@medinsight.cd', role: R.RESEARCHER, facilityIndex: 4 },
-  { firstname: 'Clovis', lastname: 'Lukusa', email: 'clovis.viewer@medinsight.cd', role: R.VIEWER, facilityIndex: 0 },
-  { firstname: 'Bernadette', lastname: 'Mbuyi', email: 'bernadette.viewer@medinsight.cd', role: R.VIEWER, facilityIndex: 5 },
+  { firstname: 'Jean-Pierre', lastname: 'Lukusa', email: 'admin@dhayaro.cd', role: R.ADMIN, facilityIndex: 0 },
+  { firstname: 'Amira', lastname: 'Benali', email: 'superadmin@dhayaro.cd', role: R.SUPER_ADMIN, facilityIndex: 0 },
+  { firstname: 'Yasmine', lastname: 'Hadj', email: 'reception@dhayaro.cd', role: R.RECEPTIONIST, facilityIndex: 0 },
+  { firstname: 'Patrice', lastname: 'Kabongo', email: 'dr.kabongo@dhayaro.cd', role: R.DOCTOR, facilityIndex: 0 },
+  { firstname: 'Karim', lastname: 'Meziane', email: 'dr.karim@dhayaro.cd', role: R.DOCTOR, facilityIndex: 0 },
+  { firstname: 'Nadia', lastname: 'Brahimi', email: 'dr.nadia@dhayaro.cd', role: R.SPECIALIST, facilityIndex: 1 },
+  { firstname: 'Sofiane', lastname: 'Benmoussa', email: 'dr.sofiane@dhayaro.cd', role: R.DOCTOR, facilityIndex: 1 },
+  { firstname: 'Lina', lastname: 'Khelifi', email: 'dr.lina@dhayaro.cd', role: R.SPECIALIST, facilityIndex: 2 },
+  { firstname: 'Rachid', lastname: 'Touati', email: 'lab.rachid@dhayaro.cd', role: R.LABORATORY, facilityIndex: 6 },
+  { firstname: 'Fatima', lastname: 'Zerhouni', email: 'pharm.fatima@dhayaro.cd', role: R.PHARMACIST, facilityIndex: 7 },
+  { firstname: 'Mohamed', lastname: 'Bensaid', email: 'nurse.mohamed@dhayaro.cd', role: R.NURSE, facilityIndex: 0 },
+  { firstname: 'Amina', lastname: 'Djelloul', email: 'nurse.amina@dhayaro.cd', role: R.NURSE, facilityIndex: 1 },
+  { firstname: 'Youcef', lastname: 'Maâmar', email: 'compta.youcef@dhayaro.cd', role: R.ACCOUNTANT, facilityIndex: 0 },
+  { firstname: 'Samira', lastname: 'Aït-Ahmed', email: 'archive.samira@dhayaro.cd', role: R.ARCHIVIST, facilityIndex: 0 },
+  { firstname: 'Omar', lastname: 'Saidi', email: 'dr.omar@dhayaro.cd', role: R.DOCTOR, facilityIndex: 3 },
+  { firstname: 'Salima', lastname: 'Ferhat', email: 'dr.salima@dhayaro.cd', role: R.DOCTOR, facilityIndex: 4 },
+  { firstname: 'Amar', lastname: 'Taleb', email: 'dr.amar@dhayaro.cd', role: R.DOCTOR, facilityIndex: 5 },
+  { firstname: 'Naima',lastname: 'Bouzid', email: 'dr.naima@dhayaro.cd', role: R.SPECIALIST, facilityIndex: 8 },
+  { firstname: 'Hassan', lastname: 'Charef', email: 'dr.hassan@dhayaro.cd', role: R.DOCTOR, facilityIndex: 9 },
 ]
 
-const firstNamesM = ['Félix','Aristide','Célestin','Sylvain','Augustin','Norbert','Clovis','Gilbert','Emmanuel','Olivier','Bertin','Dieudonné','Théodore','Vianney','Serge','Blaise','Justin','Modeste','Pascal','Rodrigue','Fabrice','Gaëtan','Hervé','Landry','Marcel','Prosper','Stanis','Thierry','Yves']
-const firstNamesF = ['Jeanne','Hélène','Béatrice','Cécile','Monique','Grâce','Espérance','Bernadette','Consolée','Françoise','Pierrette','Solange','Marie','Françoise','Joséphine','Clémentine','Furaha','Gloria','Hortense','Inès','Josiane','Léontine','Mireille','Nadine','Olga','Patricia','Régine','Sylvie','Thérèse','Yvette']
-const lastNames = ['Tshisekedi','Lubaya','Kabila','Diangienda','Mobutu','Ngoma','Kasai','Kalonji','Lumumba','Kasa','Tshombe','Nsenda','Kabongo','Luyindula','Batumona','Kilangi','Ngalula','Kanku','Lokwa','Nzemba','Kabinda','Mwanza','Katumbi','Lualaba','Kenge','Mbuyi','Lukusa','Mutombo','Ilunga','Tshimanga','Mukendi','Bakajika',' Kasongo','Bakonga','Tshilombo']
-const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O+','O+','O-']
-const streets = ['Avenue de la Paix','Boulevard du 30 Juin','Avenue Sendwe','Boulevard Lumumba','Rue Kasa-Vubu','Avenue Mombo','Avenue Tombalbaye','Boulevard Kasavubu','Rue des Écoles','Avenue Kasa-Vubu','Boulevard Katumbi','Route de Limete','Avenue du Cinquantenaire','Avenue Kasavubu','Boulevard Mangengeng']
-const communes = ['Gombe','Lingwala','Ngaliema','Limete','Kalamu','Bandalungwa','Masina','Kintambo','Ngaba','Makala','Barumbu','Ndjili']
-const allergies = ['Pénicilline','Aspirine','Iode','Latex','AINS','Morphine','Sulfamides','Pollens','Crustacés','Acariens','Arachides','Null']
+const firstNamesM = ['Mohamed','Ahmed','Youssef','Omar','Ali','Karim','Rachid','Sofiane','Amar','Hassan','Youcef','Nabil','Samir','Farid','Tarek','Redouane','Said','Anis','Djamel','Bilal']
+const firstNamesF = ['Fatima','Amina','Nadia','Lina','Salima','Naima','Samira','Lydia','Dalila','Zohra','Meriem','Asma','Houda','Radia','Sabrina','Lamia','Nacera','Sara','Aicha','Malika']
+const lastNames = ['Benali','Meziane','Brahimi','Hadj','Khelifi','Bensaid','Ferhat','Taleb','Saidi','Charef','Bouzid','Djelloul','Maâmar','Aït-Ahmed','Touati','Benmoussa','Zerhouni','Bouzid','Guerfi','Slimani','Bouchama','Hamidi','Rahal','Mansouri','Benkhaled']
+const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O+','O+','O-'] as const
+const communes = ['Alger Centre','Bab Ezzouar','Hussein Dey','El Biar','Bouzareah','Kouba','Draria','Birtouta','Zeralda','Cheraga','Oran','Tizi-Ouzou','Annaba','Constantine']
+const streets = ['Rue Didouche Mourad','Boulevard Krim Belkacem','Avenue de la République','Rue Larbi Ben M\'hidi','Avenue Houari Boumediene','Rue Abane Ramdane','Boulevard Che Guevara','Rue des Martyrs','Avenue Ahmed Bey','Place du 1er Novembre']
+const allergies = ['Pénicilline','Aspirine','Iode','Latex','AINS','Morphine','Sulfamides','Pollens','Crustacés','Arachides','Null']
 
 const clinicalTemplates = [
-  { title: 'Paludisme sévère à Plasmodium falciparum', desc: 'Fièvre élevée depuis 5 jours, parasitémie à 200 000/µL. Hb 8g/dL.', symptoms: 'Fièvre 40°C, frissons, sueurs, anémie, splénomégalie', diag: 'Paludisme sévère - P. falciparum', treatment: 'Artesunate IV 2.4mg/kg puis ACT per os', duration: '7 jours', tags: ['infectiologie','paludisme','urgence'], priority: 'critical' },
-  { title: 'Diabète de type 2 décompensé', desc: 'Glycémie 3.2g/L. HbA1c 10.5%. IMC 32.', symptoms: 'Polyurie, polydipsie, fatigue, perte de poids', diag: 'Diabète type 2 - HbA1c 10.5%', treatment: 'Metformine 1000mg 2x/j + Gliclazide 80mg', duration: '6 mois', tags: ['endocrinologie','chronique'], priority: 'high' },
-  { title: 'Hypertension artérielle sévère', desc: 'HTA sévère PAS 185/115. Risque cardiovasculaire élevé.', symptoms: 'Céphalées occipitales, vertiges, épistaxis', diag: 'HTA sévère - Risque CV élevé', treatment: 'Amlodipine 10mg + Lisinopril 20mg + Indapamide 1.5mg LP', duration: 'Indéterminé', tags: ['cardiologie','chronique'], priority: 'high' },
-  { title: 'Asthme bronchique persistant', desc: 'Asthme déclenché par pollens. VEMS 65%.', symptoms: 'Dyspnée paroxystique, sifflements, toux nocturne', diag: 'Asthme allergique persistant - VEMS 65%', treatment: 'Beclométasone 400mcg/j + Formotérol 12mcg', duration: 'Permanente', tags: ['pneumologie','allergie'], priority: 'medium' },
-  { title: 'Insuffisance cardiaque aiguë', desc: 'ICFE décompensée. FEVG 28%. Antécédent IAM.', symptoms: 'Dyspnée de repos, orthopnée, œdèmes MI', diag: 'ICFE NYHA III - FEVG 28%', treatment: 'Furosémide IV + Ramipril + Carvedilol + Spironolactone', duration: 'Longue durée', tags: ['cardiologie','urgence'], priority: 'critical' },
-  { title: 'Gastrite à Helicobacter pylori', desc: 'Douleurs gastriques depuis 3 semaines. Hp positif.', symptoms: 'Douleur épigastrique, brûlures, ballonnements', diag: 'Gastrite antrale - Hp positif', treatment: 'IPP + Amoxicilline 1g + Clarithromycine 500mg (14j)', duration: '2 semaines', tags: ['gastro','infection'], priority: 'medium' },
-  { title: 'Colique néphrétique', desc: 'Lithiase rénale droite 9mm. Douleur aiguë.', symptoms: 'Douleur lombaire fulgurante, nausées, hématurie', diag: 'Lithiase rénale droite 9mm', treatment: 'Métamizole 2g IV + Tamsulosine + Lithotripsie', duration: '1 mois', tags: ['urologie','urgence'], priority: 'high' },
-  { title: 'Appendicite aiguë', desc: 'Appendicite confirmée au scanner. Alvarado 9.', symptoms: 'Douleur FID aiguë, fièvre 38.8°C, nausées', diag: 'Appendicite aiguë non compliquée', treatment: 'Appendicoscopie sous coelioscopie', duration: '1 semaine', tags: ['chirurgie','urgence'], priority: 'critical' },
-  { title: 'Infection urinaire basse', desc: 'Cystite aiguë. E.coli 10^6 UFC/mL.', symptoms: 'Dysurie, pollakiurie, brûlures mictionnelles', diag: 'Cystite aiguë - E.coli', treatment: 'Fosfomycine 3g dose unique', duration: '3 jours', tags: ['infectiologie','urologie'], priority: 'low' },
-  { title: 'Pneumonie communautaire', desc: 'Pneumonie lobaire droite. CRP 190.', symptoms: 'Fièvre 39.8°C, toux productive, dyspnée', diag: 'Pneumonie lobaire - CRB-65: 1', treatment: 'Amoxicilline 1g 3x/j + Azithromycine', duration: '10 jours', tags: ['pneumologie','infection'], priority: 'high' },
-  { title: 'Fibrillation atriale paroxystique', desc: 'FA paroxystique. CHA2DS2-VASc 2.', symptoms: 'Palpitations, dyspnée d\'effort, pouls irrégulier', diag: 'FA paroxystique - CHA2DS2-VASc 2', treatment: 'Apixaban 5mg 2x/j + Bisoprolol 5mg', duration: 'Indéterminé', tags: ['cardiologie','arythmie'], priority: 'high' },
-  { title: 'Dépression majeure', desc: 'Épisode dépressif sévère. PHQ-9 score 20.', symptoms: 'Tristesse persistante, anhédonie, insomnie', diag: 'TDM sévère - PHQ-9: 20', treatment: 'Sertraline 100mg/j + TCC', duration: '12 mois', tags: ['psychiatrie','santé-mentale'], priority: 'high' },
-  { title: 'Syndrome métabolique', desc: 'IMC 33, PA 145/95, glycémie 1.20g/L.', symptoms: 'Obésité abdominale, fatigue, essoufflement', diag: 'Syndrome métabolique - ATP III', treatment: 'Régime hypocalorique + Metformine 850mg', duration: '12 mois', tags: ['endocrinologie','métabolisme'], priority: 'high' },
-  { title: 'Hernie discale L5-S1', desc: 'Hernie discale compressive racine S1 gauche.', symptoms: 'Douleur sciatique, déficit sensitif S1', diag: 'Hernie discale L5-S1 gauche', treatment: 'Corticoïdes périduraux + Pregabaline + Kiné', duration: '3 mois', tags: ['neurochirurgie','douleur'], priority: 'high' },
-  { title: 'Urticaire chronique', desc: 'Urticaire spontanée depuis 7 mois.', symptoms: 'Plaques urticariennes prurigineuses', diag: 'Urticaire chronique spontanée', treatment: 'Cétirizine 20mg/j + Omalizumab si échec', duration: '6 mois', tags: ['dermatologie','allergie'], priority: 'medium' },
-  { title: 'Insuffisance rénale chronique', desc: 'IRC stade 4 - DFG 20. Néphropathie diabétique.', symptoms: 'Fatigue, prurit, œdèmes, nausées', diag: 'IRC stade 4 - Néphropathie diabétique', treatment: 'EPO + Fer IV + Régime hyposodé + IEC', duration: 'Longue durée', tags: ['néphrologie','dialyse'], priority: 'critical' },
-  { title: 'Grossesse normale - Suivi', desc: 'G2P1 - SA 28 semaines. Grossesse évolutive.', symptoms: 'Suivi de grossesse normale', diag: 'Grossesse unique SA 28 semaines', treatment: 'Acide folique + Fer + Calcium', duration: '12 semaines', tags: ['obstétrique','grossesse'], priority: 'medium' },
-  { title: 'Gonarthrose bilatérale', desc: 'Arthrose genou stade 2-3. IMC 29.', symptoms: 'Douleur mécanique, raideur matinale', diag: 'Gonarthrose stade 2-3', treatment: 'Paracétamol + AINS topique + Kiné', duration: '6 mois', tags: ['rhumatologie','orthopédie'], priority: 'medium' },
-  { title: 'Polyarthrite rhumatoïde', desc: 'PR séropositive. FR 130, anti-CCP 280.', symptoms: 'Raideur matinale >2h, douleurs articulaires', diag: 'PR séropositive - stade erosif', treatment: 'Méthotrexate 15mg/semaine SC + Prednisone', duration: 'Longue durée', tags: ['rhumatologie','auto-immune'], priority: 'high' },
-  { title: 'Céphalées de tension chronique', desc: 'Céphalées quotidiennes depuis 2 ans.', symptoms: 'Douleur oppressante bilatérale, casque', diag: 'Céphalées tensionnelles + Overuse', treatment: 'Amitriptyline 25mg + Arrêt AINS + Relaxation', duration: '3 mois', tags: ['neurologie','douleur'], priority: 'medium' },
-  { title: 'MPOC GOLD stade II', desc: 'VEMS/CVF 52%. Fumeur 35 paquets-années.', symptoms: 'Dyspnée d\'effort, toux productive', diag: 'MPOC GOLD II - VEMS/CVF 52%', treatment: 'Tiotropium 18mcg/j + Salbutamol PRN', duration: 'Longue durée', tags: ['pneumologie','chronique'], priority: 'high' },
-  { title: 'Névralgie du trijumeau', desc: 'Douleur faciale paroxystique V2-V3 depuis 7 mois.', symptoms: 'Douleur fulgurante joue et mâchoire', diag: 'Névralgie trijumeau classique V2/V3', treatment: 'Carbamazépine 200mg 2x/j + IRM', duration: '6 mois', tags: ['neurologie','douleur'], priority: 'high' },
-  { title: 'Anémie ferriprive sévère', desc: 'Hb 6.5g/dL, ferritine 3 ng/mL.', symptoms: 'Fatigue extrême, pâleur, dyspnée', diag: 'Anémie ferriprive sévère', treatment: 'Venofer 200mg IV x5 + Fer oral', duration: '3 mois', tags: ['hématologie','nutrition'], priority: 'high' },
-  { title: 'Cataracte sénile bilatérale', desc: 'Baisse AV depuis 1 an. AV OD 2/10, OG 3/10.', symptoms: 'Baisse acuité visuelle, éblouissement', diag: 'Cataracte sénile bilatérale', treatment: 'Phacoémulsification + IOL', duration: '2 semaines', tags: ['ophtalmologie','chirurgie'], priority: 'medium' },
-  { title: 'Lupus érythémateux systémique', desc: 'PLESS. ANA+, anti-dsDNA+. Atteinte rénale.', symptoms: 'Érythème ailes de papillon, arthralgies', diag: 'PLESS - SLICC 9 - Néphropathie IV', treatment: 'Corticoïdes + Mycophénolate + Hydroxychloroquine', duration: 'Longue durée', tags: ['rhumatologie','auto-immune'], priority: 'critical' },
-  { title: 'Diabète type 1 - Mauvais contrôle', desc: 'DT1 jeune adulte. HbA1c 11.2%. DKA il y a 8 mois.', symptoms: 'Polyurie, polydipsie, amaigrissement', diag: 'DT1 - HbA1c 11.2%', treatment: 'Pompe à insuline + Éducation thérapeutique', duration: 'Indéterminé', tags: ['endocrinologie','diabète'], priority: 'critical' },
-  { title: 'Cancer du côlon stade II', desc: 'Adénocarcinome côlon ascendant pT3N0M0.', symptoms: 'Rectorragies, amaigrissement 9kg, anémie', diag: 'Adénocarcinome côlon pT3N0M0', treatment: 'Hémicollectomie + FOLFOX 12 cycles', duration: '6 mois', tags: ['oncologie','chirurgie'], priority: 'critical' },
-  { title: 'BPCO aiguë surinfectée', desc: 'Exacerbation BPCO. VEMS 32%. Expectoration purulente.', symptoms: 'Dyspnée aiguë, fièvre 39.5°C, wheezing', diag: 'Exacerbation BPCO - Infection', treatment: 'Amoxicilline-clavulanique + Prednisone 40mg', duration: '10 jours', tags: ['pneumologie','infection'], priority: 'high' },
-  { title: 'Arthrose cervicale', desc: 'Spondylarthrose C5-C7. Douleurs chroniques.', symptoms: 'Douleurs cervicales, céphalées postérieures', diag: 'Spondylarthrose cervicale C5-C7', treatment: 'Kiné cervicale + AINS + Collier nocturne', duration: '3 mois', tags: ['orthopédie','rachis'], priority: 'medium' },
-  { title: 'Gastropathie par AINS', desc: 'Ulcération gastrique. Hématémèse.', symptoms: 'Hématémèse, méléna, douleur épigastrique', diag: 'Ulcère gastrique induit par AINS', treatment: 'Arrêt AINS + Esoméprazole 40mg IV', duration: '2 mois', tags: ['gastro','urgence'], priority: 'high' },
-  { title: 'Dermatite atopique sévère', desc: 'Eczéma chronique. SCORAD 55.', symptoms: 'Prurit intense nocturne, lichenification', diag: 'Dermatite atopique sévère - SCORAD 55', treatment: 'Corticoïde + Émollients + Dupilumab', duration: '6 mois', tags: ['dermatologie','chronique'], priority: 'high' },
-  { title: 'Hypothyroïdie subclinique', desc: 'TSH 9.0 mUI/L. Fatigue chronique.', symptoms: 'Fatigue, prise de poids, intolérance froid', diag: 'Hypothyroïdie subclinique', treatment: 'Lévothyroxine 50mcg/j', duration: 'Indéterminé', tags: ['endocrinologie','thyroïde'], priority: 'medium' },
+  { motif: 'Fièvre élevée persistante', symptoms: ['Fièvre 39.5°C','Frissons','Sueurs','Céphalées'], diag: 'Infection aiguë - Fièvre d\'origine inconnue', treatment: 'Amoxicilline 1g 3x/j + Paracétamol 1g', notes: 'Prescription paludisme à vérifier' },
+  { motif: 'Douleur thoracique', symptoms: ['Douleur rétrosternale','Dyspnée','Palpitations'], diag: 'Syndrome coronarien aigu - Suspicion', treatment: 'Aspirine 250mg + Nitroglycérine SL + ECG urgent', notes: 'URGENCE - ECG et troponines immédiats' },
+  { motif: 'Diabète type 2 - Contrôle', symptoms: ['Polyurie','Polydipsie','Fatigue'], diag: 'Diabète type 2 - HbA1c 9.5%', treatment: 'Metformine 1000mg 2x/j + Gliclazide 80mg', notes: 'Contrôle HbA1c dans 3 mois' },
+  { motif: 'Hypertension artérielle', symptoms: ['Céphalées occipitales','Vertiges','Épistaxis'], diag: 'HTA sévère - Risque CV élevé', treatment: 'Amlodipine 10mg + Lisinopril 20mg', notes: 'Régime hyposodé prescrit' },
+  { motif: 'Asthme bronchique', symptoms: ['Dyspnée paroxystique','Sifflements','Toux nocturne'], diag: 'Asthme allergique persistant', treatment: 'Beclométasone 400mcg/j + Salbutamol PRN', notes: 'Éviction allergènes recommandée' },
+  { motif: 'Douleur abdominale aiguë', symptoms: ['Douleur FID','Fièvre 38.5°C','Nausées'], diag: 'Appendicite aiguë - Alvarado 8', treatment: 'Appendicoscopie sous coelioscopie', notes: 'Chirurgie urgente programmée' },
+  { motif: 'Infection urinaire', symptoms: ['Dysurie','Pollakiurie','Brûlures mictionnelles'], diag: 'Cystite aiguë - E.coli', treatment: 'Fosfomycine 3g dose unique', notes: 'Uroculture avant traitement' },
+  { motif: 'Pneumonie communautaire', symptoms: ['Fièvre 39.8°C','Toux productive','Dyspnée'], diag: 'Pneumonie lobaire droite - CRB-65: 1', treatment: 'Amoxicilline 1g 3x/j + Azithromycine', notes: 'Radiographie thoracique à contrôler' },
+  { motif: 'Anémie ferriprive', symptoms: ['Fatigue extrême','Pâleur','Dyspnée d\'effort'], diag: 'Anémie ferriprive sévère - Hb 6.5g/dL', treatment: 'Venofer 200mg IV x5 + Fer oral', notes: 'Recherche cause de saignement' },
+  { motif: 'Insuffisance cardiaque', symptoms: ['Dyspnée de repos','Orthopnée','Œdèmes MI'], diag: 'ICFE NYHA III - FEVG 30%', treatment: 'Furosémide IV + Ramipril + Carvedilol', notes: 'Surveillance poids quotidienne' },
+  { motif: 'Gastropathie', symptoms: ['Douleur épigastrique','Brûlures','Ballonnements'], diag: 'Gastrite antrale - Hp positif', treatment: 'IPP + Amoxicilline 1g + Clarithromycine 500mg (14j)', notes: 'Test urea breath test contrôle après 4 semaines' },
+  { motif: 'Colique néphrétique', symptoms: ['Douleur lombaire fulgurante','Nausées','Hématurie'], diag: 'Lithiase rénale droite 8mm', treatment: 'Métamizole 2g IV + Tamsulosine', notes: 'Scanner abdomen sans injection' },
+  { motif: 'Dépression', symptoms: ['Tristesse persistante','Anhédonie','Insomnie'], diag: 'Trouble dépressif sévère - PHQ-9: 18', treatment: 'Sertraline 50mg/j + TCC', notes: 'Suivi psychiatriqueprogrammé' },
+  { motif: 'Arthrose du genou', symptoms: ['Douleur mécanique','Raideur matinale'], diag: 'Gonarthrose bilatérale stade 2-3', treatment: 'Paracétamol + AINS topique + Kiné', notes: 'Perte de poids recommandée' },
+  { motif: 'Urticaire', symptoms: ['Plaques urticariennes prurigineuses'], diag: 'Urticaire chronique spontanée', treatment: 'Cétirizine 20mg/j + Omalizumab si échec', notes: 'Éviction facteurs déclenchants' },
 ]
 
-function generatePatients(count: number) {
-  const pts: Array<{ facilityIndex: number; firstname: string; lastname: string; sex: string; age: number; bloodGroup: string; phone: string; address: string; dateOfBirth: string; allergies: string[] }> = []
-  for (let i = 0; i < count; i++) {
-    const sex = Math.random() > 0.48 ? 'M' : 'F'
-    const age = 2 + Math.floor(Math.random() * 85)
-    const birthYear = 2026 - age
-    const birthMonth = 1 + Math.floor(Math.random() * 12)
-    const birthDay = 1 + Math.floor(Math.random() * 28)
-    const allg = pick(allergies)
-    pts.push({
-      facilityIndex: Math.floor(Math.random() * 10),
-      firstname: sex === 'M' ? pick(firstNamesM) : pick(firstNamesF),
-      lastname: pick(lastNames).trim(),
-      sex,
-      age,
-      bloodGroup: pick(bloodGroups),
-      phone: `+243 81 ${300 + Math.floor(Math.random() * 700)} ${String(1000 + i).padStart(4, '0')}`,
-      address: `${pick(streets)}, ${pick(communes)}, Kinshasa`,
-      dateOfBirth: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
-      allergies: allg === 'Null' ? [] : [allg],
-    })
-  }
-  return pts
-}
-
-function generateCases(
-  patientCount: number,
-  doctorIndices: number[],
-  facilityCount: number,
-) {
-  const cases: Array<{
-    facilityIndex: number
-    patientIndex: number
-    doctorIndex: number
-    template: typeof clinicalTemplates[number]
-    daysAgo: number
-    status: string
-  }> = []
-
-  for (let i = 0; i < 150; i++) {
-    const pi = Math.floor(Math.random() * patientCount)
-    const di = pick(doctorIndices)
-    const template = pick(clinicalTemplates)
-    const age = Math.floor(Math.random() * 180)
-
-    let status: string
-    if (age > 150) status = 'SUCCESS'
-    else if (age > 120) status = Math.random() > 0.3 ? 'SUCCESS' : 'FAILURE'
-    else if (age > 60) status = Math.random() > 0.4 ? 'IN_PROGRESS' : 'SUCCESS'
-    else if (age > 30) status = Math.random() > 0.5 ? 'IN_PROGRESS' : 'PENDING'
-    else status = 'PENDING'
-
-    cases.push({
-      facilityIndex: Math.floor(Math.random() * facilityCount),
-      patientIndex: pi,
-      doctorIndex: di,
-      template,
-      daysAgo: age,
-      status,
-    })
-  }
-
-  return cases.sort((a, b) => a.daysAgo - b.daysAgo)
-}
+const diseaseData = [
+  { code: 'A09', name: 'Gastro-entérite infectieuse', category: 'Maladies infectieuses', symptoms: ['Diarrhée','Vomissements','Fièvre'], complications: ['Déshydratation'], treatments: ['Réhydratation orale','Antispasmodiques'] },
+  { code: 'B54', name: 'Paludisme non précisé', category: 'Maladies infectieuses', symptoms: ['Fièvre','Frissons','Sueurs'], complications: ['Paludisme cérébral','Anémie sévère'], treatments: ['Arthéméther-Luméfantrine','Artésunate IV'] },
+  { code: 'E11', name: 'Diabète de type 2', category: 'Maladies endocriniennes', symptoms: ['Polyurie','Polydipsie','Amaigrissement'], complications: ['Rétinopathie','Néphropathie','Neuropathie'], treatments: ['Metformine','Insuline'] },
+  { code: 'I10', name: 'Hypertension artérielle essentielle', category: 'Maladies cardiovasculaires', symptoms: ['Céphalées','Vertiges'], complications: ['AVC','IDC','Insuffisance rénale'], treatments: ['IEC','ARA-II','Calcio-antagonistes'] },
+  { code: 'J18', name: 'Pneumonie', category: 'Maladies respiratoires', symptoms: ['Fièvre','Toux productive','Dyspnée'], complications: ['Empyème','Septicémie'], treatments: ['Antibiothérapie','Oxygénothérapie'] },
+  { code: 'J44', name: 'MPOC', category: 'Maladies respiratoires', symptoms: ['Dyspnée','Toux productive'], complications: ['Exacerbation aiguë','Insuffisance respiratoire'], treatments: ['Bronchodilatateurs','Corticoïdes inhalés'] },
+  { code: 'K29', name: 'Gastrite', category: 'Maladies digestives', symptoms: ['Douleur épigastrique','Nausées'], complications: ['Ulcère gastrique','Hémorragie digestive'], treatments: ['IPP','Eradication H.pylori'] },
+  { code: 'M17', name: 'Gonarthrose', category: 'Maladies ostéo-articulaires', symptoms: ['Douleur mécanique','Raideur'], complications: ['Handicap','Douleur chronique'], treatments: ['Antalgiques','Kinésithérapie','Chirurgie'] },
+  { code: 'N39', name: 'Infection urinaire', category: 'Maladies urologiques', symptoms: ['Dysurie','Pollakiurie'], complications: ['Pyélonéphrite','Sepsis'], treatments: ['Antibiothérapie'] },
+  { code: 'F32', name: 'Trouble dépressif majeur', category: 'Maladies psychiatriques', symptoms: ['Tristesse','Anhédonie','Insomnie'], complications: ['Suicide','Désociation sociale'], treatments: ['ISRS','Psychothérapie'] },
+]
 
 async function seed() {
-  console.log('🌱 Seeding database with 6 months of Kinshasa medical data...')
+  console.log('Seeding Dhayaro database...')
 
   const db = getDb()
-
   await db.delete(auditLogs)
-  await db.delete(clinicalCases)
+  await db.delete(notifications)
+  await db.delete(documents)
+  await db.delete(queue)
+  await db.delete(labExams)
+  await db.delete(prescriptions)
+  await db.delete(medications)
+  await db.delete(treatments)
+  await db.delete(diagnostics)
+  await db.delete(consultations)
   await db.delete(patients)
   await db.delete(users)
+  await db.delete(diseases)
+  await db.delete(labCategories)
   await db.delete(facilities)
-  console.log('  ✓ Cleaned existing data')
+  console.log('  Cleaned existing data')
 
   const insertedFacilities = await db.insert(facilities).values(facilityData.map((f) => ({
-    ...f,
-    id: crypto.randomUUID(),
-    isActive: true,
-    createdAt: daysAgo(180),
-    updatedAt: new Date(),
+    ...f, id: crypto.randomUUID(), isActive: true, createdAt: daysAgo(180), updatedAt: new Date(),
   }))).returning({ id: facilities.id })
-  console.log(`  ✓ ${insertedFacilities.length} facilities`)
+  console.log(`  ${insertedFacilities.length} facilities`)
 
   const passwordHash = await hashPassword('admin123')
   const doctorHash = await hashPassword('doctor123')
   const nurseHash = await hashPassword('nurse123')
-  const researcherHash = await hashPassword('researcher123')
-  const viewerHash = await hashPassword('viewer123')
-
-  const hashByRole: Record<string, string> = {
-    ADMIN: passwordHash,
-    DOCTOR: doctorHash,
-    NURSE: nurseHash,
-    RESEARCHER: researcherHash,
-    VIEWER: viewerHash,
-  }
+  const otherHash = await hashPassword('dhayaro123')
+  const hashByRole: Record<string, string> = { SUPER_ADMIN: passwordHash, ADMIN: passwordHash, RECEPTIONIST: otherHash, DOCTOR: doctorHash, SPECIALIST: doctorHash, LABORATORY: otherHash, PHARMACIST: otherHash, NURSE: nurseHash, ACCOUNTANT: otherHash, ARCHIVIST: otherHash }
 
   const insertedUsers = await db.insert(users).values(
     userData.map((u, i) => ({
-      id: crypto.randomUUID(),
-      firstname: u.firstname,
-      lastname: u.lastname,
-      email: u.email,
-      passwordHash: hashByRole[u.role],
-      role: u.role,
-      facilityId: insertedFacilities[u.facilityIndex].id,
-      isActive: true,
-      createdAt: daysAgo(180 - i),
-      updatedAt: new Date(),
+      id: crypto.randomUUID(), firstname: u.firstname, lastname: u.lastname, email: u.email,
+      passwordHash: hashByRole[u.role], role: u.role, facilityId: insertedFacilities[u.facilityIndex].id,
+      isActive: true, createdAt: daysAgo(180 - i), updatedAt: new Date(),
     }))
   ).returning({ id: users.id })
-  console.log(`  ✓ ${insertedUsers.length} users`)
+  console.log(`  ${insertedUsers.length} users`)
 
-  const patientData = generatePatients(100)
-
-  const insertedPatients = await db.insert(patients).values(
-    patientData.map((p, i) => ({
-      id: crypto.randomUUID(),
-      facilityId: insertedFacilities[p.facilityIndex].id,
-      patientUuid: crypto.randomUUID(),
-      firstname: p.firstname,
-      lastname: p.lastname,
-      sex: p.sex,
-      age: p.age,
-      bloodGroup: p.bloodGroup,
-      phone: p.phone,
-      email: `${p.firstname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.${p.lastname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}@email.cd`,
-      address: p.address,
-      dateOfBirth: p.dateOfBirth,
-      allergies: p.allergies,
-      medicalHistoryJson: {},
-      isActive: true,
-      createdAt: daysAgo(180 - i),
-      updatedAt: new Date(),
+  const insertedDiseases = await db.insert(diseases).values(
+    diseaseData.map((d) => ({
+      id: crypto.randomUUID(), ...d, complications: d.complications, treatments: d.treatments,
+      isActive: true, createdAt: daysAgo(180), updatedAt: new Date(),
     }))
-  ).returning({ id: patients.id })
-  console.log(`  ✓ ${insertedPatients.length} patients`)
+  ).returning({ id: diseases.id })
+  console.log(`  ${insertedDiseases.length} diseases`)
 
-  const doctorIndices = [2,3,4,5,6,7,8,9,10,11,12,13,14]
-  const caseData = generateCases(insertedPatients.length, doctorIndices, insertedFacilities.length)
-
-  const insertedCases = await db.insert(clinicalCases).values(
-    caseData.map((c) => ({
-      id: crypto.randomUUID(),
-      facilityId: insertedFacilities[c.facilityIndex].id,
-      patientId: insertedPatients[c.patientIndex].id,
-      doctorId: insertedUsers[c.doctorIndex].id,
-      title: c.template.title,
-      description: c.template.desc,
-      symptomsJson: { description: c.template.symptoms },
-      provisionalDiagnosis: c.template.diag,
-      treatment: c.template.treatment,
-      treatmentDuration: c.template.duration,
-      outcomeStatus: c.status as 'PENDING' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE',
-      outcomeNotes: c.status === 'SUCCESS' ? 'Patient guéri, suivi programmé' : c.status === 'FAILURE' ? 'Échec du traitement, réorientation' : undefined,
-      priority: c.template.priority,
-      tagsJson: { tags: c.template.tags },
-      isSynced: true,
-      createdAt: daysAgo(c.daysAgo),
-      updatedAt: daysAgo(Math.max(0, c.daysAgo - Math.floor(Math.random() * 15))),
-    }))
-  ).returning({ id: clinicalCases.id })
-  console.log(`  ✓ ${insertedCases.length} clinical cases`)
-
-  const auditActions = ['LOGIN','CREATE','UPDATE','VIEW','DELETE'] as const
-  const auditResources = ['auth','clinical_case','patient','facility','user','audit'] as const
-  const ips = ['192.168.1.1','192.168.1.10','192.168.1.15','192.168.1.20','192.168.1.30','10.0.0.5','10.0.0.12','172.16.0.8']
-
-  const auditEntries: Array<{
-    userId: string
-    facilityId: string
-    action: string
-    resource: string
-    resourceId: string
-    details: Record<string, unknown>
-    ipAddress: string
-    timestamp: Date
-  }> = []
-
-  for (let i = 0; i < 100; i++) {
-    const action = pick([...auditActions])
-    const resource = pick([...auditResources])
-    const userIndex = Math.floor(Math.random() * insertedUsers.length)
-    const patientIndex = Math.floor(Math.random() * insertedPatients.length)
-    const caseIndex = Math.floor(Math.random() * insertedCases.length)
-
-    let details: Record<string, unknown> = {}
-    if (action === 'CREATE') details = { title: insertedCases[caseIndex]?.title || 'Nouveau cas' }
-    else if (action === 'UPDATE') details = { field: 'outcome_status', old: 'PENDING', new: 'IN_PROGRESS' }
-    else if (action === 'VIEW') details = { name: `${patientData[patientIndex].firstname} ${patientData[patientIndex].lastname}` }
-    else if (action === 'LOGIN') details = { method: 'password' }
-
-    auditEntries.push({
-      id: crypto.randomUUID(),
-      userId: insertedUsers[userIndex].id,
-      facilityId: insertedFacilities[Math.floor(Math.random() * insertedFacilities.length)].id,
-      action,
-      resource,
-      resourceId: resource === 'patient' ? insertedPatients[patientIndex].id : resource === 'clinical_case' ? insertedCases[caseIndex].id : insertedUsers[userIndex].id,
-      details,
-      ipAddress: pick(ips),
-      timestamp: daysAgo(Math.floor(Math.random() * 180)),
+  const patientData: Array<{ facilityIndex: number; firstname: string; lastname: string; sex: 'M' | 'F'; age: number; bloodGroup: typeof bloodGroups[number]; phone: string; address: string; dateOfBirth: string; allergies: string[] }> = []
+  for (let i = 0; i < 80; i++) {
+    const sex = Math.random() > 0.48 ? 'M' as const : 'F' as const
+    const age = 2 + Math.floor(Math.random() * 85)
+    const birthYear = 2026 - age
+    const allg = pick(allergies)
+    patientData.push({
+      facilityIndex: Math.floor(Math.random() * 10),
+      firstname: sex === 'M' ? pick(firstNamesM) : pick(firstNamesF),
+      lastname: pick(lastNames), sex, age, bloodGroup: pick(bloodGroups),
+      phone: `+213 ${550 + Math.floor(Math.random() * 40)} ${String(1000 + i).padStart(4, '0')}`,
+      address: `${pick(streets)}, ${pick(communes)}`,
+      dateOfBirth: `${birthYear}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`,
+      allergies: allg === 'Null' ? [] : [allg],
     })
   }
 
+  const insertedPatients = await db.insert(patients).values(
+    patientData.map((p, i) => ({
+      id: crypto.randomUUID(), patientUuid: crypto.randomUUID(), facilityId: insertedFacilities[p.facilityIndex].id,
+      firstname: p.firstname, lastname: p.lastname, sex: p.sex, dateOfBirth: p.dateOfBirth, age: p.age,
+      bloodGroup: p.bloodGroup, phone: p.phone, address: p.address,
+      email: `${p.firstname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.${p.lastname.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}@email.dz`,
+      allergies: p.allergies, antecedents: [], medicalHistoryJson: {}, isActive: true, isArchived: false,
+      createdAt: daysAgo(180 - i), updatedAt: new Date(),
+    }))
+  ).returning({ id: patients.id })
+  console.log(`  ${insertedPatients.length} patients`)
+
+  const doctorIndices = [3, 4, 5, 6, 7, 14, 15, 16, 17, 18]
+  const consultationData = Array.from({ length: 120 }, (_, i) => {
+    const template = pick(clinicalTemplates)
+    const pi = Math.floor(Math.random() * insertedPatients.length)
+    const di = pick(doctorIndices)
+    return {
+      id: crypto.randomUUID(),
+      facilityId: pick(insertedFacilities).id,
+      patientId: insertedPatients[pi].id,
+      doctorId: insertedUsers[di].id,
+      consultationNumber: `CONS-${String(i + 1).padStart(4, '0')}`,
+      motif: template.motif,
+      symptoms: template.symptoms,
+      vitalSigns: { temperature: 36.5 + Math.random() * 4, heartRate: 60 + Math.floor(Math.random() * 40), bloodPressure: `${110 + Math.floor(Math.random() * 60)}/${70 + Math.floor(Math.random() * 30)}` },
+      notes: template.notes,
+      provisionalDiagnosis: template.diag,
+      status: pick(['WAITING', 'IN_PROGRESS', 'COMPLETED'] as const),
+      createdAt: daysAgo(Math.floor(Math.random() * 120)),
+      updatedAt: new Date(),
+    }
+  })
+  const insertedConsultations = await db.insert(consultations).values(consultationData).returning({ id: consultations.id })
+  console.log(`  ${insertedConsultations.length} consultations`)
+
+  const diagnosticsData = Array.from({ length: 60 }, () => ({
+    id: crypto.randomUUID(),
+    consultationId: pick(insertedConsultations).id,
+    patientId: pick(insertedPatients).id,
+    doctorId: insertedUsers[pick(doctorIndices)].id,
+    diseaseId: pick(insertedDiseases).id,
+    diagnosticType: pick(['PROVISIONAL', 'FINAL'] as const),
+    description: pick(clinicalTemplates).diag,
+    isValidated: Math.random() > 0.4,
+    createdAt: daysAgo(Math.floor(Math.random() * 120)),
+    updatedAt: new Date(),
+  }))
+  await db.insert(diagnostics).values(diagnosticsData)
+  console.log('  60 diagnostics')
+
+  const medData = [
+    { name: 'Amoxicilline', genericName: 'Amoxicilline', category: 'Antibiotique', form: 'Gélule', dosage: '500mg' },
+    { name: 'Paracétamol', genericName: 'Paracétamol', category: 'Antalgique', form: 'Comprimé', dosage: '1000mg' },
+    { name: 'Metformine', genericName: 'Metformine', category: 'Antidiabétique', form: 'Comprimé', dosage: '850mg' },
+    { name: 'Amlodipine', genericName: 'Amlodipine', category: 'Antihypertenseur', form: 'Comprimé', dosage: '5mg' },
+    { name: 'Ibuprofène', genericName: 'Ibuprofène', category: 'AINS', form: 'Comprimé', dosage: '400mg' },
+    { name: 'Omeprazole', genericName: 'Omeprazole', category: 'IPP', form: 'Gélule', dosage: '20mg' },
+    { name: 'Salbutamol', genericName: 'Salbutamol', category: 'Bronchodilatateur', form: 'Spray', dosage: '100mcg' },
+    { name: 'Sertraline', genericName: 'Sertraline', category: 'ISRS', form: 'Comprimé', dosage: '50mg' },
+    { name: 'Furosémide', genericName: 'Furosémide', category: 'Diurétique', form: 'Comprimé', dosage: '40mg' },
+    { name: 'Ciprofloxacine', genericName: 'Ciprofloxacine', category: 'Antibiotique', form: 'Comprimé', dosage: '500mg' },
+  ]
+
+  const insertedMeds = await db.insert(medications).values(
+    medData.map(m => ({ id: crypto.randomUUID(), ...m, sideEffects: [], contraindications: [], isActive: true, createdAt: daysAgo(180) }))
+  ).returning({ id: medications.id })
+  console.log(`  ${insertedMeds.length} medications`)
+
+  const treatmentsData = Array.from({ length: 50 }, () => ({
+    id: crypto.randomUUID(),
+    patientId: pick(insertedPatients).id,
+    doctorId: insertedUsers[pick(doctorIndices)].id,
+    description: pick(clinicalTemplates).treatment,
+    status: pick(['PRESCRIBED', 'IN_PROGRESS', 'COMPLETED'] as const),
+    startDate: daysAgo(Math.floor(Math.random() * 90)).toISOString().split('T')[0],
+    createdAt: daysAgo(Math.floor(Math.random() * 90)),
+    updatedAt: new Date(),
+  }))
+  const insertedTreatments = await db.insert(treatments).values(treatmentsData).returning({ id: treatments.id })
+  console.log(`  ${insertedTreatments.length} treatments`)
+
+  const prescriptionsData = insertedTreatments.slice(0, 40).flatMap(t => {
+    const med = pick(insertedMeds)
+    return [{
+      id: crypto.randomUUID(),
+      treatmentId: t.id,
+      medicationId: med.id,
+      dosage: pick(['1 comprim\u00e9 2x/j', '1 comprim\u00e9 3x/j', '2 comprim\u00e9s 1x/j', '1 g\u00e9lule le soir']),
+      frequency: pick(['Matin et soir', '3 fois par jour', 'Le matin', 'Selon besoin']),
+      duration: pick(['7 jours', '14 jours', '1 mois', '3 mois', '6 mois']),
+      quantity: 10 + Math.floor(Math.random() * 50),
+      createdAt: daysAgo(Math.floor(Math.random() * 90)),
+    }]
+  })
+  await db.insert(prescriptions).values(prescriptionsData)
+  console.log('  40 prescriptions')
+
+  const labCatData = [
+    { name: 'Biologie générale', description: 'NFS, glycémie, créatinine, bilan hépatique' },
+    { name: 'Radiologie', description: 'Radiographie, scanner' },
+    { name: 'Cardiologie', description: 'ECG, échocardiographie' },
+    { name: 'Microbiologie', description: 'ECBU, hémoculture, prélèvements' },
+    { name: 'Anatomopathologie', description: 'Biopsies, cytologie' },
+  ]
+  const insertedLabCats = await db.insert(labCategories).values(
+    labCatData.map(c => ({ id: crypto.randomUUID(), ...c, isActive: true, createdAt: daysAgo(180) }))
+  ).returning({ id: labCategories.id })
+  console.log(`  ${insertedLabCats.length} lab categories`)
+
+  const labExamData = Array.from({ length: 40 }, () => ({
+    id: crypto.randomUUID(),
+    patientId: pick(insertedPatients).id,
+    doctorId: insertedUsers[pick(doctorIndices)].id,
+    labTechnicianId: insertedUsers[8].id,
+    categoryId: pick(insertedLabCats).id,
+    examName: pick(['NFS', 'Glycemie a jeun', 'Creatinine', 'Bilan hepatique', 'ECBU', 'Radiographie thoracique', 'ECG', 'Scanner abdominal'] as const),
+    clinicalIndication: 'Bilan pre-operatoire',
+    status: pick(['REQUESTED', 'IN_PROGRESS', 'COMPLETED'] as const),
+    results: Math.random() > 0.5 ? { value: 'Normal', reference: 'Negatif' } : {},
+    requestedAt: daysAgo(Math.floor(Math.random() * 90)),
+    createdAt: daysAgo(Math.floor(Math.random() * 90)),
+    updatedAt: new Date(),
+  }))
+  await db.insert(labExams).values(labExamData)
+  console.log('  40 lab exams')
+
+  const auditActions = ['LOGIN', 'CREATE', 'UPDATE', 'VIEW'] as const
+  const auditResources = ['auth', 'consultation', 'patient', 'diagnostic', 'treatment', 'lab_exam'] as const
+  const auditEntries: Array<{
+    id: string; userId: string; facilityId: string; action: string; resource: string;
+    resourceId: string; details: Record<string, unknown>; ipAddress: string; timestamp: Date
+  }> = []
+  for (let i = 0; i < 80; i++) {
+    auditEntries.push({
+      id: crypto.randomUUID(), userId: pick(insertedUsers).id,
+      facilityId: pick(insertedFacilities).id,
+      action: pick([...auditActions]), resource: pick([...auditResources]),
+      resourceId: pick(insertedPatients).id, details: {},
+      ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
+      timestamp: daysAgo(Math.floor(Math.random() * 180)),
+    })
+  }
   await db.insert(auditLogs).values(auditEntries)
-  console.log(`  ✓ ${auditEntries.length} audit logs`)
+  console.log(`  ${auditEntries.length} audit logs`)
 
-  const statusCounts = { PENDING: 0, IN_PROGRESS: 0, SUCCESS: 0, FAILURE: 0 }
-  caseData.forEach(c => { statusCounts[c.status as keyof typeof statusCounts]++ })
-
-  console.log('\n🎉 Seed completed successfully!')
-  console.log(`   Facilities: ${insertedFacilities.length}`)
-  console.log(`   Users: ${insertedUsers.length}`)
-  console.log(`   Patients: ${insertedPatients.length}`)
-  console.log(`   Clinical Cases: ${insertedCases.length}`)
-  console.log(`     - PENDING: ${statusCounts.PENDING}`)
-  console.log(`     - IN_PROGRESS: ${statusCounts.IN_PROGRESS}`)
-  console.log(`     - SUCCESS: ${statusCounts.SUCCESS}`)
-  console.log(`     - FAILURE: ${statusCounts.FAILURE}`)
-  console.log(`   Audit Logs: ${auditEntries.length}`)
-  console.log(`   Data span: 6 months (Jan 2026 - Jul 2026)`)
+  console.log('\nSeed completed!')
+  console.log(`  Facilities: ${insertedFacilities.length}`)
+  console.log(`  Users: ${insertedUsers.length}`)
+  console.log(`  Patients: ${insertedPatients.length}`)
+  console.log(`  Diseases: ${insertedDiseases.length}`)
+  console.log(`  Consultations: ${insertedConsultations.length}`)
+  console.log(`  Medications: ${insertedMeds.length}`)
+  console.log(`  Treatments: ${insertedTreatments.length}`)
+  console.log(`  Lab Categories: ${insertedLabCats.length}`)
+  console.log(`  Audit Logs: ${auditEntries.length}`)
 }
 
 seed().catch((e) => {
-  console.error('❌ Seed failed:', e)
+  console.error('Seed failed:', e)
   process.exit(1)
 })

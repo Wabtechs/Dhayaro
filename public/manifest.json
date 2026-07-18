@@ -1,7 +1,7 @@
 {
-  "name": "MedInsight - Gestion de Cas Cliniques",
-  "short_name": "MedInsight",
-  "description": "Plateforme de gestion de cas cliniques médicaux - Offline-First",
+  "name": "Dhayaro - Gestion Hospitalière Intégrée",
+  "short_name": "Dhayaro",
+  "description": "Plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire.",
   "theme_color": "#0e384c",
   "background_color": "#f8fafc",
   "display": "standalone",

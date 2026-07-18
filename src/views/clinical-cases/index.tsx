@@ -168,7 +168,7 @@ export default function ClinicalCasesPage() {
   const handleCreateCase = async () => {
     setCreating(true)
     try {
-      const token = localStorage.getItem('medinsight_token') || ''
+      const token = localStorage.getItem('dhayaro_token') || ''
       await api.post('/clinical-cases', {
         title: newCase.title,
         description: newCase.description,
@@ -267,7 +267,7 @@ export default function ClinicalCasesPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          {can('clinical_cases:create') && (
+          {can('consultations:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -732,7 +732,7 @@ export default function ClinicalCasesPage() {
                     <CardTitle className="line-clamp-1 text-base">
                       {c.title}
                     </CardTitle>
-                    {can('clinical_cases:edit') && (
+                    {can('consultations:edit') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -746,7 +746,7 @@ export default function ClinicalCasesPage() {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     )}
-                    {can('clinical_cases:delete') && (
+                    {can('consultations:delete') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -866,7 +866,7 @@ export default function ClinicalCasesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {can('clinical_cases:edit') && (
+                      {can('consultations:edit') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -878,7 +878,7 @@ export default function ClinicalCasesPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       )}
-                      {can('clinical_cases:delete') && (
+                      {can('consultations:delete') && (
                       <Button
                         variant="ghost"
                         size="sm"

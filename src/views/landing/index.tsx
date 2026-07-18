@@ -95,7 +95,7 @@ const services = [
 const testimonials = [
   {
     quote:
-      'MedInsight a transformé notre façon de gérer les cas cliniques. Le mode offline est un vrai plus pour nos équipes mobiles.',
+      'Dhayaro a transformé notre façon de gérer les cas cliniques. Le mode offline est un vrai plus pour nos équipes mobiles.',
     name: 'Dr. Jean-Pierre Lukusa',
     role: 'Cardiologue, Hôpital Général de Kinshasa',
   },
@@ -157,7 +157,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-7 w-7" />
-            <span className="text-lg font-bold text-foreground">MedInsight</span>
+            <span className="text-lg font-bold text-foreground">Dhayaro</span>
           </Link>
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -242,7 +242,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/70">
-              MedInsight est la plateforme Offline-First qui permet aux médecins,
+              Dhayaro est la plateforme Offline-First qui permet aux médecins,
               hôpitaux et chercheurs de documenter, analyser et partager des cas
               cliniques en toute sécurité.
             </p>
@@ -268,7 +268,7 @@ export default function LandingPage() {
           <div className="hidden animate-fade-in-up lg:block" style={{ animationDelay: '0.2s' }}>
             <Image
               src="/hero-illustration.png"
-              alt="MedInsight Dashboard"
+              alt="Dhayaro Dashboard"
               width={800}
               height={600}
               className="aspect-[4/3] w-full rounded-3xl border border-white/10 shadow-2xl object-cover"
@@ -350,7 +350,7 @@ export default function LandingPage() {
                 La plateforme médica de nouvelle génération
               </h2>
               <p className="mb-8 text-muted-foreground leading-relaxed">
-                MedInsight a été conçue par des professionnels de santé pour des
+                Dhayaro a été conçue par des professionnels de santé pour des
                 professionnels de santé. Notre mission est de fournir un outil puissant,
                 sécurisé et facile à utiliser pour améliorer la prise en charge des
                 patients.
@@ -373,7 +373,7 @@ export default function LandingPage() {
 
             <Image
               src="/about-illustration.png"
-              alt="MedInsight Team"
+              alt="Dhayaro Team"
               width={600}
               height={660}
               className="aspect-[1/1.1] w-full rounded-3xl shadow-xl object-cover"
@@ -393,7 +393,7 @@ export default function LandingPage() {
               Pour chaque acteur de la santé
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              MedInsight s'adapte aux besoins spécifiques de chaque professionnelle et
+              Dhayaro s'adapte aux besoins spécifiques de chaque professionnelle et
               établissement de santé.
             </p>
           </div>
@@ -485,7 +485,7 @@ export default function LandingPage() {
           </h2>
           <p className="mb-10 text-lg text-white/70">
             Rejoignez des centaines de professionnels de santé qui font confiance à
-            MedInsight pour gérer leurs cas cliniques.
+            Dhayaro pour gérer leurs cas cliniques.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" className="bg-accent text-white hover:bg-accent/90" asChild>
@@ -499,8 +499,8 @@ export default function LandingPage() {
               variant="outline"
               className="border-white/30 text-white hover:bg-white/10"
               onClick={() => {
-                navigator.clipboard.writeText("contact@medinsight.cd")
-                toast({ title: "Email copié", description: "contact@medinsight.cd a été copié dans le presse-papier" })
+                navigator.clipboard.writeText("contact@dhayaro.cd")
+                toast({ title: "Email copié", description: "contact@dhayaro.cd a été copié dans le presse-papier" })
               }}
             >
               <Mail className="mr-2 h-4 w-4" />
@@ -518,7 +518,7 @@ export default function LandingPage() {
             <div>
               <div className="mb-4 flex items-center gap-2">
                 <Logo variant="dark" className="h-6 w-6" />
-                <span className="text-lg font-bold text-white">MedInsight</span>
+                <span className="text-lg font-bold text-white">Dhayaro</span>
               </div>
               <p className="mb-4 text-sm leading-relaxed text-white/50">
                 Plateforme de gestion de cas cliniques médicaux. Offline-First,
@@ -579,7 +579,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white/50">
                   <Mail className="h-4 w-4 shrink-0 text-accent" />
-                  contact@medinsight.cd
+                  contact@dhayaro.cd
                 </li>
               </ul>
             </div>
@@ -618,7 +618,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-white/40">
-              © {new Date().getFullYear()} MedInsight. Tous droits réservés.
+              © {new Date().getFullYear()} Dhayaro. Tous droits réservés.
             </p>
             <p className="text-sm text-white/40">
               Construit avec ❤️ pour la médecine

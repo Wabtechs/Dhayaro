@@ -128,7 +128,7 @@ export default function PatientsPage() {
     e.preventDefault()
     setCreating(true)
     try {
-      const token = localStorage.getItem('medinsight_token') || ''
+      const token = localStorage.getItem('dhayaro_token') || ''
       await api.post('/patients', {
         firstname: form.firstName,
         lastname: form.lastName,

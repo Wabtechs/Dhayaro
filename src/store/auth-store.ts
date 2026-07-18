@@ -5,11 +5,11 @@ const isDev = typeof window !== 'undefined' && window.location.hostname === 'loc
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000/api/v1' : '/api/v1')
 
 const mockUsers: Record<string, { password: string; user: User }> = {
-  'admin@medinsight.cd': {
+  'admin@dhayaro.cd': {
     password: 'admin123',
     user: {
       id: 'usr_001',
-      email: 'admin@medinsight.cd',
+      email: 'admin@dhayaro.cd',
       name: 'Dr. Jean-Pierre Lukusa',
       role: 'admin',
       facility: 'fac_001',
@@ -19,11 +19,11 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       isActive: true,
     },
   },
-  'dr.kabongo@medinsight.cd': {
+  'dr.kabongo@dhayaro.cd': {
     password: 'doctor123',
     user: {
       id: 'usr_002',
-      email: 'dr.kabongo@medinsight.cd',
+      email: 'dr.kabongo@dhayaro.cd',
       name: 'Dr. Patrice Kabongo',
       role: 'doctor',
       facility: 'fac_001',
@@ -33,14 +33,14 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       isActive: true,
     },
   },
-  'researcher@medinsight.cd': {
-    password: 'researcher123',
+  'nurse.consolee@dhayaro.cd': {
+    password: 'nurse123',
     user: {
       id: 'usr_003',
-      email: 'researcher@medinsight.cd',
-      name: 'Dr. Espérance Ilunga',
-      role: 'researcher',
-      facility: 'fac_002',
+      email: 'nurse.consolee@dhayaro.cd',
+      name: 'Consolee Mukendi',
+      role: 'nurse',
+      facility: 'fac_001',
       avatar: '',
       createdAt: '2025-03-05T14:00:00Z',
       lastLogin: new Date().toISOString(),
@@ -75,9 +75,9 @@ function mapBackendUser(bu: Record<string, unknown>): User {
 
 function loadSession(): { user: User | null; token: string | null; refreshToken: string | null } {
   try {
-    const raw = localStorage.getItem('medinsight_user')
-    const token = localStorage.getItem('medinsight_token')
-    const refreshToken = localStorage.getItem('medinsight_refresh_token')
+    const raw = localStorage.getItem('dhayaro_user')
+    const token = localStorage.getItem('dhayaro_token')
+    const refreshToken = localStorage.getItem('dhayaro_refresh_token')
     if (raw && token) {
       return { user: JSON.parse(raw), token, refreshToken }
     }
@@ -86,17 +86,17 @@ function loadSession(): { user: User | null; token: string | null; refreshToken:
 }
 
 function saveSession(user: User, token: string, refreshToken: string) {
-  localStorage.setItem('medinsight_user', JSON.stringify(user))
-  localStorage.setItem('medinsight_token', token)
-  localStorage.setItem('medinsight_refresh_token', refreshToken)
-  document.cookie = `medinsight_token=${token}; path=/; max-age=86400; SameSite=Lax`
+  localStorage.setItem('dhayaro_user', JSON.stringify(user))
+  localStorage.setItem('dhayaro_token', token)
+  localStorage.setItem('dhayaro_refresh_token', refreshToken)
+  document.cookie = `dhayaro_token=${token}; path=/; max-age=86400; SameSite=Lax`
 }
 
 function clearSession() {
-  localStorage.removeItem('medinsight_user')
-  localStorage.removeItem('medinsight_token')
-  localStorage.removeItem('medinsight_refresh_token')
-  document.cookie = 'medinsight_token=; path=/; max-age=0'
+  localStorage.removeItem('dhayaro_user')
+  localStorage.removeItem('dhayaro_token')
+  localStorage.removeItem('dhayaro_refresh_token')
+  document.cookie = 'dhayaro_token=; path=/; max-age=0'
 }
 
 function generateMockToken(user: User): string {

@@ -25,7 +25,7 @@ import {
 import { useAppStore } from "@/store";
 import { useToast } from "@/hooks/use-toast";
 
-const SETTINGS_KEY = "medinsight_settings";
+const SETTINGS_KEY = "dhayaro_settings";
 
 interface SavedSettings {
   platformName: string;
@@ -51,7 +51,7 @@ function loadSettings(): SavedSettings {
     if (raw) return JSON.parse(raw);
   } catch { /* ignore parse errors, use defaults */ }
   return {
-    platformName: "MedInsight",
+    platformName: "Dhayaro",
     language: "fr",
     timezone: "Africa/Algiers",
     facility: "hospital-central",
@@ -75,7 +75,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [platformName, setPlatformName] = useState("MedInsight");
+  const [platformName, setPlatformName] = useState("Dhayaro");
   const [language, setLanguage] = useState("fr");
   const [timezone, setTimezone] = useState("Africa/Algiers");
   const [facility, setFacility] = useState("hospital-central");
@@ -133,7 +133,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Paramètres Système</h1>
-        <p className="text-muted-foreground">Configurez les paramètres de la plateforme MedInsight.</p>
+        <p className="text-muted-foreground">Configurez les paramètres de la plateforme Dhayaro.</p>
       </div>
 
       <Separator />
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                 <p className="mb-2 font-medium">Couleur Principale</p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full border-2 border-primary bg-primary" />
-                  <span className="text-sm text-muted-foreground">Bleu MedInsight (par défaut)</span>
+                  <span className="text-sm text-muted-foreground">Bleu Dhayaro (par défaut)</span>
                 </div>
               </div>
             </CardContent>

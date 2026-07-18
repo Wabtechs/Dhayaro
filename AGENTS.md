@@ -1,4 +1,4 @@
-# MedInsight - Project Conventions
+# Dhayaro - Project Conventions
 
 ## Overview
 Medical PWA for clinical case management in Algerian hospitals. Offline-first, French UI.
@@ -42,7 +42,7 @@ src/
 - **TypeScript strict** — always type API responses (avoid `unknown`)
 - **Lazy loading** — all route pages use `React.lazy()`
 - **Mock fallback** — all data hooks try backend first, fallback to mock data on error
-- **Token key:** `medinsight_token` (localStorage)
+- **Token key:** `dhayaro_token` (localStorage)
 - **API base:** `/api/v1` (prod), `http://localhost:8000/api/v1` (dev auto-detected via `import.meta.env.DEV`)
 - **Dark mode:** controlled by Zustand `useAppStore().darkMode`, synced with `.dark` class on `<html>`
 - **Backend models:** UUID primary keys, `created_at`/`updated_at` with timezone, `is_active` soft-delete pattern

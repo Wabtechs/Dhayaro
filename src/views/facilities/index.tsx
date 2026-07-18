@@ -109,7 +109,7 @@ export default function Facilities() {
     e.preventDefault()
     setCreating(true)
     try {
-      const token = localStorage.getItem('medinsight_token') || ''
+      const token = localStorage.getItem('dhayaro_token') || ''
       const code = newName.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 30) + '-' + Date.now().toString(36)
       await api.post('/facilities', {
         name: newName,

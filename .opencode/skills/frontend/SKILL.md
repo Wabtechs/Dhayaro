@@ -94,7 +94,7 @@ export function MyComponent({ title }: { title: string }) {
 ### State management
 - **Zustand** for UI state (sidebar open, dark mode, command palette)
 - **TanStack Query** for server state (all CRUD data)
-- **localStorage** keys: `medinsight_token`, `medinsight_user`, `medinsight_refresh_token`
+- **localStorage** keys: `dhayaro_token`, `dhayaro_user`, `dhayaro_refresh_token`
 
 ### Import aliases
 - `@/` → `src/` (configured in tsconfig and vite.config.ts)

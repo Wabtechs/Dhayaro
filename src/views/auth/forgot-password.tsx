@@ -38,7 +38,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center gap-3">
           <Logo className="h-12 w-12 rounded-xl" />
-          <h1 className="text-2xl font-bold text-primary">MedInsight</h1>
+          <h1 className="text-2xl font-bold text-primary">Dhayaro</h1>
         </div>
 
         <Card>

@@ -5,9 +5,9 @@ import { eq } from 'drizzle-orm'
 import { createToken, verifyPassword } from '@/lib/auth'
 
 const MOCK_USERS = [
-  { id: '00000000-0000-0000-0000-000000000001', email: 'admin@medinsight.cd', password: 'admin123', firstname: 'Jean-Pierre', lastname: 'Lukusa', role: 'ADMIN' as const },
-  { id: '00000000-0000-0000-0000-000000000002', email: 'dr.kabongo@medinsight.cd', password: 'doctor123', firstname: 'Patrice', lastname: 'Kabongo', role: 'DOCTOR' as const },
-  { id: '00000000-0000-0000-0000-000000000003', email: 'researcher@medinsight.cd', password: 'researcher123', firstname: 'Espérance', lastname: 'Ilunga', role: 'RESEARCHER' as const },
+  { id: '00000000-0000-0000-0000-000000000001', email: 'admin@dhayaro.cd', password: 'admin123', firstname: 'Jean-Pierre', lastname: 'Lukusa', role: 'ADMIN' as const },
+  { id: '00000000-0000-0000-0000-000000000002', email: 'dr.kabongo@dhayaro.cd', password: 'doctor123', firstname: 'Patrice', lastname: 'Kabongo', role: 'DOCTOR' as const },
+  { id: '00000000-0000-0000-0000-000000000003', email: 'nurse.consolee@dhayaro.cd', password: 'nurse123', firstname: 'Consolée', lastname: 'Bakonga', role: 'NURSE' as const },
 ]
 
 export async function POST(request: NextRequest) {
@@ -19,15 +19,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Email and password are required' }, { status: 400 })
     }
 
-    let user: { id: string; email: string; firstname: string; lastname: string; role: string; facility_id?: string | null } | null = null
+    let user: { id: string; email: string; firstname: string; lastname: string; role: string; facility_id?: string | null; passwordHash?: string } | null = null
 
     try {
       const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
       if (rows.length > 0) {
-        user = rows[0]
+        user = rows[0] as typeof user
       }
     } catch {
-      // DB connection failed — fall back to mock users
       const mock = MOCK_USERS.find((m) => m.email === email)
       if (mock && password === mock.password) {
         user = { id: mock.id, email: mock.email, firstname: mock.firstname, lastname: mock.lastname, role: mock.role }
@@ -40,8 +39,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
     }
 
-    if ('passwordHash' in user) {
-      const valid = await verifyPassword(password, (user as { passwordHash: string }).passwordHash)
+    if (user.passwordHash) {
+      const valid = await verifyPassword(password, user.passwordHash)
       if (!valid) {
         return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
       }
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
       sub: user.id,
       email: user.email,
       role: user.role,
-      facilityId: (user as { facility_id?: string | null }).facility_id || null,
+      facilityId: user.facility_id || null,
     })
 
     const response = NextResponse.json({
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    response.cookies.set('medinsight_token', token, {
+    response.cookies.set('dhayaro_token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',

@@ -8,7 +8,7 @@ function getJwtSecret(): Uint8Array {
     if (process.env.NODE_ENV === 'production') {
       console.error('CRITICAL: JWT_SECRET is not set in production!')
     }
-    return new TextEncoder().encode('medinsight-dev-secret-key-change-in-production')
+    return new TextEncoder().encode('dhayaro-dev-secret-key-change-in-production')
   }
   return new TextEncoder().encode(secret)
 }

@@ -20,7 +20,7 @@ interface AppState {
 
 function getInitialDarkMode(): boolean {
   if (typeof window === 'undefined') return false
-  const stored = localStorage.getItem('medinsight-dark-mode')
+  const stored = localStorage.getItem('dhayaro-dark-mode')
   return stored === 'true'
 }
 
@@ -30,7 +30,7 @@ function applyDarkMode(dark: boolean) {
   } else {
     document.documentElement.classList.remove('dark')
   }
-  localStorage.setItem('medinsight-dark-mode', String(dark))
+  localStorage.setItem('dhayaro-dark-mode', String(dark))
 }
 
 const initialDarkMode = getInitialDarkMode()

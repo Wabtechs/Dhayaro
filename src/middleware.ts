@@ -10,9 +10,15 @@ const PUBLIC_PATHS = [
 ]
 
 const ROLE_ROUTES: Record<string, string[]> = {
-  '/api/v1/users': ['ADMIN'],
-  '/api/v1/facilities': ['ADMIN'],
-  '/api/v1/audit': ['ADMIN'],
+  '/api/v1/users': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/facilities': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/audit': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/reports': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'ACCOUNTANT'],
+  '/api/v1/diseases': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
+  '/api/v1/queue': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE'],
+  '/api/v1/lab': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'],
+  '/api/v1/archives': ['SUPER_ADMIN', 'ADMIN', 'ARCHIVIST'],
+  '/api/v1/notifications': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -42,7 +48,7 @@ export async function middleware(request: NextRequest) {
     }
     try {
       const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'medinsight-dev-secret-key-change-in-production'
+        process.env.JWT_SECRET || 'dhayaro-dev-secret-key-change-in-production'
       )
       const { payload } = await jwtVerify(token, secret)
 
@@ -63,7 +69,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const token = request.cookies.get('medinsight_token')?.value
+  const token = request.cookies.get('dhayaro_token')?.value
     || request.headers.get('Authorization')?.replace('Bearer ', '')
 
   if (!token) {
@@ -74,13 +80,13 @@ export async function middleware(request: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'medinsight-dev-secret-key-change-in-production'
+      process.env.JWT_SECRET || 'dhayaro-dev-secret-key-change-in-production'
     )
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {
     const response = NextResponse.redirect(new URL('/login', request.url))
-    response.cookies.delete('medinsight_token')
+    response.cookies.delete('dhayaro_token')
     return response
   }
 }

@@ -54,20 +54,29 @@ import type { User } from '@/types'
 const PAGE_SIZE = 10
 
 const roleLabels: Record<string, string> = {
+  super_admin: 'Super Admin',
   admin: 'Admin',
+  receptionist: 'Réceptionniste',
   doctor: 'Médecin',
+  specialist: 'Spécialiste',
+  laboratory: 'Laborantin',
+  pharmacist: 'Pharmacien',
   nurse: 'Infirmier',
-  researcher: 'Chercheur',
-  viewer: 'Observateur',
+  accountant: 'Comptable',
+  archivist: 'Archiviste',
 }
 
 const roleBadgeColors: Record<string, string> = {
+  super_admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
   admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+  receptionist: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
   doctor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  specialist: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+  laboratory: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
+  pharmacist: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
   nurse: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  researcher:
-    'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+  accountant: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+  archivist: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
 }
 
 type SortField = 'name' | 'email' | 'role' | 'facility' | 'lastLogin' | 'isActive'
@@ -190,18 +199,23 @@ export default function Users() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const ROLE_MAP: Record<User['role'], string> = {
+    super_admin: 'SUPER_ADMIN',
     admin: 'ADMIN',
+    receptionist: 'RECEPTIONIST',
     doctor: 'DOCTOR',
+    specialist: 'SPECIALIST',
+    laboratory: 'LABORATORY',
+    pharmacist: 'PHARMACIST',
     nurse: 'NURSE',
-    researcher: 'RESEARCHER',
-    viewer: 'VIEWER',
+    accountant: 'ACCOUNTANT',
+    archivist: 'ARCHIVIST',
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setCreating(true)
     try {
-      const token = localStorage.getItem('medinsight_token') || ''
+      const token = localStorage.getItem('dhayaro_token') || ''
       const nameParts = newName.trim().split(' ')
       const firstname = nameParts[0] || newName
       const lastname = nameParts.slice(1).join(' ') || newName
@@ -350,7 +364,7 @@ export default function Users() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="jean.dupont@medinsight.cd"
+                  placeholder="jean.dupont@dhayaro.cd"
                   required
                 />
               </div>
@@ -458,7 +472,7 @@ export default function Users() {
                   type="email"
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  placeholder="jean.dupont@medinsight.cd"
+                  placeholder="jean.dupont@dhayaro.cd"
                   required
                 />
               </div>
@@ -472,11 +486,16 @@ export default function Users() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="receptionist">Réceptionniste</SelectItem>
                     <SelectItem value="doctor">Médecin</SelectItem>
+                    <SelectItem value="specialist">Spécialiste</SelectItem>
+                    <SelectItem value="laboratory">Laborantin</SelectItem>
+                    <SelectItem value="pharmacist">Pharmacien</SelectItem>
                     <SelectItem value="nurse">Infirmier</SelectItem>
-                    <SelectItem value="researcher">Chercheur</SelectItem>
-                    <SelectItem value="viewer">Observateur</SelectItem>
+                    <SelectItem value="accountant">Comptable</SelectItem>
+                    <SelectItem value="archivist">Archiviste</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -535,11 +554,16 @@ export default function Users() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="doctor">Médecin</SelectItem>
-            <SelectItem value="nurse">Infirmier</SelectItem>
-            <SelectItem value="researcher">Chercheur</SelectItem>
-            <SelectItem value="viewer">Observateur</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="receptionist">Réceptionniste</SelectItem>
+                    <SelectItem value="doctor">Médecin</SelectItem>
+                    <SelectItem value="specialist">Spécialiste</SelectItem>
+                    <SelectItem value="laboratory">Laborantin</SelectItem>
+                    <SelectItem value="pharmacist">Pharmacien</SelectItem>
+                    <SelectItem value="nurse">Infirmier</SelectItem>
+                    <SelectItem value="accountant">Comptable</SelectItem>
+                    <SelectItem value="archivist">Archiviste</SelectItem>
           </SelectContent>
         </Select>
       </div>

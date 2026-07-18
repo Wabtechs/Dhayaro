@@ -268,7 +268,7 @@ export default function ClinicalCaseDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {can('clinical_cases:edit') && (
+          {can('consultations:edit') && (
           <Button variant="outline" size="sm" onClick={openEditDialog}>
             <Pencil className="mr-2 h-4 w-4" />
             Modifier

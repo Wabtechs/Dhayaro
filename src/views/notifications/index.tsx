@@ -31,7 +31,17 @@ const typeConfig: Record<
     color: 'text-blue-600 dark:text-blue-400',
     bg: 'bg-blue-100 dark:bg-blue-900/30',
   },
+  INFO: {
+    icon: Info,
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-100 dark:bg-blue-900/30',
+  },
   success: {
+    icon: CheckCircle,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+  },
+  SUCCESS: {
     icon: CheckCircle,
     color: 'text-emerald-600 dark:text-emerald-400',
     bg: 'bg-emerald-100 dark:bg-emerald-900/30',
@@ -41,7 +51,17 @@ const typeConfig: Record<
     color: 'text-amber-600 dark:text-amber-400',
     bg: 'bg-amber-100 dark:bg-amber-900/30',
   },
+  WARNING: {
+    icon: AlertTriangle,
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-100 dark:bg-amber-900/30',
+  },
   error: {
+    icon: XCircle,
+    color: 'text-red-600 dark:text-red-400',
+    bg: 'bg-red-100 dark:bg-red-900/30',
+  },
+  ERROR: {
     icon: XCircle,
     color: 'text-red-600 dark:text-red-400',
     bg: 'bg-red-100 dark:bg-red-900/30',
@@ -50,9 +70,13 @@ const typeConfig: Record<
 
 const borderColors: Record<Notification['type'], string> = {
   info: 'border-l-blue-500',
+  INFO: 'border-l-blue-500',
   success: 'border-l-emerald-500',
+  SUCCESS: 'border-l-emerald-500',
   warning: 'border-l-amber-500',
+  WARNING: 'border-l-amber-500',
   error: 'border-l-red-500',
+  ERROR: 'border-l-red-500',
 }
 
 function isToday(dateStr: string): boolean {

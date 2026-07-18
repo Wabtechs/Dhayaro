@@ -17,7 +17,7 @@ export function Logo({ className, variant }: LogoProps) {
   return (
     <Image
       src={src}
-      alt="MedInsight"
+      alt="Dhayaro"
       width={28}
       height={28}
       className={cn("object-contain", className)}

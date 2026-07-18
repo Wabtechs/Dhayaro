@@ -52,7 +52,7 @@ export default function Login() {
         <div className="flex flex-col items-center gap-6 px-12 text-center">
           <Link href="/" className="flex flex-col items-center gap-4">
             <Logo className="h-20 w-20 rounded-2xl bg-white/10 p-3" variant="dark" />
-            <h1 className="text-4xl font-bold text-white">MedInsight</h1>
+            <h1 className="text-4xl font-bold text-white">Dhayaro</h1>
           </Link>
           <p className="max-w-md text-lg text-white/80">
             Plateforme de Gestion de Cas Cliniques
@@ -84,7 +84,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
             <Logo className="h-10 w-10 rounded-lg" />
-            <span className="text-xl font-bold text-primary">MedInsight</span>
+            <span className="text-xl font-bold text-primary">Dhayaro</span>
           </div>
 
           <div>
@@ -191,15 +191,15 @@ export default function Login() {
             <div className="space-y-1 text-xs text-muted-foreground">
               <p>
                 <span className="font-medium text-foreground">Admin :</span>{' '}
-                admin@medinsight.cd / admin123
+                admin@dhayaro.cd / admin123
               </p>
               <p>
                 <span className="font-medium text-foreground">Médecin :</span>{' '}
-                dr.kabongo@medinsight.cd / doctor123
+                dr.kabongo@dhayaro.cd / doctor123
               </p>
               <p>
-                <span className="font-medium text-foreground">Chercheur :</span>{' '}
-                researcher@medinsight.cd / researcher123
+                <span className="font-medium text-foreground">Infirmière :</span>{' '}
+                nurse.consolee@dhayaro.cd / nurse123
               </p>
             </div>
           </div>

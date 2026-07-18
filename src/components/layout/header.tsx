@@ -65,7 +65,7 @@ export function Header() {
         <Separator orientation="vertical" className="h-6" />
         <div className="hidden items-center gap-2 sm:flex">
           <Logo className="h-6 w-6" />
-          <h1 className="text-sm font-semibold text-foreground">MedInsight</h1>
+          <h1 className="text-sm font-semibold text-foreground">Dhayaro</h1>
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <p className="text-sm font-medium text-foreground">{user?.name ?? 'Utilisateur'}</p>
-              <p className="text-xs font-normal text-muted-foreground">{user?.email ?? 'email@medinsight.fr'}</p>
+              <p className="text-xs font-normal text-muted-foreground">{user?.email ?? 'email@dhayaro.cd'}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import '../index.css'
 
-const SITE_URL = 'https://medinsight-phi.vercel.app'
-const SITE_NAME = 'MedInsight'
-const TITLE = 'MedInsight - Gestion de Cas Cliniques Médicaux'
+const SITE_URL = 'https://dhayaro.vercel.app'
+const SITE_NAME = 'Dhayaro'
+const TITLE = 'Dhayaro - Gestion Hospitalière Intégrée'
 const DESCRIPTION =
-  "PWA Offline-First de gestion de cas cliniques pour les hôpitaux et médecins de la RD Congo. Documentez, analysez et partagez vos cas en toute sécurité."
+  "Plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. Algérie."
 const OG_IMAGE = 'https://i.ibb.co/zWyNytSq/t-l-chargement.png'
 
 export const viewport: Viewport = {
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     'offline-first',
     'santé numérique',
   ],
-  authors: [{ name: 'MedInsight' }],
-  creator: 'MedInsight',
-  publisher: 'MedInsight',
+  authors: [{ name: 'Dhayaro' }],
+  creator: 'Dhayaro',
+  publisher: 'Dhayaro',
   robots: {
     index: true,
     follow: true,
@@ -60,15 +60,15 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'MedInsight - Plateforme de gestion de cas cliniques médicaux',
+        alt: 'Dhayaro - Plateforme hospitalière intégrée',
         type: 'image/webp',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@medinsight',
-    creator: '@medinsight',
+    site: '@dhayaro',
+    creator: '@dhayaro',
     title: TITLE,
     description: DESCRIPTION,
     images: [OG_IMAGE],

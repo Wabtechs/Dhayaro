@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     const role = auth.user.role.toLowerCase()
-    if ((role === 'doctor' || role === 'nurse') && auth.user.facilityId) {
+    if (['doctor', 'nurse', 'specialist', 'laboratory'].includes(role) && auth.user.facilityId) {
       conditions.push(eq(patients.facilityId, auth.user.facilityId))
     }
 
@@ -55,8 +55,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const patientUuid = body.patientUuid || crypto.randomUUID()
+    if (!body.firstname || !body.lastname || !body.sex || !body.dateOfBirth) {
+      return apiError(400, 'firstname, lastname, sex, and dateOfBirth are required')
+    }
 
+    const patientUuid = body.patientUuid || crypto.randomUUID()
     const facilityId = sanitizeUuid(body.facilityId)
 
     if (facilityId) {
@@ -71,19 +74,30 @@ export async function POST(request: NextRequest) {
     const [row] = await getDb().insert(patients).values({
       id: crypto.randomUUID(),
       patientUuid,
-      firstname: body.firstname || null,
-      lastname: body.lastname || null,
-      email: body.email || null,
-      sex: body.sex || null,
-      age: body.age ?? 0,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      sex: body.sex,
+      dateOfBirth: body.dateOfBirth,
+      age: body.age ?? null,
       bloodGroup: body.bloodGroup || null,
       phone: body.phone || null,
+      email: body.email || null,
       address: body.address || null,
-      dateOfBirth: body.dateOfBirth || null,
-      facilityId,
+      city: body.city || null,
+      photo: body.photo || null,
+      emergencyContactName: body.emergencyContactName || null,
+      emergencyContactPhone: body.emergencyContactPhone || null,
+      emergencyContactRelation: body.emergencyContactRelation || null,
+      insuranceName: body.insuranceName || null,
+      insuranceNumber: body.insuranceNumber || null,
+      insuranceExpiry: body.insuranceExpiry || null,
       allergies: body.allergies || [],
+      antecedents: body.antecedents || [],
       medicalHistoryJson: body.medicalHistoryJson || {},
+      notes: body.notes || null,
+      facilityId,
       isActive: true,
+      isArchived: false,
       createdAt: now,
       updatedAt: now,
     }).returning()

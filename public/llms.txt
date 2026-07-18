@@ -1,26 +1,34 @@
-# MedInsight
+# Dhayaro
 
-> MedInsight est une PWA Offline-First de gestion de cas cliniques médicaux pour les hôpitaux et médecins de la RD Congo (Kinshasa). Elle permet de documenter, analyser et partager des cas cliniques en toute sécurité.
+> Dhayaro est une plateforme hospitalière moderne pour la gestion intégrée des patients, consultations, diagnostics, traitements et laboratoire. Conçue pour les hôpitaux et cliniques d'Algérie.
 
 ## Fonctionnalités principales
-- Gestion des cas cliniques (symptômes, diagnostics, traitements)
-- Synchronisation hors ligne/en ligne
-- Chiffrement de bout en bout et contrôle d'accès RBAC
-- Tableaux de bord et statistiques interactifs
-- Collaboration multi-utilisateurs avec rôles définis
-- Recherche médicale avec données anonymisées
+- Gestion complète des patients (dossier médical, contacts, assurance, antécédents)
+- Consultations avec signes vitaux et notes cliniques
+- Diagnostics principaux et secondaires avec validation
+- Traitements et prescriptions avec suivi
+- Laboratoire : demandes, résultats, validation
+- File d'attente en temps réel
+- Documents médicaux (PDF, impression, export)
+- Tableau de bord avec graphiques interactifs
+- Système de notifications temps réel
+- Rapports PDF et Excel
+- RBAC avec 10 rôles
+- Authentification JWT sécurisée
 
 ## Utilisateurs cibles
-- Hôpitaux et cliniques en RD Congo
-- Médecins et praticiens
-- Chercheurs médicaux
-- Pharmacies
+- Hôpitaux et cliniques en Algérie
+- Médecins généralistes et spécialistes
+- Personnel soignant (infirmiers, laborantins, pharmaciens)
+- Administration hospitalière
 
 ## Stack technique
-- Frontend : React 19, TypeScript, Next.js, Tailwind CSS, shadcn/ui
-- Backend : FastAPI, SQLAlchemy 2, Alembic, PostgreSQL
-- Déploiement : Vercel (frontend + backend serverless)
+- Frontend : React 19, TypeScript, Next.js, Tailwind CSS v4, shadcn/ui
+- Base de données : PostgreSQL (Neon) avec Drizzle ORM
+- Authentification : JWT (jose) + bcryptjs
+- Déploiement : Vercel
+- State : Zustand + TanStack Query
 
 ## Contact
-- Email : contact@medinsight.cd
-- Localisation : Kinshasa, RD Congo
+- Email : contact@dhayaro.cd
+- Localisation : Alger, Algérie

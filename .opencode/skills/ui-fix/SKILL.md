@@ -26,9 +26,9 @@ const { toast } = useToast();
 - Sync between settings page and profile page
 
 ### localStorage Keys
-- `medinsight_token` — JWT access token
-- `medinsight_user` — serialized user object
-- `medinsight_refresh_token` — refresh token
+- `dhayaro_token` — JWT access token
+- `dhayaro_user` — serialized user object
+- `dhayaro_refresh_token` — refresh token
 - NEVER use `medinsight-access-token` or other variants
 
 ### Date/time display

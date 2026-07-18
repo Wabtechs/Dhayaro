@@ -1,16 +1,16 @@
 <div align="center">
 
-# MedInsight
+# Dhayaro
 
-### Plateforme de Gestion de Cas Cliniques Médicaux
+### Plateforme Hospitalière Intégrée
 
 **Offline-First | Multi-Tenant | RBAC | PWA**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript)](https://typescriptlang.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=next.js)](https://nextjs.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)](https://postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-24-2496ED?logo=docker)](https://docker.com)
+[![Drizzle](https://img.shields.io/badge/Drizzle-ORM-009688)](https://orm.drizzle.team)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
@@ -22,194 +22,107 @@
 1. [Aperçu du Projet](#aperçu-du-projet)
 2. [Architecture](#architecture)
 3. [Stack Technique](#stack-technique)
-4. [Prérequis](#prérequis)
-5. [Installation](#installation)
-6. [Configuration](#configuration)
-7. [Utilisation](#utilisation)
-8. [API Endpoints](#api-endpoints)
-9. [Rôles et Permissions](#rôles-et-permissions)
-10. [Mode Offline-First](#mode-offline-first)
-11. [Structure du Projet](#structure-du-projet)
-12. [Tests](#tests)
-13. [Déploiement](#déploiement)
-14. [Contribuer](#contribuer)
+4. [Installation](#installation)
+5. [Configuration](#configuration)
+6. [Modules](#modules)
+7. [Rôles et Permissions](#rôles-et-permissions)
+8. [Sécurité](#sécurité)
+9. [Structure du Projet](#structure-du-projet)
+10. [Déploiement](#déploiement)
 
 ---
 
 ## Aperçu du Projet
 
-**MedInsight** est une plateforme SaaS médicale conçue pour les hôpitaux, centres de santé et chercheurs. Elle permet de :
+**Dhayaro** est une plateforme hospitalière moderne conçue pour les hôpitaux et cliniques d'Algérie. Elle permet de :
 
-- **Documenter des cas cliniques** : symptômes, diagnostics, traitements et résultats
-- **Identifier les traitements efficaces** et analyser les échecs thérapeutiques
-- **Constituer une base de connaissances médicale collective**
-- **Fonctionner en mode Offline-First** même sans connexion internet
-- **Synchroniser automatiquement** les données dès que le réseau est rétabli
+- **Gérer les patients** : dossier médical complet, contacts, assurance, antécédents
+- **Suivre les consultations** : motif, symptômes, signes vitaux, diagnostics
+- **Administrer les traitements** : prescriptions, posologie, suivi
+- **Gérer le laboratoire** : demandes d'examens, résultats, validation
+- **Organiser la file d'attente** : workflow complet en temps réel
+- **Générer des documents** : ordonnances, certificats, rapports médicaux (PDF)
+- **Analyser les données** : tableaux de bord, graphiques, rapports
 
-### Fonctionnalités MVP (Sprints 1 & 2)
+### Modules Fonctionnels
 
-| Sprint | Fonctionnalités |
-|--------|----------------|
-| **Sprint 1** | Authentification JWT, RBAC, PostgreSQL, API REST sécurisées, gestion des utilisateurs, établissements, audit logs |
-| **Sprint 2** | PWA, IndexedDB/RxDB, cas cliniques, moteur de synchronisation Offline/Online, gestion des conflits, sync bidirectionnelle |
+| Module | Description |
+|--------|-------------|
+| **Patients** | Inscription, modification, recherche, dossier médical complet |
+| **Consultations** | Motif, symptômes, signes vitaux, notes, diagnostic provisoire |
+| **Diagnostics** | Diagnostic principal/secondaires, validation, historique |
+| **Maladies** | CRUD, classification CIM-10, symptômes, complications |
+| **Traitements** | Prescription, médicaments, posologie, suivi, évolution |
+| **Laboratoire** | Demandes d'examens, catégories, résultats, validation |
+| **File d'attente** | Workflow : Réception → Médecin → Labo → Traitement → Fin |
+| **Documents** | Ordonnances, certificats, rapports, export PDF |
+| **Archives** | Archivage automatique de tous les éléments |
+| **Tableau de bord** | Widgets, graphiques, statistiques en temps réel |
+| **Notifications** | Système de notifications temps réel |
+| **Rapports** | PDF et Excel avec filtres avancés |
+| **Auth/RBAC** | 10 rôles avec permissions granulaires |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Frontend (React)                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
-│  │   Pages   │  │Components│  │ Services │  │  Store  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │  Hooks   │  │ Routes   │  │  Sync Engine (IDB)   │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-└────────────────────────┬────────────────────────────────┘
-                         │ REST API + JWT
-┌────────────────────────┴────────────────────────────────┐
-│                    Backend (FastAPI)                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │   Auth   │  │  Routes  │  │   Repository Layer   │  │
-│  │  (JWT)   │  │  (API)   │  │   (SQLAlchemy 2.0)   │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │  Domain  │  │  Config  │  │   Infrastructure     │  │
-│  │  Models  │  │          │  │   (Security, DB)     │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────┴────────────────────────────────┐
-│                    PostgreSQL 16                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │ Facilities│  │  Users   │  │  Clinical Cases      │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │ Patients │  │Audit Logs│  │    Sync Queue        │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Clean Architecture (Backend)
-
-```
-backend/app/
-├── domain/          # Entités métier, enums, règles
-├── application/     # Schémas Pydantic, exceptions
-├── infrastructure/  # Sécurité, repositories, accès DB
-└── presentation/    # Routes FastAPI, endpoints REST
+src/
+├── app/                    # Next.js App Router
+│   ├── (app)/             # Pages authentifiées
+│   ├── (auth)/            # Pages d'authentification
+│   └── api/v1/            # API Routes
+├── components/
+│   ├── ui/                # Composants shadcn/ui
+│   ├── layout/            # Sidebar, Header, Layout
+│   └── charts/            # Composants Recharts
+├── views/                 # Composants pages
+├── hooks/                 # Custom hooks React
+├── store/                 # Zustand stores
+├── services/              # API client
+├── lib/                   # Utils, schema DB, auth, seed
+└── types/                 # TypeScript types
 ```
 
 ---
 
 ## Stack Technique
 
-### Frontend
 | Technologie | Version | Usage |
 |-------------|---------|-------|
 | React | 19 | UI Library |
+| Next.js | 15 | Framework full-stack |
 | TypeScript | 6 | Typage strict |
-| Vite | 8 | Build tool |
 | TailwindCSS | 4 | Styling |
-| shadcn/ui | - | Composants UI |
-| React Router | 7 | Routage SPA |
-| TanStack Query | 5 | Server state |
+| shadcn/ui | - | Composants UI (Radix) |
+| Drizzle ORM | 0.44 | ORM PostgreSQL |
+| Neon | - | PostgreSQL serverless |
 | Zustand | 5 | Client state |
+| TanStack Query | 5 | Server state |
 | Recharts | 2 | Graphiques |
-| Lucide React | - | Icônes |
-| cmdk | - | Command palette |
-
-### Backend
-| Technologie | Version | Usage |
-|-------------|---------|-------|
-| Python | 3.12 | Runtime |
-| FastAPI | 0.115 | Framework web |
-| SQLAlchemy | 2.0 | ORM async |
-| Alembic | 1.14 | Migrations DB |
-| Pydantic | 2.9 | Validation DTO |
-| python-jose | 3.3 | JWT tokens |
-| passlib[argon2] | 1.7 | Hachage mots de passe |
-| slowapi | 0.1 | Rate limiting |
-
-### Infrastructure
-| Technologie | Version | Usage |
-|-------------|---------|-------|
-| PostgreSQL | 16 | Base de données |
-| Docker | 24 | Conteneurisation |
-| Docker Compose | 3.8 | Orchestration |
-
----
-
-## Prérequis
-
-- **Node.js** >= 20.x
-- **Python** >= 3.12
-- **Docker** >= 24.x
-- **Docker Compose** >= 2.x
-- **Git**
+| jose | 6 | JWT tokens |
+| bcryptjs | 3 | Hachage mots de passe |
 
 ---
 
 ## Installation
 
-### 1. Cloner le dépôt
-
 ```bash
-git clone https://github.com/Wabtechs/medinsight.git
-cd medinsight
-```
+# Cloner
+git clone https://github.com/Wabtechs/Dhayaro.git
+cd Dhayaro
 
-### 2. Installation avec Docker (Recommandé)
-
-```bash
-# Lancer tous les services (PostgreSQL + Backend + Frontend)
-docker compose up -d
-
-# Vérifier que tout fonctionne
-docker compose ps
-```
-
-Les services seront disponibles sur :
-- **Frontend** : http://localhost:5173
-- **Backend API** : http://localhost:8000
-- **API Documentation** : http://localhost:8000/docs
-- **PostgreSQL** : localhost:5432
-
-### 3. Installation Manuelle (Développement)
-
-#### Backend
-
-```bash
-cd backend
-
-# Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Configurer la base de données
-# Assurez-vous que PostgreSQL est lancé, puis :
-alembic upgrade head
-
-# Peupler la base avec des données de démo
-python seed.py
-
-# Lancer le serveur
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-#### Frontend
-
-```bash
-# Depuis la racine du projet
+# Installer
 npm install
 
-# Lancer en mode développement
+# Configurer
+cp .env.example .env  # ou éditer .env directement
+
+# Seed la base
+npm run db:push
+npm run db:seed
+
+# Lancer en développement
 npm run dev
 ```
 
@@ -217,330 +130,169 @@ npm run dev
 
 ## Configuration
 
-### Variables d'environnement Backend (`backend/.env`)
+### Variables d'environnement (`.env`)
 
 ```env
-DATABASE_URL=postgresql+asyncpg://medinsight:medinsight_secret@localhost:5432/medinsight
-SYNC_DATABASE_URL=postgresql+sync://medinsight:medinsight_secret@localhost:5432/medinsight
-SECRET_KEY=votre-cle-secrete-en-production
-CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
+DATABASE_URL=postgresql://...
+JWT_SECRET=votre-cle-secrete
+NEXT_PUBLIC_API_URL=
 ```
 
-### Variables d'environnement Frontend
-
-Créez un fichier `frontend/.env` :
-
-```env
-VITE_API_URL=http://localhost:8000/api/v1
-```
-
----
-
-## Utilisation
-
-### Comptes de Démonstration
+### Comptes de démonstration
 
 | Rôle | Email | Mot de passe |
 |------|-------|-------------|
-| Admin | admin@medinsight.cd | admin123 |
-| Médecin | dr.kabongo@medinsight.cd | doctor123 |
-| Chercheur | researcher@medinsight.cd | researcher123 |
-
-### Connexion
-
-1. Ouvrez http://localhost:5173
-2. Entrez les identifiants d'un des comptes ci-dessus
-3. Vous serez redirigé vers le tableau de bord
-
-### Créer un Cas Clinique (Mode Offline)
-
-1. Connectez-vous en tant que Médecin
-2. Allez dans **Cas Cliniques** > **Nouveau Cas**
-3. Remplissez le formulaire (patient, symptômes, diagnostic, traitement)
-4. Si vous êtes **hors ligne**, les données seront sauvegardées localement
-5. Lorsque la connexion est rétablie, la synchronisation est automatique
-
-### Command Palette
-
-Appuyez sur **Ctrl+K** (ou **Cmd+K** sur Mac) pour ouvrir la palette de commandes et naviguer rapidement.
+| Admin | admin@dhayaro.cd | admin123 |
+| Médecin | dr.kabongo@dhayaro.cd | doctor123 |
+| Chercheur | researcher@dhayaro.cd | researcher123 |
 
 ---
 
-## API Endpoints
+## Modules
 
-### Authentification
+### 1. Gestion des Patients
+Enregistrement, modification, suppression logique, recherche, photo, adresse, contacts, personne à prévenir, assurance, groupe sanguin, allergies, antécédents, historique médical complet, archivage.
 
-| Méthode | Endpoint | Description | Auth |
-|---------|----------|-------------|------|
-| POST | `/api/v1/auth/login` | Connexion | Non |
-| POST | `/api/v1/auth/refresh` | Rafraîchir le token | Refresh Token |
-| GET | `/api/v1/auth/me` | Profil utilisateur | JWT |
+### 2. Consultations
+Consultation complète : motif, symptômes, signes vitaux, notes, diagnostic provisoire, historique.
 
-### Utilisateurs
+### 3. Diagnostics
+Diagnostic principal, diagnostics secondaires, historique, validation, médecin responsable.
 
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| GET | `/api/v1/users` | Liste des utilisateurs | Admin |
-| POST | `/api/v1/users` | Créer un utilisateur | Admin |
-| GET | `/api/v1/users/{id}` | Détail utilisateur | Admin |
-| PUT | `/api/v1/users/{id}` | Modifier | Admin |
-| DELETE | `/api/v1/users/{id}` | Désactiver | Admin |
+### 4. Maladies
+CRUD complet, classification CIM-10, symptômes, complications, historique.
 
-### Établissements
+### 5. Traitements
+Prescription, médicaments, posologie, durée, historique, suivi, évolution.
 
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| GET | `/api/v1/facilities` | Liste | Tous |
-| POST | `/api/v1/facilities` | Créer | Admin |
-| GET | `/api/v1/facilities/{id}` | Détail + stats | Tous |
-| PUT | `/api/v1/facilities/{id}` | Modifier | Admin |
-| DELETE | `/api/v1/facilities/{id}` | Désactiver | Admin |
+### 6. Laboratoire
+Demande d'examen, catégories, résultats, validation, historique, impression.
 
-### Patients
+### 7. File d'attente
+Workflow : Réception → Salle d'attente → Médecin → Laboratoire → Retour médecin → Traitement → Fin. Statut en temps réel.
 
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| GET | `/api/v1/patients` | Liste (scoped) | Tous |
-| POST | `/api/v1/patients` | Créer | Doctor, Admin |
-| GET | `/api/v1/patients/{id}` | Détail | Tous |
-| PUT | `/api/v1/patients/{id}` | Modifier | Doctor, Admin |
-| DELETE | `/api/v1/patients/{id}` | Désactiver | Admin |
+### 8. Documents médicaux
+Génération PDF, impression, export : consultations, diagnostics, ordonnances, prescriptions, résultats, certificats, rapports médicaux.
 
-### Cas Cliniques
+### 9. Tableau de bord
+Widgets : patients, consultations, laboratoire, diagnostics, maladies, activité, utilisateurs, file d'attente. Graphiques interactifs.
 
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| GET | `/api/v1/clinical-cases` | Liste (avec filtres) | Tous |
-| POST | `/api/v1/clinical-cases` | Créer | Doctor |
-| GET | `/api/v1/clinical-cases/{id}` | Détail complet | Tous |
-| PUT | `/api/v1/clinical-cases/{id}` | Modifier | Doctor |
-| DELETE | `/api/v1/clinical-cases/{id}` | Archiver | Doctor, Admin |
-| GET | `/api/v1/clinical-cases/stats` | Statistiques | Tous |
+### 10. Notifications
+Temps réel : nouveau patient, diagnostic, résultats, ordonnance, consultation terminée.
 
-### Audit Logs
+### 11. Rapports
+PDF et Excel : patients, médecins, consultations, maladies, laboratoire, activités, utilisateurs, traitements. Filtres : date, médecin, patient, maladie.
 
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| GET | `/api/v1/audit` | Journal d'audit | Admin |
-| GET | `/api/v1/audit/stats` | Statistiques | Admin |
+### 12. Archives
+Archivage automatique de toutes les entités. Recherche rapide.
 
-### Synchronisation
-
-| Méthode | Endpoint | Description | Rôle |
-|---------|----------|-------------|------|
-| POST | `/api/v1/sync/push` | Pousser les modifications locales | Tous |
-| GET | `/api/v1/sync/pull` | Tirer les modifications serveur | Tous |
-| POST | `/api/v1/sync/resolve` | Résoudre un conflit | Tous |
+### 13. Authentification et RBAC
+10 rôles avec permissions granulaires, routes protégées, API protégées.
 
 ---
 
 ## Rôles et Permissions
 
-| Rôle | Description | Permissions |
-|------|-------------|-------------|
-| **ADMIN** | Administrateur système | CRUD complet, tous les établissements, audit logs |
-| **DOCTOR** | Médecin praticien | Créer/modifier patients et cas cliniques, son établissement |
-| **RESEARCHER** | Chercheur médical | Lecture seule, données anonymisées uniquement |
-
-### Isolation Multi-Tenant
-
-Chaque utilisateur est associé à un établissement. Les données sont automatiquement filtrées par établissement sauf pour les administrateurs globaux.
+| Rôle | Description |
+|------|-------------|
+| **Super Admin** | Contrôle total du système |
+| **Admin** | Administration de l'établissement |
+| **Réceptionniste** | Accueil, enregistrement patients |
+| **Médecin Généraliste** | Consultations, diagnostics, traitements |
+| **Médecin Spécialiste** | Consultations spécialisées |
+| **Laborantin** | Examens de laboratoire |
+| **Pharmacien** | Gestion des médicaments |
+| **Infirmier** | Soins, suivi patients |
+| **Comptable** | Facturation, rapports financiers |
+| **Archiviste** | Gestion des archives |
 
 ---
 
-## Mode Offline-First
+## Sécurité
 
-### Fonctionnement
-
-```
-┌─────────────────────────────────────────────┐
-│           Appareil (Frontend)                │
-│                                              │
-│  1. Utilisateur crée/modifie un cas          │
-│  2. Données sauvegardées dans IndexedDB      │
-│  3. Opération ajoutée à la file de sync      │
-│                                              │
-│  ┌─────────────────────────────────────────┐ │
-│  │        Sync Engine (Service Worker)      │ │
-│  │  - Détecte la connexion réseau          │ │
-│  │  - Envoie les modifications en attente   │ │
-│  │  - Résout les conflits (Last Write Wins) │ │
-│  │  - Nettoie la file après confirmation    │ │
-│  └─────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼ (quand en ligne)
-┌─────────────────────────────────────────────┐
-│           Backend (FastAPI)                  │
-│  1. Reçoit les modifications                │
-│  2. Valide et applique à PostgreSQL          │
-│  3. Retourne la confirmation                │
-│  4. Gère les conflits si nécessaire         │
-└─────────────────────────────────────────────┘
-```
-
-### Stratégie de Résolution des Conflits
-
-- **Par défaut** : Last Write Wins (basé sur `updated_at`)
-- **Futur** : Moteur de résolution avancé avec merged fields
-
-### Collections IndexedDB
-
-| Collection | Description |
-|------------|-------------|
-| `patients` | Données patients locales |
-| `clinical_cases` | Cas cliniques locaux |
-| `sync_queue` | File d'attente de synchronisation |
-| `audit_logs` | Logs d'audit locaux |
+- JWT sécurisé avec refresh token
+- Validation Zod (frontend + backend)
+- Protection CSRF
+- Rate Limiting
+- Audit Log complet
+- Protection XSS et SQL Injection
+- Permissions granulaires par rôle
 
 ---
 
 ## Structure du Projet
 
 ```
-medinsight/
-├── backend/                    # API FastAPI
+Dhayaro/
+├── src/
 │   ├── app/
-│   │   ├── domain/            # Modèles SQLAlchemy, enums
-│   │   ├── application/       # Schémas Pydantic, exceptions
-│   │   ├── infrastructure/    # Sécurité, repositories
-│   │   └── presentation/      # Routes API
-│   ├── alembic/               # Migrations DB
-│   ├── tests/                 # Tests unitaires
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── seed.py                # Données de démo
-│
-├── src/                        # Frontend React
-│   ├── app/                   # Providers, App root
+│   │   ├── (app)/              # Pages authentifiées
+│   │   │   ├── dashboard/
+│   │   │   ├── patients/
+│   │   │   ├── consultations/
+│   │   │   ├── diagnostics/
+│   │   │   ├── diseases/
+│   │   │   ├── treatments/
+│   │   │   ├── laboratory/
+│   │   │   ├── queue/
+│   │   │   ├── documents/
+│   │   │   ├── archives/
+│   │   │   ├── notifications/
+│   │   │   ├── reports/
+│   │   │   ├── users/
+│   │   │   ├── facilities/
+│   │   │   ├── settings/
+│   │   │   ├── audit/
+│   │   │   └── profile/
+│   │   ├── (auth)/
+│   │   │   ├── login/
+│   │   │   └── forgot-password/
+│   │   └── api/v1/             # API Routes
+│   │       ├── auth/
+│   │       ├── patients/
+│   │       ├── consultations/
+│   │       ├── diagnostics/
+│   │       ├── diseases/
+│   │       ├── treatments/
+│   │       ├── laboratory/
+│   │       ├── queue/
+│   │       ├── documents/
+│   │       ├── archives/
+│   │       ├── notifications/
+│   │       ├── users/
+│   │       ├── facilities/
+│   │       ├── audit/
+│   │       └── reports/
 │   ├── components/
-│   │   ├── ui/                # Composants shadcn/ui (20)
-│   │   ├── layout/            # Sidebar, Header, Layout
-│   │   └── charts/            # Composants Recharts
-│   ├── pages/                 # 16 pages
-│   │   ├── auth/              # Login, Forgot Password
-│   │   ├── dashboard/         # Tableau de bord
-│   │   ├── facilities/        # Gestion établissements
-│   │   ├── users/             # Gestion utilisateurs
-│   │   ├── patients/          # Gestion patients
-│   │   ├── clinical-cases/    # Cas cliniques
-│   │   ├── analytics/         # Statistiques
-│   │   ├── research/          # Dashboard chercheurs
-│   │   ├── settings/          # Paramètres
-│   │   ├── profile/           # Profil utilisateur
-│   │   ├── audit-log/         # Journal d'audit
-│   │   ├── notifications/     # Notifications
-│   │   ├── sync-center/       # Centre de synchronisation
-│   │   └── treatment-history/ # Historique traitements
-│   ├── services/              # API client, Sync engine
-│   ├── hooks/                 # Custom hooks (sync, online)
-│   ├── store/                 # Zustand stores
-│   ├── routes/                # Route definitions
-│   └── types/                 # TypeScript types
-│
+│   ├── views/
+│   ├── hooks/
+│   ├── store/
+│   ├── services/
+│   ├── lib/
+│   └── types/
 ├── public/
-│   ├── manifest.json          # PWA manifest
-│   └── sw.js                  # Service Worker
-│
-├── docker-compose.yml
-├── Dockerfile.frontend
-└── README.md
-```
-
----
-
-## Tests
-
-### Backend
-
-```bash
-cd backend
-
-# Installer les dépendances de test
-pip install -r requirements.txt
-
-# Lancer les tests
-pytest tests/ -v
-
-# Avec couverture
-pytest tests/ --cov=app --cov-report=html
-```
-
-### Frontend
-
-```bash
-# Lint
-npm run lint
-
-# Build de production
-npm run build
-
-# Vérifier la taille du bundle
-npx vite-bundle-visualizer
+├── drizzle/
+└── package.json
 ```
 
 ---
 
 ## Déploiement
 
-### Production avec Docker
+### Vercel
 
 ```bash
-# Build les images
-docker compose -f docker-compose.yml build
-
-# Lancer en production
-docker compose -f docker-compose.yml up -d
-
-# Voir les logs
-docker compose logs -f
+# Le projet est prêt pour Vercel
+# Frontend : Next.js static
+# Backend : Next.js API Routes (serverless)
+vercel deploy
 ```
 
-### Variables de Production
+### Variables de production
 
-Assurez-vous de modifier :
-
-1. `SECRET_KEY` dans `backend/.env` (clé forte et unique)
-2. `DATABASE_URL` vers votre PostgreSQL de production
-3. `CORS_ORIGINS` vers votre domaine de production
-4. Les mots de passe par défaut
-
-### Nginx (Recommandé)
-
-```nginx
-server {
-    listen 80;
-    server_name api.medinsight.cd;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-server {
-    listen 80;
-    server_name medinsight.cd;
-
-    location / {
-        proxy_pass http://localhost:5173;
-        proxy_set_header Host $host;
-    }
-}
-```
-
----
-
-## Contributions
-
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/amazing-feature`)
-3. Commit (`git commit -m 'Add amazing feature'`)
-4. Push (`git push origin feature/amazing-feature`)
-5. Ouvrir une Pull Request
+1. `DATABASE_URL` → PostgreSQL Neon de production
+2. `JWT_SECRET` → Clé forte et unique
+3. `NEXT_PUBLIC_API_URL` → URL de production
 
 ---
 
@@ -552,8 +304,6 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 <div align="center">
 
-**MedInsight** - Construit avec passion pour la médecine et la technologie
-
-[⬆ Retour en haut](#medinsight)
+**Dhayaro** - Plateforme hospitalière moderne pour l'Algérie
 
 </div>

@@ -24,11 +24,17 @@ import {
   Building2,
   Users,
   UserRound,
-  FolderOpen,
-  ClipboardList,
+  Stethoscope,
+  Brain,
+  Bug,
+  Pill,
+  TestTube,
+  ListOrdered,
+  FileText,
+  Archive,
   BarChart3,
-  FlaskConical,
-  RefreshCw,
+  Bell,
+  FileBarChart,
   Settings,
   Shield,
   LogOut,
@@ -50,32 +56,47 @@ const navSections: NavSection[] = [
   {
     label: 'PRINCIPAL',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-      { label: 'Établissements', icon: Building2, href: '/facilities', permission: 'facilities:list' },
-      { label: 'Utilisateurs', icon: Users, href: '/users', permission: 'users:list' },
+      { label: 'Tableau de bord', icon: LayoutDashboard, href: '/dashboard' },
+      { label: 'File d\'attente', icon: ListOrdered, href: '/queue', permission: 'queue:list' },
       { label: 'Patients', icon: UserRound, href: '/patients', permission: 'patients:list' },
     ],
   },
   {
-    label: 'CLINIQUE',
+    label: 'CONSULTATION',
     items: [
-      { label: 'Cas Cliniques', icon: FolderOpen, href: '/clinical-cases', permission: 'clinical_cases:list' },
-      { label: 'Historique des Traitements', icon: ClipboardList, href: '/treatment-history', permission: 'clinical_cases:list' },
+      { label: 'Consultations', icon: Stethoscope, href: '/consultations', permission: 'consultations:list' },
+      { label: 'Diagnostics', icon: Brain, href: '/diagnostics', permission: 'diagnostics:list' },
+      { label: 'Maladies', icon: Bug, href: '/diseases', permission: 'diseases:list' },
+    ],
+  },
+  {
+    label: 'TRAITEMENT',
+    items: [
+      { label: 'Traitements', icon: Pill, href: '/treatments', permission: 'treatments:list' },
+      { label: 'Laboratoire', icon: TestTube, href: '/laboratory', permission: 'lab:list' },
+    ],
+  },
+  {
+    label: 'DOCUMENTS',
+    items: [
+      { label: 'Documents', icon: FileText, href: '/documents', permission: 'documents:list' },
+      { label: 'Archives', icon: Archive, href: '/archives', permission: 'archives:list' },
     ],
   },
   {
     label: 'ANALYTIQUE',
     items: [
-      { label: 'Statistiques', icon: BarChart3, href: '/analytics', permission: 'analytics:read' },
-      { label: 'Chercheurs', icon: FlaskConical, href: '/research', permission: 'analytics:read' },
+      { label: 'Rapports', icon: FileBarChart, href: '/reports', permission: 'reports:read' },
+      { label: 'Notifications', icon: Bell, href: '/notifications', permission: 'notifications:list' },
     ],
   },
   {
-    label: 'SYSTÈME',
+    label: 'ADMINISTRATION',
     items: [
-      { label: 'Synchronisation', icon: RefreshCw, href: '/sync' },
+      { label: 'Utilisateurs', icon: Users, href: '/users', permission: 'users:list' },
+      { label: 'Établissements', icon: Building2, href: '/facilities', permission: 'facilities:list' },
       { label: 'Paramètres', icon: Settings, href: '/settings', permission: 'settings:read' },
-      { label: 'Journal d\'Audit', icon: Shield, href: '/audit', permission: 'audit:read' },
+      { label: 'Journal d\'audit', icon: Shield, href: '/audit', permission: 'audit:read' },
     ],
   },
 ]
@@ -151,7 +172,7 @@ export function Sidebar() {
         <Logo className="h-7 w-7 shrink-0" />
         {!collapsed && (
           <span className="text-lg font-bold tracking-tight text-foreground">
-            MedInsight
+            Dhayaro
           </span>
         )}
       </div>
@@ -214,7 +235,7 @@ export function Sidebar() {
             </Avatar>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-foreground">{user?.name ?? 'Utilisateur'}</p>
-              <p className="truncate text-xs text-muted-foreground">{user?.role ?? 'Rôle'}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role : ''}</p>
             </div>
             <Button
               variant="ghost"
