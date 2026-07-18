@@ -199,7 +199,7 @@ export default function Login() {
               </p>
               <p>
                 <span className="font-medium text-foreground">Infirmière :</span>{' '}
-                nurse.consolee@dhayaro.cd / nurse123
+                nurse.mohamed@dhayaro.cd / nurse123
               </p>
             </div>
           </div>

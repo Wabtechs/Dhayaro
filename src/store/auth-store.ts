@@ -33,13 +33,12 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       isActive: true,
     },
   },
-  'nurse.consolee@dhayaro.cd': {
+  'nurse.mohamed@dhayaro.cd': {
     password: 'nurse123',
     user: {
-      id: 'usr_003',
-      email: 'nurse.consolee@dhayaro.cd',
-      name: 'Consolee Mukendi',
-      role: 'nurse',
+      id: '550e8400-e29b-41d4-a716-446655440004',
+      email: 'nurse.mohamed@dhayaro.cd',
+      role: 'NURSE',
       facility: 'fac_001',
       avatar: '',
       createdAt: '2025-03-05T14:00:00Z',
