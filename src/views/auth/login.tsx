@@ -22,6 +22,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const demoAccounts = [
+    { label: 'Admin', email: 'admin@dhayaro.cd', password: 'admin123', role: 'ADMIN' },
+    { label: 'Super Admin', email: 'superadmin@dhayaro.cd', password: 'admin123', role: 'SUPER_ADMIN' },
+    { label: 'Réceptionniste', email: 'reception@dhayaro.cd', password: 'dhayaro123', role: 'RECEPTIONIST' },
+    { label: 'Dr. Kabongo', email: 'dr.kabongo@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. Clovis', email: 'dr.clovis@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. Espérance', email: 'dr.esperance@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
+    { label: 'Dr. Grâce', email: 'dr.grace@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
+    { label: 'Labo Joseph', email: 'lab.joseph@dhayaro.cd', password: 'dhayaro123', role: 'LABORATORY' },
+    { label: 'Pharmacien', email: 'pharm.beatrice@dhayaro.cd', password: 'dhayaro123', role: 'PHARMACIST' },
+    { label: 'Infirmier', email: 'nurse.mohamed@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -42,6 +55,20 @@ export default function Login() {
     } catch {
       setError('Identifiant ou mot de passe incorrect')
     } finally {
+      setLoading(false)
+    }
+  }
+
+  const quickLogin = async (acc: { email: string; password: string }) => {
+    setEmail(acc.email)
+    setPassword(acc.password)
+    setError('')
+    setLoading(true)
+    try {
+      await login(acc.email, acc.password)
+      router.push('/dashboard')
+    } catch {
+      setError('Échec de connexion pour ce compte')
       setLoading(false)
     }
   }
@@ -185,22 +212,29 @@ export default function Login() {
           </Card>
 
           <div className="rounded-lg border bg-muted/50 p-4">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              Identifiants de démonstration :
+            <p className="mb-3 text-xs font-medium text-muted-foreground">
+              Comptes de test — cliquez pour connexion rapide :
             </p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">Admin :</span>{' '}
-                admin@dhayaro.cd / admin123
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Médecin :</span>{' '}
-                dr.kabongo@dhayaro.cd / doctor123
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Infirmière :</span>{' '}
-                nurse.mohamed@dhayaro.cd / nurse123
-              </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {demoAccounts.map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => quickLogin(acc)}
+                  className="flex flex-col items-start gap-0.5 rounded-md border bg-background px-3 py-2 text-left transition-colors hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="text-xs font-semibold text-foreground">
+                    {acc.label}
+                  </span>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-primary/80">
+                    {acc.role}
+                  </span>
+                  <span className="truncate text-[10px] text-muted-foreground">
+                    {acc.email}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
