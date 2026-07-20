@@ -131,7 +131,6 @@ export default function Users() {
   const { data: usersData, isLoading } = useUsersData()
   const { data: facilitiesData } = useFacilitiesData()
   const updateUser = useUpdateUser()
-  const users = (usersData?.items ?? []) as UserItem[]
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const [newName, setNewName] = useState('')
@@ -163,11 +162,11 @@ export default function Users() {
   }
 
   const allUsers = useMemo(() => {
-    return users.map((u) => ({
+    return ((usersData?.items ?? []) as UserItem[]).map((u) => ({
       ...u,
       role: (u.role || '').toLowerCase(),
     }))
-  }, [users])
+  }, [usersData])
 
   const filtered = useMemo(() => {
     const result = allUsers.filter((u) => {

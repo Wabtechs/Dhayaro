@@ -51,8 +51,7 @@ export async function GET(
     }
 
     return NextResponse.json(row)
-  } catch (e) {
-    logError('GET /diagnostics/[id]', e)
+  } catch {
     return apiError(500, 'Internal server error')
   }
 }
@@ -91,7 +90,7 @@ export async function PUT(
     }
 
     return NextResponse.json(updated)
-  } catch (e) {
+  } catch {
     return apiError(500, 'Internal server error')
   }
 }

@@ -20,9 +20,8 @@ export { DiagnosticsView }
 export default function DiagnosticsView() {
   const [search, setSearch] = useState('')
   const { data, isLoading } = useDiagnosticsData(search ? `search=${search}` : '')
-  const items = data?.items || []
-
   const filtered = useMemo(() => {
+    const items = data?.items ?? []
     if (!search) return items
     const q = search.toLowerCase()
     return items.filter(
@@ -33,7 +32,7 @@ export default function DiagnosticsView() {
         String(item.doctor || '').toLowerCase().includes(q) ||
         String(item.disease || '').toLowerCase().includes(q)
     )
-  }, [items, search])
+  }, [data, search])
 
   return (
     <div className="space-y-6">

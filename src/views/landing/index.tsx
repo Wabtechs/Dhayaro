@@ -265,7 +265,6 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden animate-fade-in-up lg:block" style={{ animationDelay: '0.2s' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
               src="/hero-illustration.png"
               alt="Dhayaro Dashboard"
@@ -370,7 +369,6 @@ export default function LandingPage() {
               </Button>
             </div>
 
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/about-illustration.png"
               alt="Dhayaro Team"

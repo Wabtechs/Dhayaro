@@ -184,7 +184,7 @@ export default function AuditLogPage() {
 
       return matchesSearch && matchesAction && matchesUser && matchesFrom && matchesTo
     })
-  }, [auditEntries, search, actionFilter, userFilter, dateFrom, dateTo])
+  }, [auditEntries, search, actionFilter, userFilter, dateFrom, dateTo, userMap])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice(

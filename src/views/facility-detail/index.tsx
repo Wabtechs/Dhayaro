@@ -61,7 +61,6 @@ import {
   useUpdateFacility,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
-import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, getStatusLabel, getStatusColor, getRoleLabel } from '@/lib/utils'
 
 const typeLabels: Record<string, string> = {

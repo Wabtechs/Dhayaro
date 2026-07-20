@@ -38,9 +38,8 @@ export { ArchivesView }
 export default function ArchivesView() {
   const [search, setSearch] = useState('')
   const { data, isLoading } = useArchivesData(search ? `search=${search}` : '')
-  const items = data?.items || []
-
   const filtered = useMemo(() => {
+    const items = data?.items ?? []
     if (!search) return items
     const q = search.toLowerCase()
     return items.filter(
@@ -50,7 +49,7 @@ export default function ArchivesView() {
         String(item.patient || '').toLowerCase().includes(q) ||
         String(item.archivedBy || '').toLowerCase().includes(q)
     )
-  }, [items, search])
+  }, [data, search])
 
   return (
     <div className="space-y-6">

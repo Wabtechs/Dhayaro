@@ -119,11 +119,10 @@ export default function PatientsPage() {
 
   const { data, isLoading } = usePatientsData()
   const { data: facilitiesData } = useFacilitiesData()
-  const patients = (data?.items ?? []) as PatientItem[]
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const filtered = useMemo(() => {
-    return patients.filter((p) => {
+    return ((data?.items ?? []) as PatientItem[]).filter((p) => {
       const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase()
       const matchesSearch =
         !search ||
@@ -136,7 +135,7 @@ export default function PatientsPage() {
         facilityFilter === 'all' || p.facilityId === facilityFilter
       return matchesSearch && matchesGender && matchesFacility
     })
-  }, [patients, search, genderFilter, facilityFilter])
+  }, [data, search, genderFilter, facilityFilter])
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const paginated = filtered.slice(

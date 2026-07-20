@@ -129,7 +129,6 @@ export default function ClinicalCasesPage() {
   const { data: patientsData } = usePatientsData()
   const { data: facilitiesData } = useFacilitiesData()
   const { data: usersData } = useUsersData()
-  const clinicalCases = (casesData?.items ?? []) as unknown as CaseItem[]
   const patientsList = (patientsData?.items ?? []) as PatientItem[]
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
   const usersList = (usersData?.items ?? []) as UserItem[]
@@ -172,7 +171,7 @@ export default function ClinicalCasesPage() {
   })
 
   const filteredCases = useMemo(() => {
-    return clinicalCases.filter((c) => {
+    return ((casesData?.items ?? []) as unknown as CaseItem[]).filter((c) => {
       const matchesSearch =
         !search ||
         c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -186,7 +185,7 @@ export default function ClinicalCasesPage() {
         facilityFilter === 'all' || c.facilityId === facilityFilter
       return matchesSearch && matchesStatus && matchesPriority && matchesFacility
     })
-  }, [clinicalCases, search, statusFilter, priorityFilter, facilityFilter])
+  }, [casesData, search, statusFilter, priorityFilter, facilityFilter])
 
   const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE)
   const paginatedCases = filteredCases.slice(

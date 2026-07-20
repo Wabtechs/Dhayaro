@@ -31,9 +31,8 @@ export { DocumentsView }
 export default function DocumentsView() {
   const [search, setSearch] = useState('')
   const { data, isLoading } = useDocumentsData(search ? `search=${search}` : '')
-  const items = data?.items || []
-
   const filtered = useMemo(() => {
+    const items = data?.items ?? []
     if (!search) return items
     const q = search.toLowerCase()
     return items.filter(
@@ -43,7 +42,7 @@ export default function DocumentsView() {
         String(item.patient || '').toLowerCase().includes(q) ||
         String(item.doctor || '').toLowerCase().includes(q)
     )
-  }, [items, search])
+  }, [data, search])
 
   return (
     <div className="space-y-6">

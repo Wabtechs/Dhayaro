@@ -15,7 +15,6 @@ export function Logo({ className, variant }: LogoProps) {
   const src = isDark ? '/logo-dark-mode.png' : '/logo-light-mode.png'
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt="Dhayaro"

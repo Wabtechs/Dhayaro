@@ -140,6 +140,7 @@ export default function SyncCenterPage() {
 
   useEffect(() => {
     if (syncData?.items) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs server state to local mutable state for optimistic UI
       setLogs(syncData.items as SyncLog[])
     }
   }, [syncData])

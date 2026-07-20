@@ -70,12 +70,13 @@ export default function TreatmentHistoryPage() {
   const { data: usersData } = useUsersData()
   const { data: facilitiesData } = useFacilitiesData()
 
-  const cases = ((casesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
-  const patients = ((patientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
-  const users = ((usersData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
   const facilities = ((facilitiesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
 
-  const entries = useMemo(() => buildEntries(cases, patients, users), [cases, patients, users])
+  const entries = useMemo(() => buildEntries(
+    ((casesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>,
+    ((patientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>,
+    ((usersData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
+  ), [casesData, patientsData, usersData])
 
   const filtered = useMemo(() => {
     return entries.filter((e) => {

@@ -25,19 +25,6 @@ const STATUS_LABELS: Record<string, string> = {
   archived: 'Archivé',
 };
 
-const ROLE_MAP: Record<string, string> = {
-  SUPER_ADMIN: 'super_admin',
-  ADMIN: 'admin',
-  RECEPTIONIST: 'receptionist',
-  DOCTOR: 'doctor',
-  SPECIALIST: 'specialist',
-  LABORATORY: 'laboratory',
-  PHARMACIST: 'pharmacist',
-  NURSE: 'nurse',
-  ACCOUNTANT: 'accountant',
-  ARCHIVIST: 'archivist',
-};
-
 const FACILITY_TYPE_MAP: Record<string, string> = {
   HOSPITAL: 'hospital',
   CLINIC: 'clinic',
@@ -454,6 +441,57 @@ export function useConsultationsData(params?: string) {
   return useQuery({
     queryKey: ['consultations', params],
     queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/consultations${params ? '?' + params : ''}`),
+  });
+}
+
+export function useConsultationDetail(id: string) {
+  return useQuery({
+    queryKey: ['consultation', id],
+    queryFn: () => fetchData<unknown>(`/consultations/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateConsultation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/consultations', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateConsultation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/consultations/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['consultation', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteConsultation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/consultations/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 

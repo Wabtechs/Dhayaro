@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
-import { hashPassword, requireAuth, requireRole } from '@/lib/auth'
+import { hashPassword, requireRole } from '@/lib/auth'
 
 const USER_KEYS = ['firstname', 'lastname', 'email', 'role', 'facilityId', 'isActive'] as const
 

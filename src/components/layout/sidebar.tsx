@@ -32,7 +32,6 @@ import {
   ListOrdered,
   FileText,
   Archive,
-  BarChart3,
   Bell,
   FileBarChart,
   Settings,

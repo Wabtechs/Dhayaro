@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const { page, size, search, offset } = parsePagination(searchParams)
+    const { page, size, offset } = parsePagination(searchParams)
 
     const entityType = searchParams.get('entityType')
     const patientId = sanitizeUuid(searchParams.get('patientId'))

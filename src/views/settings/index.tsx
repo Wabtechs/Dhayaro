@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,43 +76,25 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [platformName, setPlatformName] = useState("Dhayaro");
-  const [language, setLanguage] = useState("fr");
-  const [timezone, setTimezone] = useState("Africa/Algiers");
-  const [facility, setFacility] = useState("hospital-central");
-  const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
+  const [loaded] = useState(() => loadSettings());
+  const [platformName, setPlatformName] = useState(loaded.platformName);
+  const [language, setLanguage] = useState(loaded.language);
+  const [timezone, setTimezone] = useState(loaded.timezone);
+  const [facility, setFacility] = useState(loaded.facility);
+  const [dateFormat, setDateFormat] = useState(loaded.dateFormat);
 
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [newCaseAlerts, setNewCaseAlerts] = useState(true);
-  const [caseUpdateAlerts, setCaseUpdateAlerts] = useState(true);
-  const [reminderAlerts, setReminderAlerts] = useState(false);
-  const [reportAlerts, setReportAlerts] = useState(true);
-  const [emailFrequency, setEmailFrequency] = useState("daily");
+  const [emailNotifications, setEmailNotifications] = useState(loaded.emailNotifications);
+  const [newCaseAlerts, setNewCaseAlerts] = useState(loaded.newCaseAlerts);
+  const [caseUpdateAlerts, setCaseUpdateAlerts] = useState(loaded.caseUpdateAlerts);
+  const [reminderAlerts, setReminderAlerts] = useState(loaded.reminderAlerts);
+  const [reportAlerts, setReportAlerts] = useState(loaded.reportAlerts);
+  const [emailFrequency, setEmailFrequency] = useState(loaded.emailFrequency);
 
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState("30");
+  const [twoFactorAuth, setTwoFactorAuth] = useState(loaded.twoFactorAuth);
+  const [sessionTimeout, setSessionTimeout] = useState(loaded.sessionTimeout);
 
-  const [sidebarHover, setSidebarHover] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
-
-  useEffect(() => {
-    const loaded = loadSettings();
-    setPlatformName(loaded.platformName);
-    setLanguage(loaded.language);
-    setTimezone(loaded.timezone);
-    setFacility(loaded.facility);
-    setDateFormat(loaded.dateFormat);
-    setEmailNotifications(loaded.emailNotifications);
-    setNewCaseAlerts(loaded.newCaseAlerts);
-    setCaseUpdateAlerts(loaded.caseUpdateAlerts);
-    setReminderAlerts(loaded.reminderAlerts);
-    setReportAlerts(loaded.reportAlerts);
-    setEmailFrequency(loaded.emailFrequency);
-    setTwoFactorAuth(loaded.twoFactorAuth);
-    setSessionTimeout(loaded.sessionTimeout);
-    setSidebarHover(loaded.sidebarHover);
-    setCompactMode(loaded.compactMode);
-  }, []);
+  const [sidebarHover, setSidebarHover] = useState(loaded.sidebarHover);
+  const [compactMode, setCompactMode] = useState(loaded.compactMode);
 
   const handleSave = () => {
     setSaving(true);

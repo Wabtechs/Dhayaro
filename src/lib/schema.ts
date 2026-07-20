@@ -1,6 +1,6 @@
 ﻿import {
   pgTable, text, uuid, boolean, timestamp, jsonb, integer, index,
-  pgEnum, date, uniqueIndex
+  pgEnum, date
 } from 'drizzle-orm/pg-core'
 
 // ENUMS

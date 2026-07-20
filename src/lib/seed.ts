@@ -431,7 +431,7 @@ async function seed() {
   console.log('Generating 100 clinical cases...')
   const caseBatchSize = 100
   const insertedCases = await db.insert(clinicalCases).values(
-    Array.from({ length: caseBatchSize }, (_, i) => {
+    Array.from({ length: caseBatchSize }, (_, _i) => {
       const template = pick(clinicalTemplates)
       return {
         id: uuid(),
@@ -566,7 +566,7 @@ async function seed() {
 
   console.log('Generating 50 sync queue entries...')
   await db.insert(syncQueue).values(
-    Array.from({ length: 50 }, (_, i) => ({
+    Array.from({ length: 50 }, (_, _i) => ({
       id: uuid(),
       userId: pick(insertedUsers).id,
       entityType: pick(syncEntityTypes),
