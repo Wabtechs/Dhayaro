@@ -22,9 +22,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth-store'
+import { useNotificationsData } from '@/hooks/use-data'
+import type { Notification } from '@/types'
 import {
   Menu,
   Search,
@@ -37,11 +39,37 @@ import {
   Settings,
 } from 'lucide-react'
 
+function mapNotification(raw: Record<string, unknown>): Notification {
+  return {
+    id: raw.id as string,
+    userId: (raw.userId || raw.user_id) as string,
+    title: raw.title as string,
+    message: (raw.message || '') as string,
+    type: ((raw.type || 'INFO') as Notification['type']),
+    read: (raw.isRead || raw.is_read) as boolean,
+    createdAt: (raw.createdAt || raw.created_at) as string,
+    link: (raw.link || undefined) as string | undefined,
+  }
+}
+
 export function Header() {
   const router = useRouter()
-  const { sidebarOpen, toggleSidebar, darkMode, toggleDarkMode, setCommandPaletteOpen, notifications } =
-    useAppStore()
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const darkMode = useAppStore((s) => s.darkMode)
+  const toggleDarkMode = useAppStore((s) => s.toggleDarkMode)
+  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen)
+  const notifications = useAppStore((s) => s.notifications)
+  const setNotifications = useAppStore((s) => s.setNotifications)
   const { user, logout } = useAuthStore()
+
+  const { data: notifData } = useNotificationsData()
+
+  useEffect(() => {
+    if (notifData?.items) {
+      setNotifications(notifData.items.map((n) => mapNotification(n as Record<string, unknown>)))
+    }
+  }, [notifData, setNotifications])
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications])
 
@@ -113,19 +141,23 @@ export function Header() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="max-h-72 overflow-y-auto">
-                {[
-                  { id: 1, title: 'Nouveau cas clinique ajouté', time: 'Il y a 5 min' },
-                  { id: 2, title: 'Rapport mensuel disponible', time: 'Il y a 1 h' },
-                  { id: 3, title: 'Synchronisation terminée', time: 'Il y a 3 h' },
-                ].map((notification) => (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    className="flex flex-col items-start gap-1 py-3"
-                  >
-                    <span className="text-sm font-medium text-foreground">{notification.title}</span>
-                    <span className="text-xs text-muted-foreground">{notification.time}</span>
-                  </DropdownMenuItem>
-                ))}
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Aucune notification
+                  </div>
+                ) : (
+                  notifications.slice(0, 10).map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="flex flex-col items-start gap-1 py-3"
+                    >
+                      <span className="text-sm font-medium text-foreground">{notification.title}</span>
+                      {notification.message && (
+                        <span className="text-xs text-muted-foreground">{notification.message}</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                )}
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem

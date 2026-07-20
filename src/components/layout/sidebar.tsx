@@ -149,7 +149,7 @@ function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
 }
 
 export function Sidebar() {
-  const { sidebarOpen } = useAppStore()
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const { user, logout } = useAuthStore()
   const { can } = usePermissions()
   const collapsed = !sidebarOpen

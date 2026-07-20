@@ -70,7 +70,8 @@ function loadSettings(): SavedSettings {
 }
 
 export default function SettingsPage() {
-  const { darkMode, toggleDarkMode } = useAppStore();
+  const darkMode = useAppStore((s) => s.darkMode);
+  const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const { toast } = useToast();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);

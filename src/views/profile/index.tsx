@@ -122,7 +122,8 @@ function timeAgo(dateStr: string): string {
 export default function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuthStore();
-  const { darkMode, toggleDarkMode } = useAppStore();
+  const darkMode = useAppStore((s) => s.darkMode);
+  const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const updateUser = useUpdateUser();
 
   const [name, setName] = useState(user?.name ?? "Dr. Jean-Pierre Lukusa");

@@ -29,7 +29,7 @@ interface CommandItem {
 }
 
 const navigationItems: CommandItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/app", shortcut: "D" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", shortcut: "D" },
   {
     icon: Building2,
     label: "Établissements",
@@ -89,14 +89,15 @@ const actionItems: CommandItem[] = [
 
 export function CommandPalette() {
   const router = useRouter();
-  const { commandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+  const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
 
   // Listen for Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
+        setCommandPaletteOpen(!useAppStore.getState().commandPaletteOpen);
       }
       if (e.key === "Escape") {
         setCommandPaletteOpen(false);
@@ -105,7 +106,7 @@ export function CommandPalette() {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [commandPaletteOpen, setCommandPaletteOpen]);
+  }, [setCommandPaletteOpen]);
 
   const handleSelect = (href?: string, label?: string) => {
     setCommandPaletteOpen(false);

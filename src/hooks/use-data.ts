@@ -74,10 +74,6 @@ function transformKeys(obj: unknown): unknown {
       }
       if (key === 'firstname') { key = 'firstName'; }
       if (key === 'lastname') { key = 'lastName'; }
-      if (key === 'facilityId') { key = 'facilityId'; }
-      if (key === 'role' && typeof val === 'string') {
-        val = ROLE_MAP[val] || val.toLowerCase();
-      }
       if (key === 'sex' && typeof val === 'string') {
         val = val.toLowerCase();
         key = 'gender';
@@ -86,8 +82,6 @@ function transformKeys(obj: unknown): unknown {
       if (key === 'patientUuid') { key = 'medicalRecordNumber'; }
       if (key === 'resource') { key = 'entity'; }
       if (key === 'resourceId') { key = 'entityId'; }
-      if (key === 'userId') { key = 'userId'; }
-      if (key === 'ipAddress') { key = 'ipAddress'; }
 
       return [key, val] as const;
     });
@@ -287,6 +281,8 @@ export function useNotificationsData() {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetchData<{ items: unknown[]; total: number; unreadCount: number }>('/notifications'),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 }
 
@@ -336,7 +332,7 @@ export function useFacilityDetail(id: string) {
   });
 }
 
-function useToken() {
+function getTokenFromStorage() {
   return getToken();
 }
 
@@ -344,7 +340,7 @@ export function useUpdatePatient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.put<unknown>(`/patients/${id}`, data, token);
     },
     onSuccess: (_data, variables) => {
@@ -359,7 +355,7 @@ export function useUpdateClinicalCase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.put<unknown>(`/clinical-cases/${id}`, data, token);
     },
     onSuccess: (_data, variables) => {
@@ -374,7 +370,7 @@ export function useUpdateFacility() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.put<unknown>(`/facilities/${id}`, data, token);
     },
     onSuccess: (_data, variables) => {
@@ -389,7 +385,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.put<unknown>(`/users/${id}`, data, token);
     },
     onSuccess: (_data, variables) => {
@@ -403,7 +399,7 @@ export function useDeletePatient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.delete<unknown>(`/patients/${id}`, token);
     },
     onSuccess: () => {
@@ -417,7 +413,7 @@ export function useDeleteClinicalCase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.delete<unknown>(`/clinical-cases/${id}`, token);
     },
     onSuccess: () => {
@@ -431,7 +427,7 @@ export function useDeleteFacility() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.delete<unknown>(`/facilities/${id}`, token);
     },
     onSuccess: () => {
@@ -445,7 +441,7 @@ export function useDeleteUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = useToken();
+      const token = getTokenFromStorage();
       return api.delete<unknown>(`/users/${id}`, token);
     },
     onSuccess: () => {

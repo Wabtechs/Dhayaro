@@ -11,6 +11,7 @@ interface AppState {
   commandPaletteOpen: boolean
   setCommandPaletteOpen: (open: boolean) => void
   notifications: Notification[]
+  setNotifications: (notifications: Notification[]) => void
   markNotificationRead: (id: string) => void
   markAllNotificationsRead: () => void
   activeFacility: string | null
@@ -56,6 +57,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
   notifications: [],
+  setNotifications: (notifications) => set({ notifications }),
   markNotificationRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((n) =>

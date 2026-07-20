@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/sheet'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { sidebarOpen, toggleSidebar } = useAppStore()
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar)
 
   return (
     <div className="relative min-h-screen bg-background">
