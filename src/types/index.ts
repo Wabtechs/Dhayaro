@@ -94,6 +94,8 @@ export interface Disease {
   isContagious?: boolean
   severity?: string
   isActive: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Diagnostic {
@@ -212,6 +214,7 @@ export interface QueueEntry {
   completedAt?: string
   notes?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface MedicalDocument {

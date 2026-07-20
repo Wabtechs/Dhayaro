@@ -495,6 +495,290 @@ export function useDeleteConsultation() {
   });
 }
 
+export function useQueueDetail(id: string) {
+  return useQuery({ queryKey: ['queue', id], queryFn: () => fetchData<unknown>(`/queue/${id}`), enabled: !!id });
+}
+export function useCreateQueue() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/queue', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useUpdateQueue() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/queue/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      queryClient.invalidateQueries({ queryKey: ['queue', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useDeleteQueue() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/queue/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDiagnosticDetail(id: string) {
+  return useQuery({ queryKey: ['diagnostic', id], queryFn: () => fetchData<unknown>(`/diagnostics/${id}`), enabled: !!id });
+}
+export function useCreateDiagnostic() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/diagnostics', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diagnostics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useUpdateDiagnostic() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/diagnostics/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['diagnostics'] });
+      queryClient.invalidateQueries({ queryKey: ['diagnostic', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useDeleteDiagnostic() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/diagnostics/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diagnostics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDiseaseDetail(id: string) {
+  return useQuery({ queryKey: ['disease', id], queryFn: () => fetchData<unknown>(`/diseases/${id}`), enabled: !!id });
+}
+export function useCreateDisease() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/diseases', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+    },
+  });
+}
+export function useUpdateDisease() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/diseases/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+      queryClient.invalidateQueries({ queryKey: ['disease', variables.id] });
+    },
+  });
+}
+export function useDeleteDisease() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/diseases/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+    },
+  });
+}
+
+export function useTreatmentDetail(id: string) {
+  return useQuery({ queryKey: ['treatment', id], queryFn: () => fetchData<unknown>(`/treatments/${id}`), enabled: !!id });
+}
+export function useCreateTreatment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/treatments', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treatments-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useUpdateTreatment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/treatments/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['treatments-list'] });
+      queryClient.invalidateQueries({ queryKey: ['treatment', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useDeleteTreatment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/treatments/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treatments-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useLabCategoriesData() {
+  return useQuery({
+    queryKey: ['lab-categories'],
+    queryFn: () => fetchData<{ items: unknown[] }>('/lab/categories'),
+  });
+}
+
+export function useLabExamDetail(id: string) {
+  return useQuery({ queryKey: ['lab-exam', id], queryFn: () => fetchData<unknown>(`/lab/exams/${id}`), enabled: !!id });
+}
+export function useCreateLabExam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/lab/exams', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lab-exams'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useUpdateLabExam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/lab/exams/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['lab-exams'] });
+      queryClient.invalidateQueries({ queryKey: ['lab-exam', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useDeleteLabExam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/lab/exams/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lab-exams'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDocumentDetail(id: string) {
+  return useQuery({ queryKey: ['document', id], queryFn: () => fetchData<unknown>(`/documents/${id}`), enabled: !!id });
+}
+export function useCreateDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/documents', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useUpdateDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/documents/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['document', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/documents/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useArchiveDetail(id: string) {
+  return useQuery({ queryKey: ['archive', id], queryFn: () => fetchData<unknown>(`/archives/${id}`), enabled: !!id });
+}
+export function useCreateArchive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/archives', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['archives'] });
+    },
+  });
+}
+
 export function useDiagnosticsData(params?: string) {
   return useQuery({
     queryKey: ['diagnostics', params],
