@@ -113,6 +113,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     clearSession()
     set({ user: null, token: null, refreshToken: null })
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
   },
 
   setToken: (token: string) => {

@@ -277,7 +277,7 @@ async function seed() {
 
   console.log('Generating 3000 consultations...')
   const consultationBatchSize = 500
-  const insertedConsultations: { id: string }[] = []
+  const insertedConsultations: { id: string; patientId: string; doctorId: string; facilityId: string }[] = []
   for (let batch = 0; batch < 6; batch++) {
     const batchData = Array.from({ length: consultationBatchSize }, (_, i) => {
       const idx = batch * consultationBatchSize + i
@@ -300,7 +300,9 @@ async function seed() {
         updatedAt: new Date(),
       }
     })
-    const result = await db.insert(consultations).values(batchData).returning({ id: consultations.id })
+    const result = await db.insert(consultations).values(batchData).returning({
+      id: consultations.id, patientId: consultations.patientId, doctorId: consultations.doctorId, facilityId: consultations.facilityId,
+    })
     insertedConsultations.push(...result)
     process.stdout.write(`  Consultations: ${insertedConsultations.length}/3000\r`)
   }
@@ -308,14 +310,19 @@ async function seed() {
 
   console.log('Generating 500 diagnostics...')
   const diagnosticsBatchSize = 250
+  const insertedDiagnostics: { id: string; consultationId: string }[] = []
   let diagnosticsCount = 0
   for (let batch = 0; batch < 2; batch++) {
     const batchData = Array.from({ length: diagnosticsBatchSize }, () => {
+      const c = pick(insertedConsultations)
+      const id = uuid()
+      insertedDiagnostics.push({ id, consultationId: c.id })
       return {
-        id: uuid(),
-        consultationId: pick(insertedConsultations).id,
-        patientId: pick(insertedPatients).id,
-        doctorId: insertedUsers[pick(doctorIndices)].id,
+        id,
+        facilityId: c.facilityId,
+        consultationId: c.id,
+        patientId: c.patientId,
+        doctorId: c.doctorId,
         diseaseId: pick(insertedDiseases).id,
         diagnosticType: pick(['PROVISIONAL', 'FINAL', 'FINAL'] as const),
         description: pick(diseaseDescriptions),
@@ -340,16 +347,24 @@ async function seed() {
   const treatmentsBatchSize = 250
   const insertedTreatments: { id: string }[] = []
   for (let batch = 0; batch < 2; batch++) {
-    const batchData = Array.from({ length: treatmentsBatchSize }, () => ({
-      id: uuid(),
-      patientId: pick(insertedPatients).id,
-      doctorId: insertedUsers[pick(doctorIndices)].id,
-      description: pick(treatmentDescriptions),
-      status: pick(['PRESCRIBED', 'IN_PROGRESS', 'IN_PROGRESS', 'COMPLETED'] as const),
-      startDate: daysAgo(Math.floor(Math.random() * 180)).toISOString().split('T')[0],
-      createdAt: daysAgo(Math.floor(Math.random() * 180)),
-      updatedAt: new Date(),
-    }))
+    const batchData = Array.from({ length: treatmentsBatchSize }, () => {
+      const c = pick(insertedConsultations)
+      const diagForC = insertedDiagnostics.filter((d) => d.consultationId === c.id)
+      const diagnosisId = diagForC.length ? pick(diagForC).id : null
+      return {
+        id: uuid(),
+        facilityId: c.facilityId,
+        consultationId: c.id,
+        patientId: c.patientId,
+        doctorId: c.doctorId,
+        diagnosisId,
+        description: pick(treatmentDescriptions),
+        status: pick(['PRESCRIBED', 'IN_PROGRESS', 'IN_PROGRESS', 'COMPLETED'] as const),
+        startDate: daysAgo(Math.floor(Math.random() * 180)).toISOString().split('T')[0],
+        createdAt: daysAgo(Math.floor(Math.random() * 180)),
+        updatedAt: new Date(),
+      }
+    })
     const result = await db.insert(treatments).values(batchData).returning({ id: treatments.id })
     insertedTreatments.push(...result)
     process.stdout.write(`  Treatments: ${insertedTreatments.length}/500\r`)
@@ -399,22 +414,23 @@ async function seed() {
   let labCount = 0
   for (let batch = 0; batch < 4; batch++) {
     const batchData = Array.from({ length: labBatchSize }, () => {
+      const c = pick(insertedConsultations)
       const examName = pick(labExamNames)
       const isCompleted = Math.random() > 0.3
       return {
         id: uuid(),
-        facilityId: pick(insertedFacilities).id,
-        patientId: pick(insertedPatients).id,
-        doctorId: insertedUsers[pick(doctorIndices)].id,
+        facilityId: c.facilityId,
+        patientId: c.patientId,
+        doctorId: c.doctorId,
         labTechnicianId: insertedUsers[8].id,
         categoryId: pick(insertedLabCats).id,
-        consultationId: Math.random() > 0.4 ? pick(insertedConsultations).id : null,
+        consultationId: c.id,
         examName,
         clinicalIndication: pick(['Bilan pré-opératoire','Suivi thérapeutique','Urgence diagnostique','Dépistage','Contrôle post-traitement']),
         status: pick(isCompleted ? (['COMPLETED','COMPLETED','IN_PROGRESS'] as const) : (['REQUESTED','IN_PROGRESS'] as const)),
         results: isCompleted ? { valeur: pick(['Normal','Élevé','Bas','Positif','Négatif']), unite: pick(['g/dL','mmol/L','UI/L','/mm3']) } : {},
         resultNotes: isCompleted ? pick(['Dans les normes','Légèrement élevé','À contrôler','Normal']) : null,
-        validatedBy: isCompleted ? insertedUsers[pick(doctorIndices)].id : null,
+        validatedBy: isCompleted ? c.doctorId : null,
         validatedAt: isCompleted ? daysAgo(Math.floor(Math.random() * 100)) : null,
         requestedAt: daysAgo(Math.floor(Math.random() * 200)),
         completedAt: isCompleted ? daysAgo(Math.floor(Math.random() * 150)) : null,
@@ -508,59 +524,68 @@ async function seed() {
   const queuePriorities = ['LOW','NORMAL','NORMAL','HIGH','URGENT'] as const
   const queueBatchSize = 100
   await db.insert(queue).values(
-    Array.from({ length: queueBatchSize }, (_, i) => ({
-      id: uuid(),
-      facilityId: pick(insertedFacilities).id,
-      patientId: pick(insertedPatients).id,
-      consultationId: Math.random() > 0.4 ? pick(insertedConsultations).id : null,
-      ticketNumber: `TK-${String(i + 1).padStart(4, '0')}`,
-      priority: pick(queuePriorities),
-      status: pick(queueStatuses),
-      assignedDoctorId: Math.random() > 0.3 ? insertedUsers[pick(doctorIndices)].id : null,
-      queuePosition: i + 1,
-      estimatedWaitMinutes: randInt(5, 120),
-      arrivedAt: daysAgo(Math.floor(Math.random() * 30)),
-      notes: Math.random() > 0.5 ? pick(['Patient attendu','À rappeler','Urgence confirmée']) : null,
-      createdAt: daysAgo(Math.floor(Math.random() * 30)),
-      updatedAt: new Date(),
-    }))
+    Array.from({ length: queueBatchSize }, (_, i) => {
+      const c = pick(insertedConsultations)
+      return {
+        id: uuid(),
+        facilityId: c.facilityId,
+        patientId: c.patientId,
+        consultationId: c.id,
+        ticketNumber: `TK-${String(i + 1).padStart(4, '0')}`,
+        priority: pick(queuePriorities),
+        status: pick(queueStatuses),
+        assignedDoctorId: c.doctorId,
+        queuePosition: i + 1,
+        estimatedWaitMinutes: randInt(5, 120),
+        arrivedAt: daysAgo(Math.floor(Math.random() * 30)),
+        notes: Math.random() > 0.5 ? pick(['Patient attendu','À rappeler','Urgence confirmée']) : null,
+        createdAt: daysAgo(Math.floor(Math.random() * 30)),
+        updatedAt: new Date(),
+      }
+    })
   )
   console.log(`Queue: ${queueBatchSize}`)
 
   console.log('Generating 200 documents...')
   const docBatchSize = 200
   await db.insert(documents).values(
-    Array.from({ length: docBatchSize }, () => ({
-      id: uuid(),
-      facilityId: pick(insertedFacilities).id,
-      patientId: pick(insertedPatients).id,
-      consultationId: Math.random() > 0.3 ? pick(insertedConsultations).id : null,
-      doctorId: insertedUsers[pick(doctorIndices)].id,
-      documentType: pick(docTypes),
-      title: pick(['Ordonnance médicale','Certificat médical','Rapport d\'examen','Résultat laboratoire','Lettre de recommandation','Compte-rendu opératoire']),
-      content: { body: pick(clinicalTemplates).treatment },
-      filePath: null,
-      isPrinted: Math.random() > 0.7,
-      createdAt: daysAgo(Math.floor(Math.random() * 300)),
-    }))
+    Array.from({ length: docBatchSize }, () => {
+      const c = pick(insertedConsultations)
+      return {
+        id: uuid(),
+        facilityId: c.facilityId,
+        patientId: c.patientId,
+        consultationId: c.id,
+        doctorId: c.doctorId,
+        documentType: pick(docTypes),
+        title: pick(['Ordonnance médicale','Certificat médical','Rapport d\'examen','Résultat laboratoire','Lettre de recommandation','Compte-rendu opératoire']),
+        content: { body: pick(clinicalTemplates).treatment },
+        filePath: null,
+        isPrinted: Math.random() > 0.7,
+        createdAt: daysAgo(Math.floor(Math.random() * 300)),
+      }
+    })
   )
   console.log(`Documents: ${docBatchSize}`)
 
   console.log('Generating 100 archives...')
   const archiveTypes = ['CONSULTATION','DIAGNOSTIC','TREATMENT','LAB_EXAM','DOCUMENT','PATIENT_FILE'] as const
   await db.insert(archives).values(
-    Array.from({ length: 100 }, () => ({
-      id: uuid(),
-      facilityId: pick(insertedFacilities).id,
-      entityType: pick(archiveTypes),
-      entityId: pick(insertedConsultations).id,
-      patientId: pick(insertedPatients).id,
-      title: pick(['Consultation archivée','Diagnostic archivé','Traitement archivé','Examen labo archivé','Dossier patient archivé']),
-      summary: pick(['Dossier clôturé','Patient guéri','Transféré','Décédé','Contre-indication']),
-      archivedBy: pick(insertedUsers).id,
-      data: {},
-      createdAt: daysAgo(Math.floor(Math.random() * 365)),
-    }))
+    Array.from({ length: 100 }, () => {
+      const c = pick(insertedConsultations)
+      return {
+        id: uuid(),
+        facilityId: c.facilityId,
+        entityType: 'CONSULTATION' as const,
+        entityId: c.id,
+        patientId: c.patientId,
+        title: pick(['Consultation archivée','Diagnostic archivé','Traitement archivé','Examen labo archivé','Dossier patient archivé']),
+        summary: pick(['Dossier clôturé','Patient guéri','Transféré','Décédé','Contre-indication']),
+        archivedBy: c.doctorId,
+        data: {},
+        createdAt: daysAgo(Math.floor(Math.random() * 365)),
+      }
+    })
   )
   console.log(`Archives: 100`)
 
