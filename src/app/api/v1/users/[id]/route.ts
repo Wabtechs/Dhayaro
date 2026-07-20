@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
-import { hashPassword, requireRole } from '@/lib/auth'
-
-const USER_KEYS = ['firstname', 'lastname', 'email', 'role', 'facilityId', 'isActive'] as const
+import { hashPassword } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
+import { apiError, logError } from '@/lib/api-errors'
+import { requireAuth } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
     const { id } = await params
@@ -24,7 +24,10 @@ export async function GET(
         lastname: users.lastname,
         email: users.email,
         role: users.role,
+        phone: users.phone,
+        avatar: users.avatar,
         isActive: users.isActive,
+        lastLogin: users.lastLogin,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         facilityName: facilities.name,
@@ -51,20 +54,29 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
+
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
+      return apiError(403, 'Only administrators can update users')
+    }
 
     const { id } = await params
     const body = await request.json()
-    const allowedFields = pickAllowedKeys(body, USER_KEYS)
 
-    if (body.password) {
-      allowedFields.passwordHash = await hashPassword(body.password)
-    }
+    const set: Record<string, unknown> = { updated_at: new Date() }
+    if (body.firstname !== undefined) set.firstname = body.firstname
+    if (body.lastname !== undefined) set.lastname = body.lastname
+    if (body.email !== undefined) set.email = body.email
+    if (body.phone !== undefined) set.phone = body.phone
+    if (body.role !== undefined) set.role = body.role
+    if (body.facilityId !== undefined) set.facility_id = sanitizeUuid(body.facilityId)
+    if (body.isActive !== undefined) set.is_active = body.isActive
+    if (body.password) set.password_hash = await hashPassword(body.password)
 
     const [updated] = await getDb()
       .update(users)
-      .set(allowedFields)
+      .set(set)
       .where(eq(users.id, id))
       .returning({
         id: users.id,
@@ -73,8 +85,8 @@ export async function PUT(
         lastname: users.lastname,
         email: users.email,
         role: users.role,
+        phone: users.phone,
         isActive: users.isActive,
-        createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
 
@@ -83,7 +95,7 @@ export async function PUT(
     }
 
     return NextResponse.json(updated)
-  } catch (e: unknown) {
+  } catch (e) {
     logError('PUT /users/[id]', e)
     return apiError(500, 'Internal server error')
   }
@@ -94,22 +106,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const { id } = await params
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
+      return apiError(403, 'Only administrators can delete users')
+    }
 
-    const [deleted] = await getDb()
+    const { id } = await params
+    const [result] = await getDb()
       .update(users)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(users.id, id))
-      .returning()
+      .returning({ id: users.id })
 
-    if (!deleted) {
+    if (!result) {
       return apiError(404, 'User not found')
     }
 
-    return NextResponse.json({ detail: 'User deleted' })
+    return NextResponse.json({ success: true, id: result.id })
   } catch (e) {
     logError('DELETE /users/[id]', e)
     return apiError(500, 'Internal server error')

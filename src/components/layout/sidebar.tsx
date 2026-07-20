@@ -24,6 +24,7 @@ import {
   Building2,
   Users,
   UserRound,
+  UserCog,
   Stethoscope,
   Brain,
   Bug,
@@ -66,6 +67,7 @@ const navSections: NavSection[] = [
       { label: 'Consultations', icon: Stethoscope, href: '/consultations', permission: 'consultations:list' },
       { label: 'Diagnostics', icon: Brain, href: '/diagnostics', permission: 'diagnostics:list' },
       { label: 'Maladies', icon: Bug, href: '/diseases', permission: 'diseases:list' },
+      { label: 'Médecins', icon: UserCog, href: '/doctors', permission: 'users:list' },
     ],
   },
   {

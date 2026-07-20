@@ -24,6 +24,12 @@ export async function GET(request: NextRequest) {
       )!)
     }
 
+    const roleParam = searchParams.get('role')
+    const ROLES = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'] as const
+    if (roleParam && (ROLES as readonly string[]).includes(roleParam)) {
+      conditions.push(eq(users.role, roleParam as typeof ROLES[number]))
+    }
+
     const whereClause = and(...conditions)
 
     const [[countResult], items] = await Promise.all([

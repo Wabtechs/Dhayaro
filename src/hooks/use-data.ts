@@ -437,6 +437,61 @@ export function useDeleteUser() {
   });
 }
 
+export function useDoctorsData(params?: string) {
+  return useQuery({
+    queryKey: ['doctors', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/users${params ? '?' + params : ''}`),
+  });
+}
+
+export function useDoctorDetail(id: string) {
+  return useQuery({
+    queryKey: ['doctor', id],
+    queryFn: () => fetchData<unknown>(`/users/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateDoctor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/users', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctors'] });
+    },
+  });
+}
+
+export function useUpdateDoctor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/users/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['doctors'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor', variables.id] });
+    },
+  });
+}
+
+export function useDeleteDoctor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/users/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctors'] });
+    },
+  });
+}
+
 export function useConsultationsData(params?: string) {
   return useQuery({
     queryKey: ['consultations', params],
