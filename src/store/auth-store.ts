@@ -10,6 +10,7 @@ interface AuthState {
   refreshToken: string | null
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  setToken: (token: string) => void
   updateProfile: (updates: Partial<User>) => void
 }
 
@@ -112,6 +113,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     clearSession()
     set({ user: null, token: null, refreshToken: null })
+  },
+
+  setToken: (token: string) => {
+    set({ token })
   },
 
   updateProfile: (updates) =>
