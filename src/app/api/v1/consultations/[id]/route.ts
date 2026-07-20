@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { consultations, patients, users } from '@/lib/schema'
+import { consultations, patients, users, diagnostics, treatments, labExams, diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
@@ -48,7 +48,52 @@ export async function GET(
       return apiError(404, 'Consultation not found')
     }
 
-    return NextResponse.json(row)
+    const [relatedDiagnostics, relatedTreatments, relatedLabExams] = await Promise.all([
+      getDb().select({
+        id: diagnostics.id,
+        diagnosticType: diagnostics.diagnosticType,
+        description: diagnostics.description,
+        notes: diagnostics.notes,
+        isValidated: diagnostics.isValidated,
+        diseaseName: diseases.name,
+        createdAt: diagnostics.createdAt,
+      })
+      .from(diagnostics)
+      .leftJoin(diseases, eq(diagnostics.diseaseId, diseases.id))
+      .where(eq(diagnostics.consultationId, id)),
+      getDb().select({
+        id: treatments.id,
+        description: treatments.description,
+        status: treatments.status,
+        startDate: treatments.startDate,
+        endDate: treatments.endDate,
+        notes: treatments.notes,
+        outcome: treatments.outcome,
+        createdAt: treatments.createdAt,
+      })
+      .from(treatments)
+      .where(eq(treatments.consultationId, id)),
+      getDb().select({
+        id: labExams.id,
+        examName: labExams.examName,
+        clinicalIndication: labExams.clinicalIndication,
+        status: labExams.status,
+        results: labExams.results,
+        resultNotes: labExams.resultNotes,
+        requestedAt: labExams.requestedAt,
+        completedAt: labExams.completedAt,
+        createdAt: labExams.createdAt,
+      })
+      .from(labExams)
+      .where(eq(labExams.consultationId, id)),
+    ])
+
+    return NextResponse.json({
+      ...row,
+      diagnostics: relatedDiagnostics,
+      treatments: relatedTreatments,
+      labExams: relatedLabExams,
+    })
   } catch (e) {
     logError('GET /consultations/[id]', e)
     return apiError(500, 'Internal server error')

@@ -77,6 +77,7 @@ export interface Consultation {
   provisionalDiagnosis?: string
   status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
   isFollowUp?: boolean
+  previousConsultationId?: string
   createdAt: string
   updatedAt: string
 }
