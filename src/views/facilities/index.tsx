@@ -44,6 +44,10 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import type { Facility } from '@/types'
 
+interface FacilityItem extends Facility {
+  [key: string]: unknown
+}
+
 const facilityTypeIcons: Record<Facility['type'], React.ReactNode> = {
   hospital: <Building2 className="h-6 w-6" />,
   clinic: <Stethoscope className="h-6 w-6" />,
@@ -67,12 +71,12 @@ export default function Facilities() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingFacility, setEditingFacility] = useState<Record<string, unknown> | null>(null)
+  const [editingFacility, setEditingFacility] = useState<FacilityItem | null>(null)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const updateFacility = useUpdateFacility()
   const deleteFacility = useDeleteFacility()
-  const facilities = data?.items ?? []
+  const facilities = (data?.items ?? []) as FacilityItem[]
 
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<Facility['type']>('hospital')
@@ -93,7 +97,7 @@ export default function Facilities() {
   const filtered = facilities.filter((f) => {
     const matchesSearch =
       f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.city.toLowerCase().includes(search.toLowerCase())
+      (f.city || '').toLowerCase().includes(search.toLowerCase())
     const matchesType = typeFilter === 'all' || f.type === typeFilter
     return matchesSearch && matchesType
   })
@@ -138,7 +142,7 @@ export default function Facilities() {
     }
   }
 
-  const openEditDialog = (facility: Record<string, unknown>) => {
+  const openEditDialog = (facility: FacilityItem) => {
     setEditingFacility(facility)
     setEditName((facility.name as string) || '')
     setEditType(((facility.type as string) || 'hospital') as Facility['type'])
@@ -307,7 +311,7 @@ export default function Facilities() {
                     id="fac-phone"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="+243 ..."
+                    placeholder="+213 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -406,7 +410,7 @@ export default function Facilities() {
                     id="edit-fac-phone"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="+243 ..."
+                    placeholder="+213 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -548,7 +552,7 @@ export default function Facilities() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => openEditDialog(facility as unknown as Record<string, unknown>)}
+                      onClick={() => openEditDialog(facility as FacilityItem)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

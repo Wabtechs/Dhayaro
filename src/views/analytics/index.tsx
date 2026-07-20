@@ -39,7 +39,7 @@ export default function AnalyticsPage() {
 
   const statCards = [
     {
-      title: 'Total Traitements',
+      title: 'Total Cas Cliniques',
       value: totalTreatments,
       icon: Activity,
       color: 'text-primary',

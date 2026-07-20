@@ -411,7 +411,7 @@ async function seed() {
         consultationId: Math.random() > 0.4 ? pick(insertedConsultations).id : null,
         examName,
         clinicalIndication: pick(['Bilan pré-opératoire','Suivi thérapeutique','Urgence diagnostique','Dépistage','Contrôle post-traitement']),
-        status: pick(isCompleted ? ['COMPLETED','COMPLETED','IN_PROGRESS'] : ['REQUESTED','IN_PROGRESS'] as const),
+        status: pick(isCompleted ? (['COMPLETED','COMPLETED','IN_PROGRESS'] as const) : (['REQUESTED','IN_PROGRESS'] as const)),
         results: isCompleted ? { valeur: pick(['Normal','Élevé','Bas','Positif','Négatif']), unite: pick(['g/dL','mmol/L','UI/L','/mm3']) } : {},
         resultNotes: isCompleted ? pick(['Dans les normes','Légèrement élevé','À contrôler','Normal']) : null,
         validatedBy: isCompleted ? insertedUsers[pick(doctorIndices)].id : null,

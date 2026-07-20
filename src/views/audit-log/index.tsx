@@ -44,6 +44,29 @@ import { useAuditData, useUsersData } from '@/hooks/use-data'
 import { formatDateTime, getInitials } from '@/lib/utils'
 import type { AuditEntry } from '@/types'
 
+interface AuditItem {
+  id: string
+  userId: string
+  action: string
+  entity: string
+  entityId: string
+  details: string
+  ipAddress: string
+  timestamp: string
+  facilityId?: string
+  userFirstname?: string
+  userLastname?: string
+  userEmail?: string
+  [key: string]: unknown
+}
+
+interface UserItem {
+  id: string
+  name?: string
+  avatar?: string
+  [key: string]: unknown
+}
+
 type ActionCategory = 'consultation' | 'creation' | 'modification' | 'suppression' | 'connexion'
 
 const PAGE_SIZE = 15
@@ -134,8 +157,8 @@ export default function AuditLogPage() {
 
   const { data, isLoading } = useAuditData()
   const { data: usersData } = useUsersData()
-  const auditEntries = data?.items ?? []
-  const users = (usersData as unknown as { items?: Array<Record<string, unknown>> })?.items ?? []
+  const auditEntries = ((data?.items ?? []) as AuditItem[])
+  const users = ((usersData as unknown as { items?: UserItem[] })?.items ?? [])
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]))
 
   const filtered = useMemo(() => {

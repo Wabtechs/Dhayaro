@@ -43,6 +43,29 @@ import { sanitizeUuid } from '@/lib/validation'
 
 const ITEMS_PER_PAGE = 10
 
+interface PatientItem {
+  id: string
+  firstName?: string
+  lastName?: string
+  dateOfBirth: string
+  gender?: string
+  phone?: string
+  address?: string
+  bloodType?: string
+  facilityId?: string
+  medicalRecordNumber?: string
+  allergies?: string[]
+  isActive?: boolean
+  lastVisit?: string
+  [key: string]: unknown
+}
+
+interface FacilityItem {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
 const bloodTypeColors: Record<string, string> = {
   'A+': 'bg-red-100 text-red-800 border-red-200',
   'A-': 'bg-red-50 text-red-700 border-red-200',
@@ -64,7 +87,7 @@ export default function PatientsPage() {
   const [facilityFilter, setFacilityFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingPatient, setEditingPatient] = useState<Record<string, unknown> | null>(null)
+  const [editingPatient, setEditingPatient] = useState<PatientItem | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -96,8 +119,8 @@ export default function PatientsPage() {
 
   const { data, isLoading } = usePatientsData()
   const { data: facilitiesData } = useFacilitiesData()
-  const patients = data?.items ?? []
-  const facilitiesList = facilitiesData?.items ?? []
+  const patients = (data?.items ?? []) as PatientItem[]
+  const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const filtered = useMemo(() => {
     return patients.filter((p) => {
@@ -151,7 +174,7 @@ export default function PatientsPage() {
     }
   }
 
-  const openEditDialog = (patient: Record<string, unknown>) => {
+  const openEditDialog = (patient: PatientItem) => {
     setEditingPatient(patient)
     setEditForm({
       firstName: (patient.firstName as string) || '',
@@ -196,7 +219,7 @@ export default function PatientsPage() {
     }
   }
 
-  const handleDelete = async (patient: Record<string, unknown>) => {
+  const handleDelete = async (patient: PatientItem) => {
     const name = `${patient.firstName || ''} ${patient.lastName || ''}`.trim()
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le patient "${name}" ? Cette action est irréversible.`)) return
     try {
@@ -289,7 +312,7 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+243 ..."
+                    placeholder="+213 ..."
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     required
@@ -416,7 +439,7 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+243 ..."
+                    placeholder="+213 ..."
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   />
@@ -613,7 +636,7 @@ export default function PatientsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEditDialog(patient as unknown as Record<string, unknown>)}
+                        onClick={() => openEditDialog(patient)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -623,7 +646,7 @@ export default function PatientsPage() {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(patient as unknown as Record<string, unknown>)}
+                        onClick={() => handleDelete(patient)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

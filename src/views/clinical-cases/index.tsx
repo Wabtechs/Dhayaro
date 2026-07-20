@@ -66,6 +66,45 @@ import type { CaseStatus, CasePriority } from '@/types'
 
 const ITEMS_PER_PAGE = 10
 
+interface CaseItem {
+  id: string
+  title: string
+  description: string
+  status: string
+  priority: string
+  diagnosis: string
+  symptoms: string[]
+  tags: string[]
+  patientId?: string
+  facilityId?: string
+  assignedDoctorId?: string
+  treatment?: string
+  [key: string]: unknown
+}
+
+interface PatientItem {
+  id: string
+  firstName?: string
+  lastName?: string
+  name?: string
+  [key: string]: unknown
+}
+
+interface FacilityItem {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
+interface UserItem {
+  id: string
+  name?: string
+  role?: string
+  firstname?: string
+  lastname?: string
+  [key: string]: unknown
+}
+
 const statusLabels: Record<CaseStatus, string> = {
   draft: 'Brouillon',
   active: 'Actif',
@@ -90,10 +129,10 @@ export default function ClinicalCasesPage() {
   const { data: patientsData } = usePatientsData()
   const { data: facilitiesData } = useFacilitiesData()
   const { data: usersData } = useUsersData()
-  const clinicalCases = casesData?.items ?? []
-  const patientsList = patientsData?.items ?? []
-  const facilitiesList = facilitiesData?.items ?? []
-  const usersList = usersData?.items ?? []
+  const clinicalCases = (casesData?.items ?? []) as unknown as CaseItem[]
+  const patientsList = (patientsData?.items ?? []) as PatientItem[]
+  const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
+  const usersList = (usersData?.items ?? []) as UserItem[]
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
@@ -102,7 +141,7 @@ export default function ClinicalCasesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingCase, setEditingCase] = useState<Record<string, unknown> | null>(null)
+  const [editingCase, setEditingCase] = useState<CaseItem | null>(null)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const updateCase = useUpdateClinicalCase()
@@ -192,7 +231,7 @@ export default function ClinicalCasesPage() {
     }
   }
 
-  const openEditDialog = (c: Record<string, unknown>) => {
+  const openEditDialog = (c: CaseItem) => {
     setEditingCase(c)
     setEditCase({
       title: (c.title as string) || '',
@@ -441,7 +480,7 @@ export default function ClinicalCasesPage() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={creating}>{creating ? 'Création...' : 'Créer le cas'}</Button>
+              <Button type="button" disabled={creating} onClick={handleCreateCase}>{creating ? 'Création...' : 'Créer le cas'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -740,7 +779,7 @@ export default function ClinicalCasesPage() {
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        openEditDialog(c as unknown as Record<string, unknown>)
+                        openEditDialog(c)
                       }}
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -762,9 +801,9 @@ export default function ClinicalCasesPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <Badge variant={c.status}>{statusLabels[c.status]}</Badge>
-                    <Badge variant={c.priority}>
-                      {priorityLabels[c.priority]}
+                    <Badge variant={c.status as 'active' | 'draft' | 'in_review' | 'resolved' | 'archived'}>{statusLabels[c.status as CaseStatus]}</Badge>
+                    <Badge variant={c.priority as 'low' | 'medium' | 'high' | 'critical'}>
+                      {priorityLabels[c.priority as CasePriority]}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -806,7 +845,7 @@ export default function ClinicalCasesPage() {
                     )}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
-                      <span>{formatDate(c.createdAt)}</span>
+                      <span>{formatDate(c.createdAt as string)}</span>
                     </div>
                   </div>
                 </CardFooter>
@@ -841,7 +880,7 @@ export default function ClinicalCasesPage() {
                     <div className="flex flex-col gap-1">
                       <span className="line-clamp-1">{c.title}</span>
                       <div className="flex gap-1 md:hidden">
-                        <Badge variant={c.status} className="text-[10px]">
+                        <Badge variant={c.status as 'active' | 'draft' | 'in_review' | 'resolved' | 'archived'} className="text-[10px]">
                           {statusLabels[c.status]}
                         </Badge>
                       </div>
@@ -854,15 +893,15 @@ export default function ClinicalCasesPage() {
                     {getDoctorName(c.assignedDoctorId)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={c.status}>{statusLabels[c.status]}</Badge>
+                    <Badge variant={c.status as 'active' | 'draft' | 'in_review' | 'resolved' | 'archived'}>{statusLabels[c.status as CaseStatus]}</Badge>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    <Badge variant={c.priority}>
-                      {priorityLabels[c.priority]}
+                    <Badge variant={c.priority as 'low' | 'medium' | 'high' | 'critical'}>
+                      {priorityLabels[c.priority as CasePriority]}
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-muted-foreground">
-                    {formatDate(c.createdAt)}
+                    {formatDate(c.createdAt as string)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -872,7 +911,7 @@ export default function ClinicalCasesPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          openEditDialog(c as unknown as Record<string, unknown>)
+                          openEditDialog(c)
                         }}
                       >
                         <Pencil className="h-4 w-4" />

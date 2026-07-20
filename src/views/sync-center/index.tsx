@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   RefreshCw,
   Wifi,
@@ -137,6 +137,12 @@ export default function SyncCenterPage() {
   const [isSyncing, setIsSyncing] = useState(false)
   const { data: syncData } = useSyncData()
   const [logs, setLogs] = useState<SyncLog[]>((syncData?.items as SyncLog[]) || [])
+
+  useEffect(() => {
+    if (syncData?.items) {
+      setLogs(syncData.items as SyncLog[])
+    }
+  }, [syncData])
 
   const lastSync = logs.length > 0
     ? logs.reduce((latest, l) => new Date(l.timestamp) > new Date(latest.timestamp) ? l : latest, logs[0])

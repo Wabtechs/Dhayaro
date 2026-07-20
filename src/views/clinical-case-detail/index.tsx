@@ -56,6 +56,7 @@ import {
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useAuthStore } from '@/store/auth-store'
 import { formatDate, formatDateTime, getInitials } from '@/lib/utils'
 import type { CaseStatus, CaseNote } from '@/types'
 
@@ -85,6 +86,7 @@ export default function ClinicalCaseDetailPage() {
   const { data: facilitiesData } = useFacilitiesData()
   const updateCase = useUpdateClinicalCase()
   const { toast } = useToast()
+  const { user } = useAuthStore()
 
   const c = clinicalCase as Record<string, unknown> | null | undefined
   const [noteContent, setNoteContent] = useState('')
@@ -161,7 +163,7 @@ export default function ClinicalCaseDetailPage() {
     const newNote: CaseNote = {
       id: `note-${Date.now()}`,
       caseId,
-      authorId: 'usr-001',
+      authorId: (user?.id as string) || 'unknown',
       content: noteContent.trim(),
       createdAt: new Date().toISOString(),
     }

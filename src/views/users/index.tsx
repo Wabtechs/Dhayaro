@@ -53,6 +53,29 @@ import type { User } from '@/types'
 
 const PAGE_SIZE = 10
 
+interface UserItem {
+  id: string
+  firstname?: string
+  lastname?: string
+  name?: string
+  email: string
+  role: string
+  phone?: string
+  avatar?: string
+  facilityId?: string
+  facilityName?: string
+  isActive?: boolean
+  lastLogin?: string
+  createdAt?: string
+  [key: string]: unknown
+}
+
+interface FacilityItem {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
 const roleLabels: Record<string, string> = {
   super_admin: 'Super Admin',
   admin: 'Admin',
@@ -108,9 +131,8 @@ export default function Users() {
   const { data: usersData, isLoading } = useUsersData()
   const { data: facilitiesData } = useFacilitiesData()
   const updateUser = useUpdateUser()
-  const users = usersData?.items ?? []
-  const facilitiesList = facilitiesData?.items ?? []
-  const [localUsers] = useState<User[]>([])
+  const users = (usersData?.items ?? []) as UserItem[]
+  const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -141,12 +163,11 @@ export default function Users() {
   }
 
   const allUsers = useMemo(() => {
-    const merged = [...users, ...localUsers]
-    return merged.map((u) => ({
+    return users.map((u) => ({
       ...u,
       role: (u.role || '').toLowerCase(),
     }))
-  }, [users, localUsers])
+  }, [users])
 
   const filtered = useMemo(() => {
     const result = allUsers.filter((u) => {
@@ -175,8 +196,8 @@ export default function Users() {
           bVal = b.role
           break
         case 'facility':
-          aVal = facilityMap[a.facility || ''] || ''
-          bVal = facilityMap[b.facility || ''] || ''
+          aVal = facilityMap[a.facilityId || ''] || ''
+          bVal = facilityMap[b.facilityId || ''] || ''
           break
         case 'lastLogin':
           aVal = a.lastLogin || ''
@@ -392,8 +413,12 @@ export default function Users() {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="doctor">Médecin</SelectItem>
                     <SelectItem value="nurse">Infirmier</SelectItem>
-                    <SelectItem value="researcher">Chercheur</SelectItem>
-                    <SelectItem value="viewer">Observateur</SelectItem>
+                    <SelectItem value="receptionist">Réceptionniste</SelectItem>
+                    <SelectItem value="specialist">Spécialiste</SelectItem>
+                    <SelectItem value="laboratory">Laborantin</SelectItem>
+                    <SelectItem value="pharmacist">Pharmacien</SelectItem>
+                    <SelectItem value="accountant">Comptable</SelectItem>
+                    <SelectItem value="archivist">Archiviste</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -419,7 +444,7 @@ export default function Users() {
                     id="user-phone"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="+243 ..."
+                    placeholder="+213 ..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -645,9 +670,9 @@ export default function Users() {
                         </div>
                         <div>
                           <p className="font-medium">{user.name}</p>
-                          {user.department && (
+                          {user.facilityName && (
                             <p className="text-xs text-muted-foreground">
-                              {user.department}
+                              {user.facilityName}
                             </p>
                           )}
                         </div>
@@ -661,7 +686,7 @@ export default function Users() {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${roleBadgeColors[user.role] || roleBadgeColors.viewer}`}
+                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${roleBadgeColors[user.role] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}
                       >
                         {roleLabels[user.role] || user.role}
                       </span>
@@ -669,7 +694,7 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Building2 className="h-3 w-3" />
-                        {facilityMap[user.facility || ''] || '—'}
+                        {facilityMap[user.facilityId || ''] || '—'}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

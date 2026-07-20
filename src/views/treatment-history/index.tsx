@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useMemo } from 'react'
 import { Search, Download, Calendar, Filter, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
