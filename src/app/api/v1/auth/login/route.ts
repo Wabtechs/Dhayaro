@@ -3,8 +3,23 @@ import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, verifyPassword } from '@/lib/auth'
+import { checkRateLimit, getRateLimitKey, cleanupRateLimit } from '@/lib/rate-limit'
+
+const LOGIN_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
 
 export async function POST(request: NextRequest) {
+  cleanupRateLimit()
+
+  const rateLimitKey = getRateLimitKey(request, 'login')
+  const { allowed, retryAfterMs } = checkRateLimit(rateLimitKey, LOGIN_RATE_LIMIT.maxRequests, LOGIN_RATE_LIMIT.windowMs)
+
+  if (!allowed) {
+    return NextResponse.json(
+      { detail: 'Too many login attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) } }
+    )
+  }
+
   try {
     const body = await request.json()
     const { email, password } = body
@@ -13,29 +28,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Email and password are required' }, { status: 400 })
     }
 
-    let user: { id: string; email: string; firstname: string; lastname: string; role: string; facility_id?: string | null; passwordHash?: string } | null = null
-
-    const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
-    if (rows.length > 0) {
-      user = rows[0] as typeof user
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ detail: 'Invalid input format' }, { status: 400 })
     }
 
-    if (!user) {
+    const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
+    if (rows.length === 0) {
       return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
     }
 
-    if (user.passwordHash) {
-      const valid = await verifyPassword(password, user.passwordHash)
-      if (!valid) {
-        return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
-      }
+    const user = rows[0]
+    const valid = await verifyPassword(password, user.passwordHash)
+    if (!valid) {
+      return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
     }
 
     const token = await createToken({
       sub: user.id,
       email: user.email,
       role: user.role,
-      facilityId: (user as any).facilityId || (user as any).facility_id || null,
+      facilityId: user.facilityId || null,
     })
 
     const response = NextResponse.json({

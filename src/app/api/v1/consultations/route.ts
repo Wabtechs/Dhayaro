@@ -78,8 +78,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (e) {
     logError('GET /consultations', e)
-    const msg = e instanceof Error ? e.message : String(e)
-    return apiError(500, msg)
+    return apiError(500, 'Internal server error')
   }
 }
 

@@ -7,3 +7,8 @@ export function isValidUuid(value: unknown): value is string {
 export function sanitizeUuid(value: unknown): string | null {
   return isValidUuid(value) ? value : null
 }
+
+export function sanitizeSearch(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value.replace(/[%_]/g, '\\$&').trim().slice(0, 200)
+}
