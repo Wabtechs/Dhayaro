@@ -92,7 +92,30 @@ export async function PUT(
 
     return NextResponse.json(updated)
   } catch (e) {
-    logError('PUT /diagnostics/[id]', e)
+    return apiError(500, 'Internal server error')
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    const { id } = await params
+
+    const existing = await getDb().select({ id: diagnostics.id }).from(diagnostics).where(eq(diagnostics.id, id)).limit(1)
+    if (existing.length === 0) {
+      return apiError(404, 'Diagnostic not found')
+    }
+
+    await getDb().delete(diagnostics).where(eq(diagnostics.id, id))
+
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    logError('DELETE /diagnostics/[id]', e)
     return apiError(500, 'Internal server error')
   }
 }

@@ -119,3 +119,27 @@ export async function PUT(
     return apiError(500, 'Internal server error')
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    const { id } = await params
+
+    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, id)).limit(1)
+    if (existing.length === 0) {
+      return apiError(404, 'Lab exam not found')
+    }
+
+    await getDb().delete(labExams).where(eq(labExams.id, id))
+
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    logError('DELETE /lab/exams/[id]', e)
+    return apiError(500, 'Internal server error')
+  }
+}
