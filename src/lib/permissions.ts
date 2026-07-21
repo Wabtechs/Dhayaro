@@ -5,6 +5,7 @@ export type Permission =
   | 'facilities:list' | 'facilities:create' | 'facilities:edit' | 'facilities:delete'
   | 'patients:list' | 'patients:create' | 'patients:edit' | 'patients:delete' | 'patients:archive'
   | 'consultations:list' | 'consultations:create' | 'consultations:edit' | 'consultations:delete'
+  | 'clinical-cases:list' | 'clinical-cases:create' | 'clinical-cases:edit' | 'clinical-cases:delete'
   | 'diagnostics:list' | 'diagnostics:create' | 'diagnostics:edit' | 'diagnostics:validate'
   | 'diseases:list' | 'diseases:create' | 'diseases:edit' | 'diseases:delete'
   | 'treatments:list' | 'treatments:create' | 'treatments:edit' | 'treatments:delete'
@@ -25,6 +26,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'facilities:list', 'facilities:create', 'facilities:edit', 'facilities:delete',
     'patients:list', 'patients:create', 'patients:edit', 'patients:delete', 'patients:archive',
     'consultations:list', 'consultations:create', 'consultations:edit', 'consultations:delete',
+    'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit', 'clinical-cases:delete',
     'diagnostics:list', 'diagnostics:create', 'diagnostics:edit', 'diagnostics:validate',
     'diseases:list', 'diseases:create', 'diseases:edit', 'diseases:delete',
     'treatments:list', 'treatments:create', 'treatments:edit', 'treatments:delete',
@@ -43,6 +45,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'facilities:list', 'facilities:create', 'facilities:edit', 'facilities:delete',
     'patients:list', 'patients:create', 'patients:edit', 'patients:delete', 'patients:archive',
     'consultations:list', 'consultations:create', 'consultations:edit', 'consultations:delete',
+    'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit', 'clinical-cases:delete',
     'diagnostics:list', 'diagnostics:create', 'diagnostics:edit', 'diagnostics:validate',
     'diseases:list', 'diseases:create', 'diseases:edit', 'diseases:delete',
     'treatments:list', 'treatments:create', 'treatments:edit', 'treatments:delete',
@@ -59,6 +62,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   receptionist: [
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create',
+    'clinical-cases:list',
     'queue:list', 'queue:manage',
     'documents:list', 'documents:create',
     'notifications:list',
@@ -67,6 +71,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   doctor: [
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create', 'consultations:edit',
+    'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit',
     'diagnostics:list', 'diagnostics:create', 'diagnostics:edit',
     'treatments:list', 'treatments:create', 'treatments:edit',
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
@@ -81,6 +86,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   specialist: [
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create', 'consultations:edit',
+    'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit',
     'diagnostics:list', 'diagnostics:create', 'diagnostics:edit', 'diagnostics:validate',
     'treatments:list', 'treatments:create', 'treatments:edit',
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
@@ -115,6 +121,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   nurse: [
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create',
+    'clinical-cases:list',
     'treatments:list',
     'lab:list',
     'queue:list', 'queue:manage',
@@ -136,6 +143,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'archives:list', 'archives:manage',
     'documents:list', 'documents:export',
     'consultations:list',
+    'clinical-cases:list',
     'diagnostics:list',
     'treatments:list',
     'lab:list',

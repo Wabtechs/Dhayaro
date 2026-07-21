@@ -305,7 +305,7 @@ export default function ClinicalCasesPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          {can('consultations:create') && (
+          {can('clinical-cases:create') && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -770,7 +770,7 @@ export default function ClinicalCasesPage() {
                     <CardTitle className="line-clamp-1 text-base">
                       {c.title}
                     </CardTitle>
-                    {can('consultations:edit') && (
+                    {can('clinical-cases:edit') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -784,7 +784,7 @@ export default function ClinicalCasesPage() {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     )}
-                    {can('consultations:delete') && (
+                    {can('clinical-cases:delete') && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -904,7 +904,7 @@ export default function ClinicalCasesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {can('consultations:edit') && (
+                      {can('clinical-cases:edit') && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -916,7 +916,7 @@ export default function ClinicalCasesPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       )}
-                      {can('consultations:delete') && (
+                      {can('clinical-cases:delete') && (
                       <Button
                         variant="ghost"
                         size="sm"
