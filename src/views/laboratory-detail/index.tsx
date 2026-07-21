@@ -131,7 +131,7 @@ export default function LaboratoryDetailPage() {
     [categoriesData]
   )
   const labTechnicians = useMemo(
-    () => userItems.filter((u) => u.role === 'laboratory'),
+    () => userItems.filter((u) => u.role === 'LABORATORY'),
     [userItems]
   )
 

@@ -157,7 +157,7 @@ export default function LaboratoryView() {
   const usersList = (usersData?.items ?? []) as UserItem[]
   const consultationsList = (consultationsData?.items ?? []) as Array<{ id: string; consultationNumber?: string; [key: string]: unknown }>
   const categoriesList = (categoriesData?.items ?? []) as CategoryItem[]
-  const labTechnicians = usersList.filter((u) => u.role === 'laboratory')
+  const labTechnicians = usersList.filter((u) => u.role === 'LABORATORY')
   const doctorsList = usersList.filter((u) => u.role === 'DOCTOR')
 
   const filtered = useMemo(() => {

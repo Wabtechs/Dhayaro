@@ -309,7 +309,7 @@ export default function ConsultationsView() {
                       <SelectValue placeholder="Sélectionner un médecin" />
                     </SelectTrigger>
                     <SelectContent>
-                      {usersList.filter((u) => u.role === 'doctor').map((u) => (
+                      {usersList.filter((u) => u.role === 'DOCTOR').map((u) => (
                         <SelectItem key={u.id} value={u.id}>
                           {u.name}
                         </SelectItem>
