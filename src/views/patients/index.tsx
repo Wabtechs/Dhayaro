@@ -80,6 +80,7 @@ const bloodTypeColors: Record<string, string> = {
 const genderLabels: Record<string, string> = {
   M: 'Masculin',
   F: 'Féminin',
+  OTHER: 'Autre',
 }
 
 export default function PatientsPage() {
