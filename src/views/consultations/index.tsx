@@ -184,6 +184,7 @@ export default function ConsultationsView() {
     notes: '',
     provisionalDiagnosis: '',
     status: 'WAITING' as string,
+    doctorId: '',
   })
 
   const handleCreate = async () => {
@@ -220,6 +221,7 @@ export default function ConsultationsView() {
       notes: (c.notes as string) || '',
       provisionalDiagnosis: (c.provisionalDiagnosis as string) || '',
       status: (c.status as string) || 'WAITING',
+      doctorId: (c.doctorId as string) || '',
     })
     setEditDialogOpen(true)
   }
@@ -232,6 +234,7 @@ export default function ConsultationsView() {
         id: editingConsultation.id as string,
         data: {
           motif: editForm.motif,
+          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
           notes: editForm.notes || null,
           provisionalDiagnosis: editForm.provisionalDiagnosis || null,
           status: editForm.status,
@@ -576,6 +579,21 @@ export default function ConsultationsView() {
                 value={editForm.provisionalDiagnosis}
                 onChange={(e) => setEditForm({ ...editForm, provisionalDiagnosis: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Médecin</label>
+              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un médecin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {usersList.filter((u) => u.role === 'DOCTOR').map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut</label>

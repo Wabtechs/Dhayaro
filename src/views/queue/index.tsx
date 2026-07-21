@@ -184,6 +184,7 @@ export default function QueueView() {
   const [newQueue, setNewQueue] = useState({
     patientId: '',
     consultationId: '',
+    assignedDoctorId: '',
     priority: 'NORMAL' as string,
     estimatedWaitMinutes: '',
     notes: '',
@@ -207,13 +208,14 @@ export default function QueueView() {
       await createQueue.mutateAsync({
         patientId: patientUuid,
         consultationId: sanitizeUuid(newQueue.consultationId) || undefined,
+        assignedDoctorId: sanitizeUuid(newQueue.assignedDoctorId) || undefined,
         priority: newQueue.priority || 'NORMAL',
         estimatedWaitMinutes: newQueue.estimatedWaitMinutes ? Number(newQueue.estimatedWaitMinutes) : undefined,
         notes: newQueue.notes || null,
       })
       toast({ title: 'Ticket créé', description: 'Le ticket a été ajouté à la file d\'attente.' })
       setDialogOpen(false)
-      setNewQueue({ patientId: '', consultationId: '', priority: 'NORMAL', estimatedWaitMinutes: '', notes: '' })
+      setNewQueue({ patientId: '', consultationId: '', assignedDoctorId: '', priority: 'NORMAL', estimatedWaitMinutes: '', notes: '' })
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le ticket.', variant: 'destructive' })
@@ -327,6 +329,21 @@ export default function QueueView() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Médecin assigné</label>
+                <Select value={newQueue.assignedDoctorId} onValueChange={(v) => setNewQueue({ ...newQueue, assignedDoctorId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un médecin (optionnel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctorUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">

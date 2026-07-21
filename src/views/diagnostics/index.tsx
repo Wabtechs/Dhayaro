@@ -199,6 +199,7 @@ export default function DiagnosticsView() {
     diseaseId: '',
     description: '',
     notes: '',
+    doctorId: '',
   })
 
   const resetNewDiagnostic = () => {
@@ -244,6 +245,7 @@ export default function DiagnosticsView() {
       diseaseId: (d.diseaseId as string) || '',
       description: (d.description as string) || '',
       notes: (d.notes as string) || '',
+      doctorId: (d.doctorId as string) || '',
     })
     setEditDialogOpen(true)
   }
@@ -259,6 +261,7 @@ export default function DiagnosticsView() {
           diseaseId: sanitizeUuid(editForm.diseaseId) || undefined,
           description: editForm.description,
           notes: editForm.notes || null,
+          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
         },
       })
       toast({ title: 'Diagnostic mis à jour', description: 'Les modifications ont été enregistrées.' })
@@ -622,6 +625,21 @@ export default function DiagnosticsView() {
                   {diseasesList.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
                       {d.code ? `${d.code} — ${d.name}` : d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Médecin</label>
+              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un médecin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctorsList.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
