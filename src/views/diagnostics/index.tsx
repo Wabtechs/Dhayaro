@@ -215,12 +215,16 @@ export default function DiagnosticsView() {
   }
 
   const handleCreate = async () => {
+    if (!newDiagnostic.patientId || !newDiagnostic.doctorId || !newDiagnostic.consultationId || !newDiagnostic.description) {
+      toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       await createDiagnostic.mutateAsync({
         patientId: sanitizeUuid(newDiagnostic.patientId) as string,
         doctorId: sanitizeUuid(newDiagnostic.doctorId) as string,
-        consultationId: sanitizeUuid(newDiagnostic.consultationId) || undefined,
+        consultationId: sanitizeUuid(newDiagnostic.consultationId) as string,
         diseaseId: sanitizeUuid(newDiagnostic.diseaseId) || undefined,
         diagnosticType: newDiagnostic.diagnosticType,
         description: newDiagnostic.description,
@@ -347,7 +351,7 @@ export default function DiagnosticsView() {
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Consultation</label>
+                  <label className="text-sm font-medium">Consultation *</label>
                   <Select value={newDiagnostic.consultationId} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, consultationId: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une consultation" />
@@ -413,7 +417,7 @@ export default function DiagnosticsView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating || !newDiagnostic.patientId || !newDiagnostic.doctorId || !newDiagnostic.description} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newDiagnostic.patientId || !newDiagnostic.doctorId || !newDiagnostic.consultationId || !newDiagnostic.description} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer le diagnostic'}
               </Button>
             </DialogFooter>

@@ -188,6 +188,10 @@ export default function ConsultationsView() {
   })
 
   const handleCreate = async () => {
+    if (!newConsultation.patientId || !newConsultation.doctorId || !newConsultation.motif) {
+      toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -401,7 +405,7 @@ export default function ConsultationsView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newConsultation.patientId || !newConsultation.doctorId || !newConsultation.motif} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer la consultation'}
               </Button>
             </DialogFooter>
