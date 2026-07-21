@@ -140,6 +140,7 @@ export default function DocumentsView() {
   const patientsList = (patientsData?.items ?? []) as PatientItem[]
   const usersList = (usersData?.items ?? []) as UserItem[]
   const consultationsList = (consultationsData?.items ?? []) as ConsultationItem[]
+  const doctorsList = usersList.filter((u) => u.role === 'DOCTOR')
 
   const resolveDoctorName = (doctorId?: string) => {
     if (!doctorId) return '—'
@@ -183,6 +184,7 @@ export default function DocumentsView() {
 
   const [newDocument, setNewDocument] = useState({
     patientId: '',
+    doctorId: '',
     consultationId: 'none',
     documentType: '',
     title: '',
@@ -192,6 +194,7 @@ export default function DocumentsView() {
 
   const [editForm, setEditForm] = useState({
     patientId: '',
+    doctorId: '',
     consultationId: 'none',
     documentType: '',
     title: '',
@@ -225,6 +228,7 @@ export default function DocumentsView() {
       }
       await createDocument.mutateAsync({
         patientId: sanitizeUuid(newDocument.patientId) || undefined,
+        doctorId: sanitizeUuid(newDocument.doctorId) || undefined,
         consultationId:
           newDocument.consultationId && newDocument.consultationId !== 'none'
             ? sanitizeUuid(newDocument.consultationId) || undefined
@@ -237,7 +241,7 @@ export default function DocumentsView() {
       await queryClient.invalidateQueries({ queryKey: ['documents'] })
       toast({ title: 'Document créé', description: `"${newDocument.title}" a été enregistré.` })
       setDialogOpen(false)
-      setNewDocument({ patientId: '', consultationId: 'none', documentType: '', title: '', content: '', filePath: '' })
+      setNewDocument({ patientId: '', doctorId: '', consultationId: 'none', documentType: '', title: '', content: '', filePath: '' })
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le document.', variant: 'destructive' })
@@ -250,6 +254,7 @@ export default function DocumentsView() {
     setEditingDocument(d)
     setEditForm({
       patientId: (d.patientId as string) || '',
+      doctorId: (d.doctorId as string) || '',
       consultationId: (d.consultationId as string) || 'none',
       documentType: (d.documentType as string) || '',
       title: (d.title as string) || '',
@@ -276,6 +281,7 @@ export default function DocumentsView() {
         id: editingDocument.id as string,
         data: {
           patientId: sanitizeUuid(editForm.patientId) || undefined,
+          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
           consultationId:
             editForm.consultationId && editForm.consultationId !== 'none'
               ? sanitizeUuid(editForm.consultationId) || undefined
@@ -352,21 +358,36 @@ export default function DocumentsView() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Consultation (optionnel)</label>
-                  <Select value={newDocument.consultationId} onValueChange={(v) => setNewDocument({ ...newDocument, consultationId: v })}>
+                  <label className="text-sm font-medium">Médecin *</label>
+                  <Select value={newDocument.doctorId} onValueChange={(v) => setNewDocument({ ...newDocument, doctorId: v })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une consultation" />
+                      <SelectValue placeholder="Sélectionner un médecin" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Aucune</SelectItem>
-                      {consultationsList.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {String(c.consultationNumber || c.id)}
+                      {doctorsList.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Consultation (optionnel)</label>
+                <Select value={newDocument.consultationId} onValueChange={(v) => setNewDocument({ ...newDocument, consultationId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une consultation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune</SelectItem>
+                    {consultationsList.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {String(c.consultationNumber || c.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -514,7 +535,7 @@ export default function DocumentsView() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            {can('documents:create') && (
+                            {can('documents:edit') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -523,7 +544,7 @@ export default function DocumentsView() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                             )}
-                            {can('documents:create') && (
+                            {can('documents:delete') && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -605,6 +626,22 @@ export default function DocumentsView() {
                   </SelectContent>
                 </Select>
               </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Médecin *</label>
+                  <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un médecin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctorsList.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Consultation (optionnel)</label>
                 <Select value={editForm.consultationId} onValueChange={(v) => setEditForm({ ...editForm, consultationId: v })}>
@@ -621,10 +658,9 @@ export default function DocumentsView() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Type *</label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Type *</label>
                 <Select value={editForm.documentType} onValueChange={(v) => setEditForm({ ...editForm, documentType: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un type" />

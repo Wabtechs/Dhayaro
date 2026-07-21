@@ -25,6 +25,9 @@ export async function GET(
         email: users.email,
         role: users.role,
         phone: users.phone,
+        specialty: users.specialty,
+        licenseNumber: users.licenseNumber,
+        availability: users.availability,
         avatar: users.avatar,
         isActive: users.isActive,
         lastLogin: users.lastLogin,
@@ -71,6 +74,9 @@ export async function PUT(
     if (body.phone !== undefined) set.phone = body.phone
     if (body.role !== undefined) set.role = body.role
     if (body.facilityId !== undefined) set.facility_id = sanitizeUuid(body.facilityId)
+    if (body.specialty !== undefined) set.specialty = body.specialty
+    if (body.licenseNumber !== undefined) set.license_number = body.licenseNumber
+    if (body.availability !== undefined) set.availability = body.availability
     if (body.isActive !== undefined) set.is_active = body.isActive
     if (body.password) set.password_hash = await hashPassword(body.password)
 

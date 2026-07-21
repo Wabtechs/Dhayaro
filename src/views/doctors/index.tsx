@@ -111,6 +111,9 @@ export default function DoctorsView() {
   const [role, setRole] = useState<string>('doctor')
   const [facility, setFacility] = useState('')
   const [phone, setPhone] = useState('')
+  const [specialty, setSpecialty] = useState('')
+  const [licenseNumber, setLicenseNumber] = useState('')
+  const [availability, setAvailability] = useState('AVAILABLE')
 
   const [editFirstName, setEditFirstName] = useState('')
   const [editLastName, setEditLastName] = useState('')
@@ -118,6 +121,9 @@ export default function DoctorsView() {
   const [editRole, setEditRole] = useState<string>('doctor')
   const [editFacility, setEditFacility] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [editSpecialty, setEditSpecialty] = useState('')
+  const [editLicenseNumber, setEditLicenseNumber] = useState('')
+  const [editAvailability, setEditAvailability] = useState('AVAILABLE')
 
   const params = `role=${roleFilter}&page=${page}&size=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`
   const { data, isLoading } = useDoctorsData(params)
@@ -139,6 +145,9 @@ export default function DoctorsView() {
     setRole('doctor')
     setFacility('')
     setPhone('')
+    setSpecialty('')
+    setLicenseNumber('')
+    setAvailability('AVAILABLE')
   }
 
   const openEdit = (doc: DoctorItem) => {
@@ -149,6 +158,9 @@ export default function DoctorsView() {
     setEditRole((doc.role || 'DOCTOR').toLowerCase())
     setEditFacility(doc.facilityId || '')
     setEditPhone(doc.phone || '')
+    setEditSpecialty((doc.specialty as string) || '')
+    setEditLicenseNumber((doc.licenseNumber as string) || '')
+    setEditAvailability((doc.availability as string) || 'AVAILABLE')
     setEditOpen(true)
   }
 
@@ -164,6 +176,9 @@ export default function DoctorsView() {
         role: ROLE_MAP[role] || 'DOCTOR',
         facilityId: sanitizeUuid(facility),
         phone: phone || undefined,
+        specialty: specialty || null,
+        licenseNumber: licenseNumber || null,
+        availability: availability || null,
       })
       toast({ title: 'Médecin créé', description: `${firstName} ${lastName} a été ajouté.` })
       setCreateOpen(false)
@@ -190,6 +205,9 @@ export default function DoctorsView() {
           role: ROLE_MAP[editRole] || 'DOCTOR',
           facilityId: sanitizeUuid(editFacility),
           phone: editPhone || undefined,
+          specialty: editSpecialty || null,
+          licenseNumber: editLicenseNumber || null,
+          availability: editAvailability || null,
         },
       })
       toast({ title: 'Médecin mis à jour', description: `${editFirstName} ${editLastName} a été modifié.` })
@@ -306,13 +324,34 @@ export default function DoctorsView() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Téléphone</Label>
-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
+                    <div className="space-y-2">
+                      <Label>Téléphone</Label>
+                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Établissement</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Spécialité</Label>
+                      <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>N° d'ordre</Label>
+                      <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Disponibilité</Label>
+                    <Select value={availability} onValueChange={setAvailability}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                        <SelectItem value="BUSY">Occupé</SelectItem>
+                        <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Établissement</Label>
                   <Select value={facility} onValueChange={setFacility}>
                     <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
                     <SelectContent>
@@ -504,12 +543,33 @@ export default function DoctorsView() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Téléphone</Label>
-                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+243 ..." />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Établissement</Label>
+                      <Label>Téléphone</Label>
+                      <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+243 ..." />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Spécialité</Label>
+                      <Input value={editSpecialty} onChange={(e) => setEditSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>N° d'ordre</Label>
+                      <Input value={editLicenseNumber} onChange={(e) => setEditLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Disponibilité</Label>
+                    <Select value={editAvailability} onValueChange={setEditAvailability}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                        <SelectItem value="BUSY">Occupé</SelectItem>
+                        <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Établissement</Label>
               <Select value={editFacility} onValueChange={setEditFacility}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
                 <SelectContent>

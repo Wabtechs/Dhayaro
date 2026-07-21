@@ -9,6 +9,9 @@ export interface User {
   facility?: string
   department?: string
   phone?: string
+  specialty?: string
+  licenseNumber?: string
+  availability?: string
   createdAt: string
   lastLogin?: string
   isActive: boolean

@@ -11,7 +11,7 @@ export type Permission =
   | 'prescriptions:list' | 'prescriptions:create' | 'prescriptions:edit'
   | 'lab:list' | 'lab:create' | 'lab:edit' | 'lab:validate' | 'lab:delete'
   | 'queue:list' | 'queue:manage' | 'queue:assign'
-  | 'documents:list' | 'documents:create' | 'documents:print' | 'documents:export'
+  | 'documents:list' | 'documents:create' | 'documents:edit' | 'documents:delete' | 'documents:print' | 'documents:export'
   | 'archives:list' | 'archives:manage'
   | 'notifications:list' | 'notifications:manage'
   | 'reports:read' | 'reports:export'
@@ -31,7 +31,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
     'lab:list', 'lab:create', 'lab:edit', 'lab:validate', 'lab:delete',
     'queue:list', 'queue:manage', 'queue:assign',
-    'documents:list', 'documents:create', 'documents:print', 'documents:export',
+    'documents:list', 'documents:create', 'documents:edit', 'documents:delete', 'documents:print', 'documents:export',
     'archives:list', 'archives:manage',
     'notifications:list', 'notifications:manage',
     'reports:read', 'reports:export',
@@ -49,7 +49,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
     'lab:list', 'lab:create', 'lab:edit', 'lab:validate', 'lab:delete',
     'queue:list', 'queue:manage', 'queue:assign',
-    'documents:list', 'documents:create', 'documents:print', 'documents:export',
+    'documents:list', 'documents:create', 'documents:edit', 'documents:delete', 'documents:print', 'documents:export',
     'archives:list', 'archives:manage',
     'notifications:list', 'notifications:manage',
     'reports:read', 'reports:export',
@@ -72,7 +72,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
     'lab:list', 'lab:create',
     'queue:list', 'queue:assign',
-    'documents:list', 'documents:create', 'documents:print',
+    'documents:list', 'documents:create', 'documents:edit', 'documents:print',
     'archives:list',
     'notifications:list',
     'analytics:read',
@@ -86,7 +86,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'prescriptions:list', 'prescriptions:create', 'prescriptions:edit',
     'lab:list', 'lab:create', 'lab:validate',
     'queue:list', 'queue:assign',
-    'documents:list', 'documents:create', 'documents:print',
+    'documents:list', 'documents:create', 'documents:edit', 'documents:print',
     'archives:list',
     'notifications:list',
     'analytics:read',
@@ -97,7 +97,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'consultations:list',
     'lab:list', 'lab:create', 'lab:edit', 'lab:validate',
     'queue:list',
-    'documents:list', 'documents:create',
+    'documents:list', 'documents:create', 'documents:edit',
     'notifications:list',
     'settings:read',
   ],

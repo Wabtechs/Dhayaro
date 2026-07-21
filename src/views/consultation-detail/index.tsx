@@ -82,7 +82,7 @@ export default function ConsultationDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({
-    motif: '', notes: '', provisionalDiagnosis: '', status: 'WAITING',
+    motif: '', notes: '', provisionalDiagnosis: '', status: 'WAITING', doctorId: '',
   })
 
   if (isLoading) {
@@ -166,6 +166,7 @@ export default function ConsultationDetailPage() {
       notes,
       provisionalDiagnosis,
       status,
+      doctorId: doctorId || '',
     })
     setEditDialogOpen(true)
   }
@@ -181,6 +182,7 @@ export default function ConsultationDetailPage() {
           notes: editForm.notes || null,
           provisionalDiagnosis: editForm.provisionalDiagnosis || null,
           status: editForm.status,
+          doctorId: editForm.doctorId || undefined,
         },
       })
       toast({ title: 'Consultation mise à jour', description: 'Les modifications ont été enregistrées.' })
@@ -441,9 +443,16 @@ export default function ConsultationDetailPage() {
 
               <div className="flex items-start gap-3">
                 <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <div>
+                <div className="flex-1">
                   <p className="text-xs text-muted-foreground">Médecin</p>
-                  <p className="text-sm font-medium text-foreground">{doctorName}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{doctorName}</p>
+                    {can('consultations:edit') && (
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={openEditDialog}>
+                        Changer
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -533,6 +542,21 @@ export default function ConsultationDetailPage() {
             <div className="space-y-2">
               <Label htmlFor="provisionalDiagnosis">Diagnostic provisoire</Label>
               <Textarea id="provisionalDiagnosis" rows={2} value={editForm.provisionalDiagnosis} onChange={(e) => setEditForm({ ...editForm, provisionalDiagnosis: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doctorId">Médecin</Label>
+              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
+                <SelectTrigger id="doctorId">
+                  <SelectValue placeholder="Sélectionner un médecin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userItems.filter((u) => (u.role as string) === 'DOCTOR' || (u.role as string) === 'SPECIALIST').map((doc) => (
+                    <SelectItem key={doc.id as string} value={doc.id as string}>
+                      {`${(doc.firstName as string) || ''} ${(doc.lastName as string) || ''}`.trim() || (doc.email as string)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>

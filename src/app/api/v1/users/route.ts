@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
         email: users.email,
         role: users.role,
         phone: users.phone,
+        specialty: users.specialty,
+        licenseNumber: users.licenseNumber,
+        availability: users.availability,
         avatar: users.avatar,
         isActive: users.isActive,
         lastLogin: users.lastLogin,
@@ -101,9 +104,9 @@ export async function POST(request: NextRequest) {
     const facilityId = sanitizeUuid(body.facilityId)
 
     const rows = await sql`
-      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash, phone, is_active, created_at, updated_at)
-      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${facilityId}, ${passwordHash}, ${body.phone || null}, true, ${now}, ${now})
-      RETURNING id, facility_id, firstname, lastname, email, role, phone, is_active, created_at, updated_at
+      INSERT INTO users (id, email, firstname, lastname, role, facility_id, password_hash, phone, specialty, license_number, availability, is_active, created_at, updated_at)
+      VALUES (${id}, ${body.email}, ${body.firstname}, ${body.lastname}, ${body.role}, ${facilityId}, ${passwordHash}, ${body.phone || null}, ${body.specialty || null}, ${body.licenseNumber || null}, ${body.availability || null}, true, ${now}, ${now})
+      RETURNING id, facility_id, firstname, lastname, email, role, phone, specialty, license_number, availability, is_active, created_at, updated_at
     `
 
     return NextResponse.json(rows[0], { status: 201 })

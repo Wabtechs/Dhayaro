@@ -246,7 +246,7 @@ export function useFacilitiesData() {
 export function useUsersData() {
   return useQuery({
     queryKey: ['users'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users'),
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users?size=100'),
   });
 }
 

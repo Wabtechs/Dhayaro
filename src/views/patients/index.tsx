@@ -77,6 +77,11 @@ const bloodTypeColors: Record<string, string> = {
   'O-': 'bg-green-50 text-green-700 border-green-200',
 }
 
+const genderLabels: Record<string, string> = {
+  M: 'Masculin',
+  F: 'Féminin',
+}
+
 export default function PatientsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -130,7 +135,7 @@ export default function PatientsPage() {
         (p.medicalRecordNumber || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.phone || '').includes(search)
       const matchesGender =
-        genderFilter === 'all' || p.gender === genderFilter
+        genderFilter === 'all' || (p.gender as string).toUpperCase() === genderFilter.toUpperCase()
       const matchesFacility =
         facilityFilter === 'all' || p.facilityId === facilityFilter
       return matchesSearch && matchesGender && matchesFacility
@@ -179,7 +184,7 @@ export default function PatientsPage() {
       firstName: (patient.firstName as string) || '',
       lastName: (patient.lastName as string) || '',
       dateOfBirth: (patient.dateOfBirth as string) || '',
-      gender: ((patient.gender as string) || '') as 'M' | 'F' | '',
+      gender: (((patient.gender as string) || '').toUpperCase()) as 'M' | 'F' | '',
       phone: (patient.phone as string) || '',
       address: (patient.address as string) || '',
       bloodType: (patient.bloodType as string) || '',
@@ -301,8 +306,9 @@ export default function PatientsPage() {
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="M">Masculin</SelectItem>
-                      <SelectItem value="F">Féminin</SelectItem>
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Féminin</SelectItem>
+                    <SelectItem value="OTHER">Autre</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -428,8 +434,9 @@ export default function PatientsPage() {
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="M">Masculin</SelectItem>
-                      <SelectItem value="F">Féminin</SelectItem>
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Féminin</SelectItem>
+                    <SelectItem value="OTHER">Autre</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -599,7 +606,7 @@ export default function PatientsPage() {
                   <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {patient.gender || '—'}
+                      {genderLabels[(patient.gender as string)?.toUpperCase()] || patient.gender || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -710,7 +717,7 @@ export default function PatientsPage() {
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <UserRound className="h-3 w-3" />
-                      {patient.gender === 'M' ? 'Masculin' : patient.gender === 'F' ? 'Féminin' : patient.gender || '—'}
+                      {genderLabels[(patient.gender as string)?.toUpperCase()] || patient.gender || '—'}
                     </span>
                     <Badge
                       variant="outline"

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Pencil,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,7 +44,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { useUsersData, useFacilitiesData, useUpdateUser } from '@/hooks/use-data'
+import { useUsersData, useFacilitiesData, useUpdateUser, useDeleteUser } from '@/hooks/use-data'
 import { api } from '@/services/api'
 import { formatDate, getInitials } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
@@ -131,6 +132,7 @@ export default function Users() {
   const { data: usersData, isLoading } = useUsersData()
   const { data: facilitiesData } = useFacilitiesData()
   const updateUser = useUpdateUser()
+  const deleteUser = useDeleteUser()
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const [newName, setNewName] = useState('')
@@ -145,6 +147,9 @@ export default function Users() {
   const [editEmail, setEditEmail] = useState('')
   const [editRole, setEditRole] = useState<User['role']>('doctor')
   const [editFacility, setEditFacility] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletingUser, setDeletingUser] = useState<User | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const facilityMap = useMemo(
     () => Object.fromEntries(facilitiesList.map((f) => [f.id, f.name])),
@@ -246,6 +251,7 @@ export default function Users() {
         password: newPassword,
         role: ROLE_MAP[newRole] || 'DOCTOR',
         facilityId: sanitizeUuid(newFacility),
+        phone: newPhone || undefined,
       }, token)
       await queryClient.invalidateQueries({ queryKey: ['users'] })
       toast({ title: 'Utilisateur créé', description: `${newName} a été ajouté.` })
@@ -269,7 +275,7 @@ export default function Users() {
     setEditName(user.name)
     setEditEmail(user.email)
     setEditRole(user.role)
-    setEditFacility(user.facility || '')
+    setEditFacility((user as unknown as Record<string, unknown>).facilityId as string || '')
     setEditDialogOpen(true)
   }
 
@@ -298,6 +304,21 @@ export default function Users() {
       toast({ title: 'Erreur', description: "Impossible de modifier l'utilisateur.", variant: 'destructive' })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingUser) return
+    setDeleting(true)
+    try {
+      await deleteUser.mutateAsync(deletingUser.id)
+      toast({ title: 'Utilisateur supprimé', description: `${deletingUser.name} a été désactivé.` })
+      setDeleteOpen(false)
+      setDeletingUser(null)
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'utilisateur.', variant: 'destructive' })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -551,7 +572,25 @@ export default function Users() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
+
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent className="sm:max-w-[440px]">
+            <DialogHeader>
+              <DialogTitle>Supprimer l'utilisateur</DialogTitle>
+              <DialogDescription>
+                Êtes-vous sûr de vouloir désactiver <span className="font-medium">{deletingUser?.name}</span> ?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Annuler</Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Supprimer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
@@ -723,9 +762,7 @@ export default function Users() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            toast({ title: "Bientôt disponible", description: "La suppression sera disponible prochainement" })
-                          }}
+                          onClick={() => { setDeletingUser(user as User); setDeleteOpen(true) }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

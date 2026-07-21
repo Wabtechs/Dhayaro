@@ -76,8 +76,8 @@ export async function PUT(
 
     const allowedFields = pickAllowedKeys(body, QUEUE_KEYS)
 
-    if (body.assignedDoctorId) {
-      allowedFields.assignedDoctorId = body.assignedDoctorId
+    if ('assignedDoctorId' in body) {
+      allowedFields.assignedDoctorId = body.assignedDoctorId || null
     }
 
     if (body.status === 'WITH_DOCTOR' && !allowedFields.startedAt) {

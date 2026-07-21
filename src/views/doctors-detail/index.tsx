@@ -15,6 +15,7 @@ import {
   Calendar,
   Clock,
   UserCog,
+  Award,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -65,6 +66,9 @@ interface DoctorDetail {
   email: string
   role: string
   phone?: string
+  specialty?: string
+  licenseNumber?: string
+  availability?: string
   facilityId?: string
   facilityName?: string
   facilityType?: string
@@ -93,6 +97,9 @@ export default function DoctorDetailPage() {
   const [role, setRole] = useState('doctor')
   const [facility, setFacility] = useState('')
   const [phone, setPhone] = useState('')
+  const [specialty, setSpecialty] = useState('')
+  const [licenseNumber, setLicenseNumber] = useState('')
+  const [availability, setAvailability] = useState('')
 
   const d = data as DoctorDetail | null | undefined
   const facilitiesList = (facilitiesData?.items ?? []) as { id: string; name: string }[]
@@ -131,6 +138,9 @@ export default function DoctorDetailPage() {
     setRole((d.role || 'DOCTOR').toLowerCase())
     setFacility(d.facilityId || '')
     setPhone(d.phone || '')
+    setSpecialty((d.specialty as string) || '')
+    setLicenseNumber((d.licenseNumber as string) || '')
+    setAvailability((d.availability as string) || 'AVAILABLE')
     setEditOpen(true)
   }
 
@@ -147,6 +157,9 @@ export default function DoctorDetailPage() {
           role: ROLE_MAP[role] || 'DOCTOR',
           facilityId: facility || null,
           phone: phone || undefined,
+          specialty: specialty || null,
+          licenseNumber: licenseNumber || null,
+          availability: availability || null,
         },
       })
       toast({ title: 'Médecin mis à jour', description: 'Les modifications ont été enregistrées.' })
@@ -225,6 +238,40 @@ export default function DoctorDetailPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Téléphone</p>
                   <p className="text-sm font-medium text-foreground">{d.phone || '—'}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex items-start gap-3">
+                <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Spécialité</p>
+                  <p className="text-sm font-medium text-foreground">{d.specialty || '—'}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex items-start gap-3">
+                <Award className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">N° d'ordre</p>
+                  <p className="text-sm font-medium text-foreground">{d.licenseNumber || '—'}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Disponibilité</p>
+                  <Badge className={
+                    d.availability === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' :
+                    d.availability === 'BUSY' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' :
+                    d.availability === 'OFF_DUTY' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                    'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300'
+                  }>
+                    {d.availability === 'AVAILABLE' ? 'Disponible' :
+                     d.availability === 'BUSY' ? 'Occupé' :
+                     d.availability === 'OFF_DUTY' ? 'Hors service' :
+                     d.availability || '—'}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -326,13 +373,34 @@ export default function DoctorDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Téléphone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
-              </div>
+            <div className="space-y-2">
+              <Label>Téléphone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Spécialité</Label>
+              <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
             </div>
             <div className="space-y-2">
-              <Label>Établissement</Label>
+              <Label>N° d'ordre</Label>
+              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Disponibilité</Label>
+            <Select value={availability} onValueChange={setAvailability}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                <SelectItem value="BUSY">Occupé</SelectItem>
+                <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Établissement</Label>
               <Select value={facility} onValueChange={setFacility}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
                 <SelectContent>
