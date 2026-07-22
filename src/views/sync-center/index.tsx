@@ -18,6 +18,9 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useSyncData } from '@/hooks/use-data'
+import { api } from '@/services/api'
+import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/utils'
 import type { SyncLog } from '@/types'
 
@@ -132,15 +135,27 @@ function SyncTable({ logs, onRetry }: { logs: SyncLog[]; onRetry: (id: string) =
 }
 
 export default function SyncCenterPage() {
-  const [isOnline] = useState(true)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
   const [autoSync, setAutoSync] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const { data: syncData } = useSyncData()
   const [logs, setLogs] = useState<SyncLog[]>((syncData?.items as SyncLog[]) || [])
 
   useEffect(() => {
+    const goOnline = () => setIsOnline(true)
+    const goOffline = () => setIsOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
+  useEffect(() => {
     if (syncData?.items) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs server state to local mutable state for optimistic UI
       setLogs(syncData.items as SyncLog[])
     }
   }, [syncData])
@@ -155,20 +170,40 @@ export default function SyncCenterPage() {
   const total = logs.length
   const syncProgress = total > 0 ? Math.round((syncedCount / total) * 100) : 0
 
-  const handleSyncNow = () => {
+  const doSync = async (ids: string[]) => {
     setIsSyncing(true)
-    setTimeout(() => setIsSyncing(false), 2000)
+    try {
+      const token = localStorage.getItem('dhayaro_token') || ''
+      await api.post('/sync/push', { ids }, token)
+      await queryClient.invalidateQueries({ queryKey: ['sync'] })
+      toast({ title: 'Synchronisation réussie', description: 'Les données ont été synchronisées.' })
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de synchroniser les données.', variant: 'destructive' })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleSyncNow = () => {
+    const pendingIds = logs.filter((l) => l.status === 'pending').map((l) => l.id)
+    if (pendingIds.length === 0) {
+      toast({ title: 'Rien à synchroniser', description: 'Toutes les données sont à jour.' })
+      return
+    }
+    doSync(pendingIds)
   }
 
   const handleSyncAll = () => {
-    setIsSyncing(true)
-    setTimeout(() => setIsSyncing(false), 3000)
+    const pendingIds = logs.filter((l) => l.status === 'pending').map((l) => l.id)
+    if (pendingIds.length === 0) {
+      toast({ title: 'Rien à synchroniser', description: 'Toutes les données sont à jour.' })
+      return
+    }
+    doSync(pendingIds)
   }
 
-  const handleRetry = (id: string) => {
-    setLogs((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: 'synced' as const, errorMessage: undefined } : l))
-    )
+  const handleRetry = async (id: string) => {
+    doSync([id])
   }
 
   return (

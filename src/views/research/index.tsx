@@ -153,7 +153,6 @@ export default function ResearchPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{casesCount}</div>
-            <p className="text-xs text-muted-foreground">+12% par rapport au mois dernier</p>
           </CardContent>
         </Card>
 
@@ -163,8 +162,7 @@ export default function ResearchPage() {
             <Search className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">2 en cours, 1 en révision</p>
+            <div className="text-2xl font-bold">—</div>
           </CardContent>
         </Card>
 
@@ -174,8 +172,7 @@ export default function ResearchPage() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
-            <p className="text-xs text-muted-foreground">3 acceptées, 4 en soumission</p>
+            <div className="text-2xl font-bold">—</div>
           </CardContent>
         </Card>
       </div>
@@ -245,88 +242,18 @@ export default function ResearchPage() {
           <CardDescription>Vos dernières analyses et recherches</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-3 font-medium">Titre</th>
-                  <th className="pb-3 font-medium">Établissement</th>
-                  <th className="pb-3 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Statut</th>
-                  <th className="pb-3 font-medium">Type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentAnalyses.map((analysis) => (
-                  <tr key={analysis.id} className="border-b last:border-0">
-                    <td className="py-3 font-medium">{analysis.title}</td>
-                    <td className="py-3 text-muted-foreground">{analysis.facility}</td>
-                    <td className="py-3 text-muted-foreground">{analysis.date}</td>
-                    <td className="py-3">
-                      <Badge variant="secondary" className={statusColor[analysis.status] ?? ""}>
-                        {analysis.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3">
-                      <Badge variant="secondary" className={typeColor[analysis.type] ?? ""}>
-                        {analysis.type}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
+            <FileText className="h-8 w-8" />
+            <p>Aucune analyse récente</p>
           </div>
         </CardContent>
       </Card>
 
       <div>
         <h2 className="mb-4 text-lg font-semibold">Études Actives</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {activeStudies.map((study) => (
-            <Card key={study.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{study.title}</CardTitle>
-                <CardDescription className="line-clamp-2">{study.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Progression</span>
-                    <span className="font-medium">{study.progress}%</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${study.progress}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">Équipe</p>
-                  <div className="flex flex-wrap gap-2">
-                    {study.team.map((member) => (
-                      <Badge key={member} variant="secondary" className="text-xs">
-                        <Users className="mr-1 h-3 w-3" />
-                        {member}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() => toast({ title: "Bientôt disponible", description: "La vue détaillée des études sera disponible prochainement" })}
-                >
-                  Voir détails
-                  <ArrowUpRight className="ml-1 h-3 w-3" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-12 text-center text-muted-foreground">
+          <Search className="h-8 w-8" />
+          <p>Aucune étude active</p>
         </div>
       </div>
     </div>
