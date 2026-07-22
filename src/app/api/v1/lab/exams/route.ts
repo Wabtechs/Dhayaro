@@ -118,13 +118,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const doctorId = sanitizeUuid(body.doctorId) || auth.user.sub
+
     const now = new Date()
 
     const [row] = await getDb().insert(labExams).values({
       id: crypto.randomUUID(),
       facilityId: auth.user.facilityId || null,
       patientId,
-      doctorId: auth.user.sub,
+      doctorId,
       labTechnicianId: sanitizeUuid(body.labTechnicianId) || null,
       categoryId: sanitizeUuid(body.categoryId) || null,
       consultationId: sanitizeUuid(body.consultationId) || null,
