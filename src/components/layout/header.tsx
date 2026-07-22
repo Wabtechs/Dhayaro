@@ -22,10 +22,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth-store'
-import { useNotificationsData } from '@/hooks/use-data'
+import { useNotificationsData, useFacilitiesData } from '@/hooks/use-data'
 import type { Notification } from '@/types'
 import {
   Menu,
@@ -37,7 +37,15 @@ import {
   LogOut,
   User,
   Settings,
+  Building2,
 } from 'lucide-react'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 function mapNotification(raw: Record<string, unknown>): Notification {
   return {
@@ -64,6 +72,20 @@ export function Header() {
   const { user, logout } = useAuthStore()
 
   const { data: notifData } = useNotificationsData()
+
+  const isSuperAdmin = user?.role === 'super_admin'
+  const { data: facilitiesData } = useFacilitiesData()
+  const facilityList = (facilitiesData?.items as Array<{ id: string; name: string }>) || []
+
+  const [activeFacility, setActiveFacility] = useState<string | null>(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null)
+  )
+
+  const handleFacilityChange = (value: string) => {
+    setActiveFacility(value)
+    localStorage.setItem('dhayaro_active_facility', value)
+    window.location.reload()
+  }
 
   useEffect(() => {
     if (notifData?.items) {
@@ -169,6 +191,23 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         </TooltipProvider>
+
+        {isSuperAdmin && (
+          <div className="hidden sm:block">
+            <Select value={activeFacility || ''} onValueChange={handleFacilityChange}>
+              <SelectTrigger className="h-8 w-48 border-border text-xs">
+                <Building2 className="mr-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Tous les établissements" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tous les établissements</SelectItem>
+                {facilityList.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <TooltipProvider>
           <Tooltip>

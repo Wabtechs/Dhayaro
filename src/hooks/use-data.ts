@@ -135,7 +135,10 @@ function transformKeys(obj: unknown): unknown {
 
 async function fetchData<T>(endpoint: string): Promise<T> {
   const token = getToken();
-  const raw = await api.get<unknown>(endpoint, token);
+  const activeFacility = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null;
+  const sep = endpoint.includes('?') ? '&' : '?';
+  const url = activeFacility ? `${endpoint}${sep}facilityId=${activeFacility}` : endpoint;
+  const raw = await api.get<unknown>(url, token);
   return transformKeys(raw) as T;
 }
 
@@ -145,11 +148,13 @@ export function useDashboardData() {
     queryFn: async () => {
       try {
         const token = getToken();
+        const activeFacility = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null;
+        const ff = activeFacility ? `?facilityId=${activeFacility}` : '';
         const [rawStats, rawCases, rawPatients, rawFacilities] = await Promise.all([
-          api.get<unknown>('/clinical-cases/stats', token).catch(() => null),
-          api.get<unknown>('/clinical-cases?page=1&size=100', token).catch(() => null),
-          api.get<unknown>('/patients', token).catch(() => null),
-          api.get<unknown>('/facilities', token).catch(() => null),
+          api.get<unknown>(`/clinical-cases/stats${ff}`, token).catch(() => null),
+          api.get<unknown>(`/clinical-cases?page=1&size=100${ff}`, token).catch(() => null),
+          api.get<unknown>(`/patients${ff}`, token).catch(() => null),
+          api.get<unknown>(`/facilities${ff}`, token).catch(() => null),
         ]);
         const apiStats = transformKeys(rawStats) as { total?: number; pending?: number; inProgress?: number; success?: number; failure?: number } | null;
         const cases = transformKeys(rawCases) as { items: ClinicalCase[]; total: number } | null;
