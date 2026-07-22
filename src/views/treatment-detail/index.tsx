@@ -168,7 +168,7 @@ export default function TreatmentDetailPage() {
   const doctorName = doctor ? `${(doctor.firstName as string) || ''} ${(doctor.lastName as string) || ''}`.trim() : 'Inconnu'
   const consultationLabel = String(consultation?.consultationNumber || consultationId || 'Inconnu')
   const diagnosisLabel = String(diagnosis?.description || diagnosisId || 'Aucun')
-  const doctorsList = userItems.filter((u) => u.role === 'DOCTOR' || u.role === 'SPECIALIST')
+  const doctorsList = userItems.filter((u) => u.role === 'doctor' || u.role === 'specialist')
 
   const statusActions: { label: string; status: string; icon: React.ReactNode }[] = []
   if (status === 'PRESCRIBED') {

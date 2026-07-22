@@ -430,7 +430,7 @@ export default function ClinicalCasesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {usersList
-                        .filter((u) => u.role === 'DOCTOR')
+                        .filter((u) => u.role === 'doctor')
                         .map((u) => (
                           <SelectItem key={u.id} value={u.id}>
                             {u.name}
@@ -600,7 +600,7 @@ export default function ClinicalCasesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {usersList
-                        .filter((u) => u.role === 'DOCTOR')
+                        .filter((u) => u.role === 'doctor')
                         .map((u) => (
                           <SelectItem key={u.id} value={u.id}>
                             {u.name}

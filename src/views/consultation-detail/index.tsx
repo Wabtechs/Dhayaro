@@ -550,7 +550,7 @@ export default function ConsultationDetailPage() {
                   <SelectValue placeholder="Sélectionner un médecin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {userItems.filter((u) => (u.role as string) === 'DOCTOR' || (u.role as string) === 'SPECIALIST').map((doc) => (
+                  {userItems.filter((u) => (u.role as string) === 'doctor' || (u.role as string) === 'specialist').map((doc) => (
                     <SelectItem key={doc.id as string} value={doc.id as string}>
                       {`${(doc.firstName as string) || ''} ${(doc.lastName as string) || ''}`.trim() || (doc.email as string)}
                     </SelectItem>

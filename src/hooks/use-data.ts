@@ -65,6 +65,9 @@ function transformKeys(obj: unknown): unknown {
         val = val.toLowerCase();
         key = 'gender';
       }
+      if (key === 'role' && typeof val === 'string') {
+        val = val.toLowerCase();
+      }
       if (key === 'bloodGroup') { key = 'bloodType'; }
       if (key === 'patientUuid') { key = 'medicalRecordNumber'; }
       if (key === 'resource') { key = 'entity'; }

@@ -158,7 +158,7 @@ export default function TreatmentsView() {
   const consultationsList = (consultationsData?.items ?? []) as Array<{ id: string; consultationNumber?: string; [key: string]: unknown }>
   const diagnosticsList = (diagnosticsData?.items ?? []) as Array<{ id: string; description?: string; [key: string]: unknown }>
 
-  const doctorsList = usersList.filter((u) => u.role === 'DOCTOR' || u.role === 'SPECIALIST')
+  const doctorsList = usersList.filter((u) => u.role === 'doctor' || u.role === 'specialist')
 
   const filtered = useMemo(() => {
     const allItems = (data?.items ?? []) as TreatmentItem[]

@@ -57,14 +57,14 @@ import { useDoctorDetail, useUpdateDoctor, useDeleteDoctor, useFacilitiesData } 
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-
 const roleLabels: Record<string, string> = {
-  DOCTOR: 'Médecin Généraliste',
-  SPECIALIST: 'Médecin Spécialiste',
+  doctor: 'Médecin Généraliste',
+  specialist: 'Médecin Spécialiste',
 }
+
 const roleBadgeColors: Record<string, string> = {
-  DOCTOR: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  SPECIALIST: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+  doctor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  specialist: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
 }
 const ROLE_MAP: Record<string, string> = { doctor: 'DOCTOR', specialist: 'SPECIALIST' }
 

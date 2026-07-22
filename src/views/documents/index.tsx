@@ -150,7 +150,7 @@ export default function DocumentsView() {
   const patientsList = (patientsData?.items ?? []) as PatientItem[]
   const usersList = (usersData?.items ?? []) as UserItem[]
   const consultationsList = (consultationsData?.items ?? []) as ConsultationItem[]
-  const doctorsList = usersList.filter((u) => u.role === 'DOCTOR')
+  const doctorsList = usersList.filter((u) => u.role === 'doctor')
 
   const resolveDoctorName = (doctorId?: string) => {
     if (!doctorId) return '—'
