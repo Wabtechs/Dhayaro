@@ -38,7 +38,7 @@ src/
     schema.ts       → Drizzle table definitions (17 tables)
     seed.ts         → seed data (auto-seeded if DB empty)
     validation.ts   → sanitizeUuid, sanitizeSearch
-    api-errors.ts   → apiError, logError, parsePagination
+    api-errors.ts   → apiError, logError, parsePagination, addFacilityFilter, enforceFacilityAccess
     rate-limit.ts   → in-memory IP rate limiter
     utils.ts        → cn(), formatDate(), formatDateTime()
   types/
@@ -54,14 +54,17 @@ src/
 - **API base:** `/api/v1` (prod + dev via Next.js API routes)
 - **Dark mode:** Zustand `useAppStore` + `.dark` class on `<html>`
 - **Auth flow:** login → JWT access_token + refresh_token → auto-refresh on 401
-- **Role casing:** API stores UPPERCASE (`ADMIN`, `DOCTOR`), frontend uses lowercase (`admin`, `doctor`) — ROLE_MAP in use-data.ts
+- **Role casing:** API stores UPPERCASE, frontend uses lowercase — `transformKeys` lowercases `role` automatically
 - **DB schema:** UUID PKs, `created_at`/`updated_at`, `is_active` soft-delete
 - **Seed data:** auto-seeded on first request if DB empty (in `seed.ts`)
 - **Naming:** files `kebab-case`, components `PascalCase`, API routes `snake_case`
 - **Zustand selectors:** always use `useStore((s) => s.field)`, never destructure entire store
+- **Multi-facility:** SUPER_ADMIN sees all; others auto-filtered by `auth.user.facilityId` via `addFacilityFilter()`. SUPER_ADMIN can switch facility via header `<Select>` saved to localStorage `dhayaro_active_facility`.
+- **API facility filter:** `addFacilityFilter(query, auth)` returns query with facility condition. Active facility from `?facilityId=` query param overrides for SUPER_ADMIN. `enforceFacilityAccess(body, auth)` sets `facilityId` on mutation bodies.
+- **Frontend facility filter:** `fetchData()` in `use-data.ts` appends `?facilityId=` from `localStorage.dhayaro_active_facility`. `useDashboardData()` passes `?facilityId=` to all API calls.
+- **Preferences:** JSONB column on users, accessible via `GET/PUT /api/v1/settings`.
 
 ## Key Patterns
-- **Mock fallback removed** — all hooks fetch from real API only
 - **No dynamic imports** — Next.js App Router handles per-route code splitting
 - **Notifications:** fetched from API with 30s staleTime + 60s refetch interval
 - **Rate limiting:** in-memory per-IP (works in dev, not in Vercel serverless)

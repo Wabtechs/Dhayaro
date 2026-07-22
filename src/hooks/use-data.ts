@@ -133,9 +133,9 @@ function transformKeys(obj: unknown): unknown {
   return obj;
 }
 
-async function fetchData<T>(endpoint: string): Promise<T> {
+async function fetchData<T>(endpoint: string, facilityOverride?: string): Promise<T> {
   const token = getToken();
-  const activeFacility = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null;
+  const activeFacility = facilityOverride ?? (typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null);
   const sep = endpoint.includes('?') ? '&' : '?';
   const url = activeFacility ? `${endpoint}${sep}facilityId=${activeFacility}` : endpoint;
   const raw = await api.get<unknown>(url, token);
@@ -230,17 +230,17 @@ export function useDashboardData() {
   });
 }
 
-export function useClinicalCasesData() {
+export function useClinicalCasesData(facilityId?: string) {
   return useQuery({
-    queryKey: ['clinical-cases'],
-    queryFn: () => fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases'),
+    queryKey: ['clinical-cases', facilityId],
+    queryFn: () => fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases?size=100', facilityId),
   });
 }
 
-export function usePatientsData() {
+export function usePatientsData(facilityId?: string) {
   return useQuery({
-    queryKey: ['patients'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/patients'),
+    queryKey: ['patients', facilityId],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/patients', facilityId),
   });
 }
 
@@ -251,10 +251,10 @@ export function useFacilitiesData() {
   });
 }
 
-export function useUsersData() {
+export function useUsersData(facilityId?: string) {
   return useQuery({
-    queryKey: ['users'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users?size=100'),
+    queryKey: ['users', facilityId],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users?size=100', facilityId),
   });
 }
 

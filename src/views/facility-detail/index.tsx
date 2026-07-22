@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -76,9 +76,9 @@ export default function FacilityDetailPage() {
   const router = useRouter()
 
   const { data: facility, isLoading, error } = useFacilityDetail(id)
-  const { data: allCasesData } = useClinicalCasesData()
-  const { data: allPatientsData } = usePatientsData()
-  const { data: allUsersData } = useUsersData()
+  const { data: allCasesData } = useClinicalCasesData(id)
+  const { data: allPatientsData } = usePatientsData(id)
+  const { data: allUsersData } = useUsersData(id)
 
   const [selectedTab, setSelectedTab] = useState('overview')
   const updateFacility = useUpdateFacility()
@@ -131,23 +131,9 @@ export default function FacilityDetailPage() {
     }
   }
 
-  const facilityCases = useMemo(() => {
-    if (!f) return []
-    const cases = ((allCasesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
-    return cases.filter((c) => c.facilityId === f.id)
-  }, [f, allCasesData])
-
-  const facilityPatients = useMemo(() => {
-    if (!f) return []
-    const patients = ((allPatientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
-    return patients.filter((p) => p.facilityId === f.id)
-  }, [f, allPatientsData])
-
-  const facilityUsers = useMemo(() => {
-    if (!f) return []
-    const users = ((allUsersData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
-    return users.filter((u) => u.facilityId === f.id)
-  }, [f, allUsersData])
+  const facilityCases = ((allCasesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
+  const facilityPatients = ((allPatientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
+  const facilityUsers = ((allUsersData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
 
   if (isLoading) {
     return (

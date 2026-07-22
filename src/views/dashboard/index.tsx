@@ -80,6 +80,8 @@ export default function DashboardPage() {
   const { data, isLoading } = useDashboardData()
   const user = useAuthStore(s => s.user)
 
+  const activeFacilityId = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null
+
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -94,6 +96,7 @@ export default function DashboardPage() {
   const { stats, recentCases, chartData, patientMap, facilityMap } = data
   const userName = user?.name?.split(' ').slice(-1)[0] || user?.name || 'Docteur'
   const roleLabel = user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role : ''
+  const activeFacilityName = activeFacilityId ? facilityMap[activeFacilityId] : null
 
   const statsCards = [
     {
@@ -143,6 +146,8 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">
             {roleLabel && <span className="font-medium">{roleLabel}</span>}
             {roleLabel && ' — '}
+            {activeFacilityName ? `Établissement: ${activeFacilityName}` : 'Tous les établissements'}
+            {' — '}
             Voici un aperçu de votre tableau de bord Dhayaro.
           </p>
         </div>
