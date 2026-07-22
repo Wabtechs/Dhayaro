@@ -63,6 +63,7 @@ export const users = pgTable('users', {
   avatar: text('avatar'),
   isActive: boolean('is_active').notNull().default(true),
   lastLogin: timestamp('last_login', { withTimezone: true }),
+  preferences: jsonb('preferences').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

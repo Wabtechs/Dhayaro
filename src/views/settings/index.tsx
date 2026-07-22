@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import { useToast } from "@/hooks/use-toast";
-
-const SETTINGS_KEY = "dhayaro_settings";
+import { useSettings, useUpdateSettings } from "@/hooks/use-data";
 
 interface SavedSettings {
   platformName: string;
@@ -45,38 +44,35 @@ interface SavedSettings {
   compactMode: boolean;
 }
 
-function loadSettings(): SavedSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore parse errors, use defaults */ }
-  return {
-    platformName: "Dhayaro",
-    language: "fr",
-    timezone: "Africa/Algiers",
-    facility: "hospital-central",
-    dateFormat: "DD/MM/YYYY",
-    emailNotifications: true,
-    newCaseAlerts: true,
-    caseUpdateAlerts: true,
-    reminderAlerts: false,
-    reportAlerts: true,
-    emailFrequency: "daily",
-    twoFactorAuth: false,
-    sessionTimeout: "30",
-    sidebarHover: true,
-    compactMode: false,
-  };
-}
+const DEFAULT_SETTINGS: SavedSettings = {
+  platformName: "Dhayaro",
+  language: "fr",
+  timezone: "Africa/Algiers",
+  facility: "hospital-central",
+  dateFormat: "DD/MM/YYYY",
+  emailNotifications: true,
+  newCaseAlerts: true,
+  caseUpdateAlerts: true,
+  reminderAlerts: false,
+  reportAlerts: true,
+  emailFrequency: "daily",
+  twoFactorAuth: false,
+  sessionTimeout: "30",
+  sidebarHover: true,
+  compactMode: false,
+};
 
 export default function SettingsPage() {
   const darkMode = useAppStore((s) => s.darkMode);
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const { toast } = useToast();
+  const { data: settingsData } = useSettings();
+  const updateSettings = useUpdateSettings();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [loaded] = useState(() => loadSettings());
+  const loaded = (settingsData?.preferences as unknown as SavedSettings) || DEFAULT_SETTINGS;
+
   const [platformName, setPlatformName] = useState(loaded.platformName);
   const [language, setLanguage] = useState(loaded.language);
   const [timezone, setTimezone] = useState(loaded.timezone);
@@ -96,20 +92,44 @@ export default function SettingsPage() {
   const [sidebarHover, setSidebarHover] = useState(loaded.sidebarHover);
   const [compactMode, setCompactMode] = useState(loaded.compactMode);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (settingsData?.preferences) {
+      const p = settingsData.preferences as unknown as SavedSettings;
+      setPlatformName(p.platformName);
+      setLanguage(p.language);
+      setTimezone(p.timezone);
+      setFacility(p.facility);
+      setDateFormat(p.dateFormat);
+      setEmailNotifications(p.emailNotifications);
+      setNewCaseAlerts(p.newCaseAlerts);
+      setCaseUpdateAlerts(p.caseUpdateAlerts);
+      setReminderAlerts(p.reminderAlerts);
+      setReportAlerts(p.reportAlerts);
+      setEmailFrequency(p.emailFrequency);
+      setTwoFactorAuth(p.twoFactorAuth);
+      setSessionTimeout(p.sessionTimeout);
+      setSidebarHover(p.sidebarHover);
+      setCompactMode(p.compactMode);
+    }
+  }, [settingsData]);
+
+  const handleSave = async () => {
     setSaving(true);
-    const settings: SavedSettings = {
+    const preferences: SavedSettings = {
       platformName, language, timezone, facility, dateFormat,
       emailNotifications, newCaseAlerts, caseUpdateAlerts, reminderAlerts, reportAlerts, emailFrequency,
       twoFactorAuth, sessionTimeout, sidebarHover, compactMode,
     };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      await updateSettings.mutateAsync(preferences as unknown as Record<string, unknown>);
       setSaved(true);
       toast({ title: "Paramètres sauvegardés", description: "Vos préférences ont été enregistrées." });
       setTimeout(() => setSaved(false), 2500);
-    }, 500);
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder les paramètres.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

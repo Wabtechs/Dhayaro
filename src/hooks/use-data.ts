@@ -885,3 +885,29 @@ export function useArchivesData(params?: string) {
     queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/archives${params ? '?' + params : ''}`),
   });
 }
+
+export function useSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: () => fetchData<{ preferences: Record<string, unknown> }>('/settings'),
+  });
+}
+
+export function useUpdateSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (preferences: Record<string, unknown>) => {
+      const token = localStorage.getItem('dhayaro_token') || ''
+      const res = await fetch('/api/v1/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ preferences }),
+      })
+      if (!res.ok) throw new Error('Failed to update settings')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+    },
+  });
+}
