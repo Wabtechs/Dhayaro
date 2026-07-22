@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -174,6 +184,7 @@ export default function TreatmentsView() {
   const [saving, setSaving] = useState(false)
   const [editingTreatment, setEditingTreatment] = useState<TreatmentItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newTreatment, setNewTreatment] = useState({
     patientId: '',
     doctorId: '',
@@ -300,14 +311,18 @@ export default function TreatmentsView() {
     }
   }
 
-  const handleDelete = async (t: TreatmentItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir annuler ce traitement "${t.description}" ?`)) return
-    try {
-      await deleteTreatment.mutateAsync(t.id as string)
-      toast({ title: 'Traitement annulé', description: `"${t.description}" a été annulé.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible d\'annuler le traitement.', variant: 'destructive' })
-    }
+  const handleDelete = (t: TreatmentItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir annuler ce traitement "${t.description}" ?`,
+      callback: async () => {
+        try {
+          await deleteTreatment.mutateAsync(t.id as string)
+          toast({ title: 'Traitement annulé', description: `"${t.description}" a été annulé.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible d\'annuler le traitement.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -760,6 +775,21 @@ export default function TreatmentsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'annulation</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Annuler
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

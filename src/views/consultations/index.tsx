@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -167,6 +177,7 @@ export default function ConsultationsView() {
   const [saving, setSaving] = useState(false)
   const [editingConsultation, setEditingConsultation] = useState<ConsultationItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newConsultation, setNewConsultation] = useState({
     patientId: '',
     doctorId: '',
@@ -254,14 +265,18 @@ export default function ConsultationsView() {
     }
   }
 
-  const handleDelete = async (c: ConsultationItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir annuler cette consultation "${c.consultationNumber}" ?`)) return
-    try {
-      await deleteConsultation.mutateAsync(c.id as string)
-      toast({ title: 'Consultation annulée', description: `"${c.consultationNumber}" a été annulée.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible d\'annuler la consultation.', variant: 'destructive' })
-    }
+  const handleDelete = (c: ConsultationItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir annuler cette consultation "${c.consultationNumber}" ?`,
+      callback: async () => {
+        try {
+          await deleteConsultation.mutateAsync(c.id as string)
+          toast({ title: 'Consultation annulée', description: `"${c.consultationNumber}" a été annulée.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible d\'annuler la consultation.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -632,6 +647,21 @@ export default function ConsultationsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'annulation</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Annuler
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

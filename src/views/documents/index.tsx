@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -182,6 +192,7 @@ export default function DocumentsView() {
   const [saving, setSaving] = useState(false)
   const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newDocument, setNewDocument] = useState({
     patientId: '',
     doctorId: '',
@@ -302,14 +313,18 @@ export default function DocumentsView() {
     }
   }
 
-  const handleDelete = async (d: DocumentItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le document "${d.title}" ?`)) return
-    try {
-      await deleteDocument.mutateAsync(d.id as string)
-      toast({ title: 'Document supprimé', description: `"${d.title}" a été supprimé.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer le document.', variant: 'destructive' })
-    }
+  const handleDelete = (d: DocumentItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir supprimer le document "${d.title}" ?`,
+      callback: async () => {
+        try {
+          await deleteDocument.mutateAsync(d.id as string)
+          toast({ title: 'Document supprimé', description: `"${d.title}" a été supprimé.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible de supprimer le document.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -712,6 +727,21 @@ export default function DocumentsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

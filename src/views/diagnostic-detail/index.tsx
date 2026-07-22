@@ -17,6 +17,16 @@ import {
   Trash2,
   FileText,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -77,6 +87,7 @@ export default function DiagnosticDetailPage() {
 
   const d = diagnostic as Record<string, unknown> | null | undefined
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -194,15 +205,19 @@ export default function DiagnosticDetailPage() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce diagnostic ?')) return
-    try {
-      await deleteDiagnostic.mutateAsync(diagnosticId)
-      toast({ title: 'Diagnostic supprimé', description: 'Le diagnostic a été supprimé.' })
-      router.push('/diagnostics')
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer le diagnostic.', variant: 'destructive' })
-    }
+  const handleDelete = () => {
+    setConfirmDelete({
+      description: 'Êtes-vous sûr de vouloir supprimer ce diagnostic ?',
+      callback: async () => {
+        try {
+          await deleteDiagnostic.mutateAsync(diagnosticId)
+          toast({ title: 'Diagnostic supprimé', description: 'Le diagnostic a été supprimé.' })
+          router.push('/diagnostics')
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible de supprimer le diagnostic.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   const truncatedDescription = description.length > 60 ? `${description.slice(0, 60)}...` : description
@@ -449,6 +464,21 @@ export default function DiagnosticDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

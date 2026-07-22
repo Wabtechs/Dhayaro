@@ -16,6 +16,16 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -78,6 +88,7 @@ export default function Facilities() {
   const deleteFacility = useDeleteFacility()
   const facilities = (data?.items ?? []) as FacilityItem[]
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<Facility['type']>('hospital')
   const [newAddress, setNewAddress] = useState('')
@@ -181,15 +192,19 @@ export default function Facilities() {
     }
   }
 
-  const handleDeleteFacility = async (facility: Record<string, unknown>) => {
+  const handleDeleteFacility = (facility: Record<string, unknown>) => {
     const name = (facility.name as string) || 'cet établissement'
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ? Cette action est irréversible.`)) return
-    try {
-      await deleteFacility.mutateAsync(facility.id as string)
-      toast({ title: 'Établissement supprimé', description: `"${name}" a été supprimé.` })
-    } catch {
-      toast({ title: 'Erreur', description: "Impossible de supprimer l'établissement.", variant: 'destructive' })
-    }
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir supprimer "${name}" ? Cette action est irréversible.`,
+      callback: async () => {
+        try {
+          await deleteFacility.mutateAsync(facility.id as string)
+          toast({ title: 'Établissement supprimé', description: `"${name}" a été supprimé.` })
+        } catch {
+          toast({ title: 'Erreur', description: "Impossible de supprimer l'établissement.", variant: 'destructive' })
+        }
+      },
+    })
   }
 
   if (isLoading) {
@@ -579,6 +594,20 @@ export default function Facilities() {
           ))}
         </div>
       )}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

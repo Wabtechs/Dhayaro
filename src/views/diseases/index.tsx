@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -147,6 +157,7 @@ export default function DiseasesView() {
   const [saving, setSaving] = useState(false)
   const [editingDisease, setEditingDisease] = useState<DiseaseItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newDisease, setNewDisease] = useState<DiseaseForm>(emptyForm)
   const [editForm, setEditForm] = useState<DiseaseForm>(emptyForm)
 
@@ -220,14 +231,18 @@ export default function DiseasesView() {
     }
   }
 
-  const handleDelete = async (d: DiseaseItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer la maladie "${d.name}" (${d.code}) ?`)) return
-    try {
-      await deleteDisease.mutateAsync(d.id)
-      toast({ title: 'Maladie supprimée', description: `"${d.name}" a été supprimée.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer la maladie.', variant: 'destructive' })
-    }
+  const handleDelete = (d: DiseaseItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir supprimer la maladie "${d.name}" (${d.code}) ?`,
+      callback: async () => {
+        try {
+          await deleteDisease.mutateAsync(d.id)
+          toast({ title: 'Maladie supprimée', description: `"${d.name}" a été supprimée.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible de supprimer la maladie.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   const renderForm = (form: DiseaseForm, setForm: (f: DiseaseForm) => void) => (
@@ -541,6 +556,21 @@ export default function DiseasesView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

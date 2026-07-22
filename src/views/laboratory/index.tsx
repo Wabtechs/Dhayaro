@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -184,6 +194,7 @@ export default function LaboratoryView() {
   const [saving, setSaving] = useState(false)
   const [editingExam, setEditingExam] = useState<LabExamItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newExam, setNewExam] = useState({
     patientId: '',
     doctorId: '',
@@ -283,14 +294,18 @@ export default function LaboratoryView() {
     }
   }
 
-  const handleDelete = async (exam: LabExamItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer cet examen "${exam.examName}" ?`)) return
-    try {
-      await deleteLabExam.mutateAsync(exam.id as string)
-      toast({ title: 'Examen supprimé', description: `"${exam.examName}" a été supprimé.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'examen.', variant: 'destructive' })
-    }
+  const handleDelete = (exam: LabExamItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir supprimer cet examen "${exam.examName}" ?`,
+      callback: async () => {
+        try {
+          await deleteLabExam.mutateAsync(exam.id as string)
+          toast({ title: 'Examen supprimé', description: `"${exam.examName}" a été supprimé.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible de supprimer l\'examen.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -691,6 +706,21 @@ export default function LaboratoryView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

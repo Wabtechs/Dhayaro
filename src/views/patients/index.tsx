@@ -4,6 +4,16 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, UserRound, Calendar, Phone, MapPin, Pencil, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -99,6 +109,7 @@ export default function PatientsPage() {
   const [saving, setSaving] = useState(false)
   const updatePatient = useUpdatePatient()
   const deletePatient = useDeletePatient()
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -224,15 +235,19 @@ export default function PatientsPage() {
     }
   }
 
-  const handleDelete = async (patient: PatientItem) => {
+  const handleDelete = (patient: PatientItem) => {
     const name = `${patient.firstName || ''} ${patient.lastName || ''}`.trim()
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le patient "${name}" ? Cette action est irréversible.`)) return
-    try {
-      await deletePatient.mutateAsync(patient.id as string)
-      toast({ title: 'Patient supprimé', description: `${name} a été supprimé.` })
-    } catch {
-      toast({ title: 'Erreur', description: "Impossible de supprimer le patient.", variant: 'destructive' })
-    }
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir supprimer le patient "${name}" ? Cette action est irréversible.`,
+      callback: async () => {
+        try {
+          await deletePatient.mutateAsync(patient.id as string)
+          toast({ title: 'Patient supprimé', description: `${name} a été supprimé.` })
+        } catch {
+          toast({ title: 'Erreur', description: "Impossible de supprimer le patient.", variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -782,6 +797,21 @@ export default function PatientsPage() {
       )}
       </>
       )}
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

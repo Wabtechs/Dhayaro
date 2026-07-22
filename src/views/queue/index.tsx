@@ -14,6 +14,16 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -181,6 +191,7 @@ export default function QueueView() {
   const [saving, setSaving] = useState(false)
   const [editingQueue, setEditingQueue] = useState<QueueItem | null>(null)
 
+  const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newQueue, setNewQueue] = useState({
     patientId: '',
     consultationId: '',
@@ -258,15 +269,19 @@ export default function QueueView() {
     }
   }
 
-  const handleDelete = async (q: QueueItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir annuler ce ticket "${q.ticketNumber}" ?`)) return
-    try {
-      await deleteQueue.mutateAsync(q.id as string)
-      await queryClient.invalidateQueries({ queryKey: ['queue'] })
-      toast({ title: 'Ticket annulé', description: `"${q.ticketNumber}" a été annulé.` })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible d\'annuler le ticket.', variant: 'destructive' })
-    }
+  const handleDelete = (q: QueueItem) => {
+    setConfirmDelete({
+      description: `Êtes-vous sûr de vouloir annuler ce ticket "${q.ticketNumber}" ?`,
+      callback: async () => {
+        try {
+          await deleteQueue.mutateAsync(q.id as string)
+          await queryClient.invalidateQueries({ queryKey: ['queue'] })
+          toast({ title: 'Ticket annulé', description: `"${q.ticketNumber}" a été annulé.` })
+        } catch {
+          toast({ title: 'Erreur', description: 'Impossible d\'annuler le ticket.', variant: 'destructive' })
+        }
+      },
+    })
   }
 
   return (
@@ -620,6 +635,21 @@ export default function QueueView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'annulation</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDelete?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
+              Annuler
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
