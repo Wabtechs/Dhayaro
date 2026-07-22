@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { labCategories } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['ADMIN', 'LABORATORY'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()
