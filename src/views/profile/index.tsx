@@ -25,99 +25,21 @@ import {
   Edit,
   Save,
   Activity,
-  Clock,
   Palette,
-  FileText,
-  Search,
-  Settings,
-  Eye,
-  Plus,
-  Trash2,
 } from "lucide-react";
 
-const recentActivity = [
-  {
-    id: 1,
-    icon: FileText,
-    description: "A modifié le cas clinique #1234",
-    timestamp: "2026-07-12T10:30:00",
-  },
-  {
-    id: 2,
-    icon: Eye,
-    description: "A consulté le dossier du patient Karim M.",
-    timestamp: "2026-07-12T09:15:00",
-  },
-  {
-    id: 3,
-    icon: Plus,
-    description: "A créé un nouveau cas clinique #1235",
-    timestamp: "2026-07-11T16:45:00",
-  },
-  {
-    id: 4,
-    icon: Search,
-    description: "A effectué une recherche sur \"cardiovasculaire\"",
-    timestamp: "2026-07-11T14:20:00",
-  },
-  {
-    id: 5,
-    icon: FileText,
-    description: "A exporté le rapport mensuel de juin 2026",
-    timestamp: "2026-07-10T11:00:00",
-  },
-  {
-    id: 6,
-    icon: Settings,
-    description: "A modifié les paramètres de notification",
-    timestamp: "2026-07-10T08:30:00",
-  },
-  {
-    id: 7,
-    icon: Eye,
-    description: "A consulté les statistiques du facility",
-    timestamp: "2026-07-09T15:10:00",
-  },
-  {
-    id: 8,
-    icon: Trash2,
-    description: "A supprimé le cas clinique #1198 (doublon)",
-    timestamp: "2026-07-09T10:05:00",
-  },
-  {
-    id: 9,
-    icon: Plus,
-    description: "A ajouté un nouveau patient au système",
-    timestamp: "2026-07-08T14:00:00",
-  },
-  {
-    id: 10,
-    icon: FileText,
-    description: "A généré un rapport d'activité hebdomadaire",
-    timestamp: "2026-07-07T09:00:00",
-  },
-];
-
 const roleBadge: Record<string, string> = {
+  super_admin: "bg-red-100 text-red-800",
   admin: "bg-red-100 text-red-800",
-  researcher: "bg-indigo-100 text-indigo-800",
   doctor: "bg-blue-100 text-blue-800",
+  specialist: "bg-purple-100 text-purple-800",
   nurse: "bg-green-100 text-green-800",
+  laboratory: "bg-yellow-100 text-yellow-800",
+  pharmacist: "bg-cyan-100 text-cyan-800",
+  receptionist: "bg-orange-100 text-orange-800",
+  accountant: "bg-gray-100 text-gray-800",
+  archivist: "bg-indigo-100 text-indigo-800",
 };
-
-function timeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffH = Math.floor(diffMin / 60);
-  const diffD = Math.floor(diffH / 24);
-
-  if (diffMin < 1) return "à l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
-  if (diffH < 24) return `il y a ${diffH}h`;
-  return `il y a ${diffD}j`;
-}
 
 export default function ProfilePage() {
   const { toast } = useToast();
@@ -126,10 +48,10 @@ export default function ProfilePage() {
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const updateUser = useUpdateUser();
 
-  const [name, setName] = useState(user?.name ?? "Dr. Jean-Pierre Lukusa");
-  const [email, setEmail] = useState(user?.email ?? "admin@dhayaro.cd");
-  const [phone, setPhone] = useState("+243 81 200 001");
-  const [department, setDepartment] = useState("Cardiologie");
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [department, setDepartment] = useState(user?.department ?? "");
 
   const [prefLanguage, setPrefLanguage] = useState("fr");
   const [prefTimezone, setPrefTimezone] = useState("Africa/Kinshasa");
@@ -160,9 +82,9 @@ export default function ProfilePage() {
     }
   };
 
-  const displayName = user?.name ?? "Dr. Jean-Pierre Lukusa";
-  const displayEmail = user?.email ?? "admin@dhayaro.cd";
-  const displayRole = user?.role ?? "researcher";
+  const displayName = user?.name ?? "";
+  const displayEmail = user?.email ?? "";
+  const displayRole = user?.role ?? "";
   const initials = displayName
     .split(" ")
     .map((w) => w[0])
@@ -204,7 +126,7 @@ export default function ProfilePage() {
                 </Badge>
                 <Badge variant="outline">
                   <Building2 className="mr-1 h-3 w-3" />
-                  Hôpital Central
+                  {user?.facility || "Non assigné"}
                 </Badge>
               </div>
             </div>
@@ -294,17 +216,17 @@ export default function ProfilePage() {
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Établissement</p>
-                  <p className="font-medium">Hôpital Central</p>
+                  <p className="font-medium">{user?.facility || "Non assigné"}</p>
                 </div>
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Membre Depuis</p>
-                  <p className="font-medium">15 Janvier 2024</p>
+                  <p className="font-medium">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : "—"}</p>
                 </div>
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Dernière Connexion</p>
-                  <p className="font-medium">12 Juillet 2026, 10:30</p>
+                  <p className="font-medium">{user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "—"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -319,27 +241,9 @@ export default function ProfilePage() {
               <CardDescription>Vos dernières actions sur la plateforme</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-1">
-                {recentActivity.map((entry) => {
-                  const Icon = entry.icon;
-                  return (
-                    <div
-                      key={entry.id}
-                      className="flex items-center gap-4 rounded-md px-3 py-3 transition-colors hover:bg-accent/50"
-                    >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm">{entry.description}</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
-                        <Clock className="h-3 w-3" />
-                        {timeAgo(entry.timestamp)}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
+                <Activity className="h-8 w-8" />
+                <p>Aucune activité récente</p>
               </div>
             </CardContent>
           </Card>
