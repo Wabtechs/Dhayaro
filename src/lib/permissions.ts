@@ -150,6 +150,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'settings:read',
   ],
+  patient: [
+    'notifications:list',
+    'documents:list', 'documents:export',
+  ],
 }
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {
@@ -175,6 +179,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   nurse: 'Infirmier(ère)',
   accountant: 'Comptable',
   archivist: 'Archiviste',
+  patient: 'Patient',
 }
 
 export const ROLE_LABELS_UPPER: Record<string, string> = {
@@ -188,6 +193,7 @@ export const ROLE_LABELS_UPPER: Record<string, string> = {
   NURSE: 'Infirmier(ère)',
   ACCOUNTANT: 'Comptable',
   ARCHIVIST: 'Archiviste',
+  PATIENT: 'Patient',
 }
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
@@ -201,6 +207,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   accountant: 35,
   archivist: 30,
   receptionist: 25,
+  patient: 10,
 }
 
 export function hasMinimumRole(userRole: UserRole, requiredRole: UserRole): boolean {

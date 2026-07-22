@@ -7,7 +7,7 @@
 
 export const userRoleEnum = pgEnum('user_role', [
   'SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST',
-  'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'
+  'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST', 'PATIENT'
 ])
 export const facilityTypeEnum = pgEnum('facility_type', ['HOSPITAL', 'CLINIC', 'LABORATORY', 'PHARMACY'])
 export const genderEnum = pgEnum('gender', ['M', 'F', 'OTHER'])
@@ -77,6 +77,7 @@ export const users = pgTable('users', {
 export const patients = pgTable('patients', {
   id: uuid('id').primaryKey().defaultRandom(),
   facilityId: uuid('facility_id').references(() => facilities.id),
+  userId: uuid('user_id').references(() => users.id),
   patientUuid: text('patient_uuid').notNull().unique(),
   firstname: text('firstname').notNull(),
   lastname: text('lastname').notNull(),

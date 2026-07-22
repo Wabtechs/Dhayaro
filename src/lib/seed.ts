@@ -6,7 +6,8 @@ const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY
 const R = {
   SUPER_ADMIN: 'SUPER_ADMIN' as const, ADMIN: 'ADMIN' as const, RECEPTIONIST: 'RECEPTIONIST' as const,
   DOCTOR: 'DOCTOR' as const, SPECIALIST: 'SPECIALIST' as const, LABORATORY: 'LABORATORY' as const,
-  PHARMACIST: 'PHARMACIST' as const, NURSE: 'NURSE' as const, ACCOUNTANT: 'ACCOUNTANT' as const, ARCHIVIST: 'ARCHIVIST' as const,
+  PHARMACIST: 'PHARMACIST' as const, NURSE: 'NURSE' as const, ACCOUNTANT: 'ACCOUNTANT' as const,
+  ARCHIVIST: 'ARCHIVIST' as const, PATIENT: 'PATIENT' as const,
 }
 
 function daysAgo(n: number): Date {
@@ -52,6 +53,9 @@ const userData = [
   { firstname: 'André', lastname: 'Tshombe', email: 'dr.andre@dhayaro.cd', role: R.DOCTOR, facilityIndex: 5 },
   { firstname: 'Marie', lastname: 'Lubaya', email: 'dr.marie@dhayaro.cd', role: R.SPECIALIST, facilityIndex: 8 },
   { firstname: 'David', lastname: 'Kabila', email: 'dr.david@dhayaro.cd', role: R.DOCTOR, facilityIndex: 9 },
+  { firstname: 'Marcel', lastname: 'Tshibola', email: 'patient.marcel@dhayaro.cd', role: R.PATIENT, facilityIndex: 0 },
+  { firstname: 'Solange', lastname: 'Mbayo', email: 'patient.solange@dhayaro.cd', role: R.PATIENT, facilityIndex: 1 },
+  { firstname: 'Prosper', lastname: 'Kalume', email: 'patient.prosper@dhayaro.cd', role: R.PATIENT, facilityIndex: 2 },
 ]
 
 const firstNamesM = ['Pierre','Joseph','Jean','Patrice','Clovis','Augustin','Sylvain','André','David','Marcel','Robert','Georges','Emmanuel','Prosper','Blaise','Félicien','Laurent','Gilbert','Théodore','Hippolyte']
@@ -210,10 +214,12 @@ async function seed() {
   const doctorHash = await hashPassword('doctor123')
   const nurseHash = await hashPassword('nurse123')
   const otherHash = await hashPassword('dhayaro123')
+  const patientHash = await hashPassword('patient123')
   const hashByRole: Record<string, string> = {
     SUPER_ADMIN: passwordHash, ADMIN: passwordHash, RECEPTIONIST: otherHash,
     DOCTOR: doctorHash, SPECIALIST: doctorHash, LABORATORY: otherHash,
     PHARMACIST: otherHash, NURSE: nurseHash, ACCOUNTANT: otherHash, ARCHIVIST: otherHash,
+    PATIENT: patientHash,
   }
 
   const insertedUsers = await db.insert(users).values(
@@ -272,6 +278,46 @@ async function seed() {
     process.stdout.write(`  Patients: ${insertedPatients.length}/1000\r`)
   }
   console.log(`\nPatients: ${insertedPatients.length}`)
+
+  const patientAccountData = [
+    { email: 'patient.marcel@dhayaro.cd', fn: 'Marcel', ln: 'Tshibola', facilityIndex: 0 },
+    { email: 'patient.solange@dhayaro.cd', fn: 'Solange', ln: 'Mbayo', facilityIndex: 1 },
+    { email: 'patient.prosper@dhayaro.cd', fn: 'Prosper', ln: 'Kalume', facilityIndex: 2 },
+  ]
+  for (let pi = 0; pi < patientAccountData.length; pi++) {
+    const acc = patientAccountData[pi]
+    const userIdx = userData.findIndex(u => u.email === acc.email)
+    const facilityId = insertedFacilities[acc.facilityIndex].id
+    const patientId = uuid()
+    await db.insert(patients).values({
+      id: patientId,
+      facilityId,
+      userId: insertedUsers[userIdx].id,
+      patientUuid: uuid(),
+      firstname: acc.fn,
+      lastname: acc.ln,
+      sex: pi === 1 ? 'F' as const : 'M' as const,
+      dateOfBirth: `1990-01-${String(pi + 10).padStart(2, '0')}`,
+      age: 36,
+      bloodGroup: pick(bloodGroups),
+      phone: `+243 8${randInt(1,9)} ${String(randInt(100,999)).padStart(3,'0')} ${String(randInt(1000,9999)).padStart(4,'0')}`,
+      email: acc.email,
+      address: `${pick(streets)}, ${pick(communes)}`,
+      city: pick(['Kinshasa','Lubumbashi','Mbuji-Mayi']),
+      emergencyContactName: `Contact ${acc.fn}`,
+      emergencyContactPhone: `+243 8${randInt(1,9)} ${String(randInt(100,999)).padStart(3,'0')} ${String(randInt(1000,9999)).padStart(4,'0')}`,
+      emergencyContactRelation: pick(['Époux','Épouse','Père','Mère','Frère','Sœur','Enfant']),
+      insuranceName: 'CNSS',
+      insuranceNumber: `CNSS-${randInt(100000,999999)}`,
+      allergies: [],
+      antecedents: [],
+      medicalHistoryJson: {},
+      isActive: true, isArchived: false,
+      createdAt: daysAgo(365), updatedAt: new Date(),
+    })
+    insertedPatients.push({ id: patientId })
+  }
+  console.log(`  Patient accounts linked: ${patientAccountData.length}`)
 
   const doctorIndices = [3, 4, 5, 6, 7, 14, 15, 16, 17, 18]
 

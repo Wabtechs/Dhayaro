@@ -234,6 +234,7 @@ export default function Users() {
     nurse: 'NURSE',
     accountant: 'ACCOUNTANT',
     archivist: 'ARCHIVIST',
+    patient: 'PATIENT',
   }
 
   const handleCreate = async (e: React.FormEvent) => {

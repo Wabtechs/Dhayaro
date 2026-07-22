@@ -4,8 +4,10 @@ import { jwtVerify } from 'jose'
 const PUBLIC_PATHS = [
   '/',
   '/login',
+  '/patient/login',
   '/forgot-password',
   '/api/v1/auth/login',
+  '/api/v1/auth/patient-login',
   '/api/v1/auth/refresh',
 ]
 
@@ -19,6 +21,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/lab': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'],
   '/api/v1/archives': ['SUPER_ADMIN', 'ADMIN', 'ARCHIVIST'],
   '/api/v1/notifications': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
+  '/api/v1/patient': ['PATIENT'],
 }
 
 function isPublicPath(pathname: string): boolean {
