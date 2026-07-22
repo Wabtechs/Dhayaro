@@ -119,11 +119,22 @@ class ApiClient {
   }
 
   post<T>(endpoint: string, body: unknown, token: string) {
-    return this.requestWithAuth<T>(endpoint, { method: 'POST', body, token });
+    const enriched = this.enrichBody(body);
+    return this.requestWithAuth<T>(endpoint, { method: 'POST', body: enriched, token });
   }
 
   put<T>(endpoint: string, body: unknown, token: string) {
-    return this.requestWithAuth<T>(endpoint, { method: 'PUT', body, token });
+    const enriched = this.enrichBody(body);
+    return this.requestWithAuth<T>(endpoint, { method: 'PUT', body: enriched, token });
+  }
+
+  private enrichBody(body: unknown): unknown {
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) return body;
+    const activeFacility = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null;
+    if (!activeFacility) return body;
+    const b = body as Record<string, unknown>;
+    if (b.facilityId !== undefined) return body;
+    return { ...b, facilityId: activeFacility };
   }
 
   delete<T>(endpoint: string, token: string) {

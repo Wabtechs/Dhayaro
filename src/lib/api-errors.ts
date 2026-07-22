@@ -29,9 +29,11 @@ export function addFacilityFilter(
 export function enforceFacilityAccess(
   body: Record<string, unknown>,
   auth: { user: { role: string; facilityId?: string | null } },
+  searchParams?: URLSearchParams,
 ): { facilityId: string | null } {
   if (auth.user.role === 'SUPER_ADMIN') {
-    return { facilityId: (body.facilityId as string) || null }
+    const facilityId = (body.facilityId as string) || searchParams?.get('facilityId') || null
+    return { facilityId }
   }
   return { facilityId: auth.user.facilityId || null }
 }
