@@ -267,10 +267,10 @@ export function useSyncData() {
   });
 }
 
-export function useNotificationsData() {
+export function useNotificationsData(page = 1, size = 20) {
   return useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number; unreadCount: number }>('/notifications'),
+    queryKey: ['notifications', page, size],
+    queryFn: () => fetchData<{ items: unknown[]; total: number; unreadCount: number }>(`/notifications?page=${page}&size=${size}`),
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
   });

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Bell,
@@ -11,6 +11,8 @@ import {
   CheckCheck,
   Clock,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +20,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { useNotificationsData } from '@/hooks/use-data'
 import { useAppStore } from '@/store'
 import { formatDateTime } from '@/lib/utils'
 import type { Notification } from '@/types'
@@ -166,15 +169,17 @@ function NotificationItem({
 }
 
 export default function NotificationsPage() {
-  const notifications = useAppStore((s) => s.notifications)
+  const [page, setPage] = useState(1)
+  const size = 20
+  const { data: notifData } = useNotificationsData(page, size)
+  const notifications = (notifData?.items as Notification[]) || []
+  const total = notifData?.total || 0
+  const unreadCount = notifData?.unreadCount || 0
+  const totalPages = Math.max(1, Math.ceil(total / size))
+
   const markNotificationRead = useAppStore((s) => s.markNotificationRead)
   const markAllNotificationsRead = useAppStore(
     (s) => s.markAllNotificationsRead
-  )
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
   )
 
   const filterNotifications = (filter: string) => {
@@ -320,6 +325,34 @@ export default function NotificationsPage() {
           {renderList(filterNotifications('read'))}
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {page} sur {totalPages} ({total} notifications)
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
