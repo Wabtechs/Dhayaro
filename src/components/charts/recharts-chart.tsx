@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useAppStore } from '@/store'
 
 interface ChartDataPoint {
   [key: string]: string | number
@@ -88,20 +89,24 @@ export function RechartsChart({
   color = '#0e384c',
   colors = DEFAULT_COLORS,
 }: RechartsChartProps) {
+  const darkMode = useAppStore((s) => s.darkMode)
+  const gridColor = darkMode ? '#334155' : '#e2e8f0'
+  const tickColor = darkMode ? '#94a3b8' : '#64748b'
+
   const renderChart = () => {
     switch (type) {
       case 'bar':
         return (
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey={xAxisKey}
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <YAxis
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
@@ -112,15 +117,15 @@ export function RechartsChart({
       case 'line':
         return (
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey={xAxisKey}
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <YAxis
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
@@ -144,15 +149,15 @@ export function RechartsChart({
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey={xAxisKey}
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <YAxis
-              tick={{ fontSize: 12, fill: '#64748b' }}
-              axisLine={{ stroke: '#e2e8f0' }}
+              tick={{ fontSize: 12, fill: tickColor }}
+              axisLine={{ stroke: gridColor }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
