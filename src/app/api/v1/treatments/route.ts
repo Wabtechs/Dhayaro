@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { treatments, patients, users } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -33,10 +33,8 @@ export async function GET(request: NextRequest) {
     if (consultationId) conditions.push(eq(treatments.consultationId, consultationId))
     if (status) conditions.push(eq(treatments.status, status as 'PRESCRIBED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'SUSPENDED'))
 
-    const role = auth.user.role.toLowerCase()
-    if (['doctor', 'nurse', 'specialist'].includes(role) && auth.user.facilityId) {
-      conditions.push(eq(treatments.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(treatments.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
@@ -116,7 +114,7 @@ export async function POST(request: NextRequest) {
     if (patientCheck.length === 0) return apiError(400, 'Patient not found')
     if (doctorCheck.length === 0) return apiError(400, 'Doctor not found')
 
-    const facilityId = sanitizeUuid(body.facilityId) || auth.user.facilityId
+    const { facilityId } = enforceFacilityAccess(body, auth)
     const consultationId = sanitizeUuid(body.consultationId)
     const diagnosisId = sanitizeUuid(body.diagnosisId)
     const now = new Date()

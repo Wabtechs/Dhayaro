@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { auditLogs, users } from '@/lib/schema'
-import { eq, desc, count } from 'drizzle-orm'
+import { eq, desc, and, count } from 'drizzle-orm'
 import { requireRole } from '@/lib/auth'
+import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
@@ -14,9 +15,16 @@ export async function GET(request: NextRequest) {
     const size = Math.min(100, parseInt(searchParams.get('size') || '20', 10))
     const offset = (page - 1) * size
 
+    const conditions = []
+    const facilityFilter = addFacilityFilter(auditLogs.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
     const [countResult] = await getDb()
       .select({ value: count() })
       .from(auditLogs)
+      .where(whereClause)
 
     const items = await getDb()
       .select({
@@ -35,6 +43,7 @@ export async function GET(request: NextRequest) {
       })
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))
+      .where(whereClause)
       .orderBy(desc(auditLogs.timestamp))
       .limit(size)
       .offset(offset)
@@ -45,7 +54,8 @@ export async function GET(request: NextRequest) {
       page,
       size,
     })
-  } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+  } catch (e) {
+    logError('GET /audit', e)
+    return apiError(500, 'Internal server error')
   }
 }

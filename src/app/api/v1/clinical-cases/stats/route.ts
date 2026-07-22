@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { clinicalCases } from '@/lib/schema'
-import { count } from 'drizzle-orm'
+import { and, count } from 'drizzle-orm'
+import { addFacilityFilter } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -9,12 +10,18 @@ export async function GET(request: NextRequest) {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
+    const conditions = []
+    const facilityFilter = addFacilityFilter(clinicalCases.facilityId, auth)
+    if (facilityFilter) conditions.push(facilityFilter)
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
     const rows = await getDb()
       .select({
         status: clinicalCases.outcomeStatus,
         value: count(),
       })
       .from(clinicalCases)
+      .where(whereClause)
       .groupBy(clinicalCases.outcomeStatus)
 
     const stats = {

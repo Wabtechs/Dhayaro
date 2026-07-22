@@ -3,7 +3,7 @@ import { getDb, getSql } from '@/lib/db'
 import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -23,10 +23,8 @@ export async function GET(request: NextRequest) {
       )!)
     }
 
-    const role = auth.user.role.toLowerCase()
-    if ((role === 'doctor' || role === 'nurse') && auth.user.facilityId) {
-      conditions.push(eq(clinicalCases.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(clinicalCases.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
@@ -87,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const patientId = sanitizeUuid(body.patientId)
     const doctorId = sanitizeUuid(body.doctorId)
-    const facilityId = sanitizeUuid(body.facilityId)
+    const { facilityId } = enforceFacilityAccess(body, auth)
 
     if (!patientId) {
       return apiError(400, 'patientId is required and must be a valid UUID')

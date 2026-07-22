@@ -1,7 +1,39 @@
 import { NextResponse } from 'next/server'
+import { eq, and, SQL } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 
 export function apiError(status: number, detail: string) {
   return NextResponse.json({ detail }, { status })
+}
+
+const FACILITY_ROLES = ['DOCTOR', 'SPECIALIST', 'LABORATORY', 'NURSE', 'RECEPTIONIST', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST']
+
+export function addFacilityFilter(
+  facilityColumn: AnyPgColumn,
+  auth: { user: { role: string; facilityId?: string | null } },
+  searchParams?: URLSearchParams,
+): SQL | undefined {
+  if (auth.user.role === 'SUPER_ADMIN') {
+    const override = searchParams?.get('facilityId')
+    if (override) {
+      return eq(facilityColumn, override)
+    }
+    return undefined
+  }
+  if (!auth.user.facilityId) {
+    return undefined
+  }
+  return eq(facilityColumn, auth.user.facilityId)
+}
+
+export function enforceFacilityAccess(
+  body: Record<string, unknown>,
+  auth: { user: { role: string; facilityId?: string | null } },
+): { facilityId: string | null } {
+  if (auth.user.role === 'SUPER_ADMIN') {
+    return { facilityId: (body.facilityId as string) || null }
+  }
+  return { facilityId: auth.user.facilityId || null }
 }
 
 export function logError(endpoint: string, error: unknown) {

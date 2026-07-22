@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
     if (roleParam && (ROLES as readonly string[]).includes(roleParam)) {
       conditions.push(eq(users.role, roleParam as typeof ROLES[number]))
     }
+
+    const facilityFilter = addFacilityFilter(users.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = and(...conditions)
 

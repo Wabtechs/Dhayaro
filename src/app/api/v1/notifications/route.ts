@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notifications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const [row] = await getDb().insert(notifications).values({
       id: crypto.randomUUID(),
       userId,
-      facilityId: auth.user.facilityId || null,
+      facilityId: enforceFacilityAccess(body, auth).facilityId,
       title: body.title,
       message: body.message,
       type: body.type || 'INFO',

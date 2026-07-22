@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { archives, patients } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -26,9 +26,8 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(archives.patientId, patientId))
     }
 
-    if (auth.user.facilityId && ['DOCTOR', 'SPECIALIST', 'ARCHIVIST'].includes(auth.user.role)) {
-      conditions.push(eq(archives.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(archives.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const [row] = await getDb().insert(archives).values({
       id: crypto.randomUUID(),
-      facilityId: auth.user.facilityId || null,
+      facilityId: enforceFacilityAccess(body, auth).facilityId,
       entityType: body.entityType,
       entityId: body.entityId,
       patientId: sanitizeUuid(body.patientId) || null,

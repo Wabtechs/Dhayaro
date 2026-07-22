@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -24,10 +24,8 @@ export async function GET(request: NextRequest) {
       )!)
     }
 
-    const role = auth.user.role.toLowerCase()
-    if (['doctor', 'nurse', 'specialist', 'laboratory'].includes(role) && auth.user.facilityId) {
-      conditions.push(eq(patients.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(patients.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = and(...conditions)
 
@@ -60,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const patientUuid = body.patientUuid || crypto.randomUUID()
-    const facilityId = sanitizeUuid(body.facilityId)
+    const { facilityId } = enforceFacilityAccess(body, auth)
 
     if (facilityId) {
       const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)

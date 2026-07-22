@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { consultations, patients, users } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -31,10 +31,8 @@ export async function GET(request: NextRequest) {
     if (doctorId) conditions.push(eq(consultations.doctorId, doctorId))
     if (status) conditions.push(eq(consultations.status, status as 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'))
 
-    const role = auth.user.role.toLowerCase()
-    if (['doctor', 'nurse', 'specialist'].includes(role) && auth.user.facilityId) {
-      conditions.push(eq(consultations.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(consultations.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
@@ -117,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     const consultationNumber = 'CONS-' + Date.now()
-    const facilityId = sanitizeUuid(body.facilityId) || auth.user.facilityId
+    const { facilityId } = enforceFacilityAccess(body, auth)
     const now = new Date()
 
     const [row] = await db.insert(consultations).values({

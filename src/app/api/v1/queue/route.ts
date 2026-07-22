@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { queue, patients, users } from '@/lib/schema'
 import { eq, desc, and, count, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -22,9 +22,8 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(queue.status, status as 'WAITING' | 'WITH_DOCTOR' | 'WITH_LAB' | 'WITH_PHARMACY' | 'COMPLETED' | 'CANCELLED'))
     }
 
-    if (auth.user.facilityId && ['DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST'].includes(auth.user.role)) {
-      conditions.push(eq(queue.facilityId, auth.user.facilityId))
-    }
+    const facilityFilter = addFacilityFilter(queue.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     const [row] = await getDb().insert(queue).values({
       id: crypto.randomUUID(),
-      facilityId: auth.user.facilityId || null,
+      facilityId: enforceFacilityAccess(body, auth).facilityId,
       patientId,
       consultationId: sanitizeUuid(body.consultationId) || null,
       ticketNumber,
