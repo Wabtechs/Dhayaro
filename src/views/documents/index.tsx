@@ -436,7 +436,7 @@ export default function DocumentsView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newDocument.title.trim() || !newDocument.documentType || !newDocument.patientId} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer le document'}
               </Button>
             </DialogFooter>

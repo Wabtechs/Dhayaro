@@ -354,7 +354,7 @@ export default function DiseasesView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newDisease.code || !newDisease.name || !newDisease.category} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer la maladie'}
               </Button>
             </DialogFooter>

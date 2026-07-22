@@ -385,7 +385,7 @@ export default function QueueView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newQueue.patientId} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer le ticket'}
               </Button>
             </DialogFooter>

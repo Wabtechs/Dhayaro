@@ -204,6 +204,14 @@ export default function ClinicalCasesPage() {
   }
 
   const handleCreateCase = async () => {
+    if (!newCase.title.trim()) {
+      toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' })
+      return
+    }
+    if (!newCase.patientId) {
+      toast({ title: 'Erreur', description: 'Le patient est requis.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -479,7 +487,7 @@ export default function ClinicalCasesPage() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreateCase}>{creating ? 'Création...' : 'Créer le cas'}</Button>
+              <Button type="button" disabled={creating || !newCase.title.trim() || !newCase.patientId} onClick={handleCreateCase}>{creating ? 'Création...' : 'Créer le cas'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

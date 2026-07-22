@@ -216,6 +216,18 @@ export default function TreatmentsView() {
   }
 
   const handleCreate = async () => {
+    if (!newTreatment.patientId) {
+      toast({ title: 'Erreur', description: 'Veuillez sélectionner un patient.', variant: 'destructive' })
+      return
+    }
+    if (!newTreatment.description.trim()) {
+      toast({ title: 'Erreur', description: 'La description est requise.', variant: 'destructive' })
+      return
+    }
+    if (!newTreatment.startDate) {
+      toast({ title: 'Erreur', description: 'La date de début est requise.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       await createTreatment.mutateAsync({
@@ -453,7 +465,7 @@ export default function TreatmentsView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !newTreatment.patientId || !newTreatment.description.trim() || !newTreatment.startDate} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer le traitement'}
               </Button>
             </DialogFooter>
