@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { diagnostics, consultations, patients, users, diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
 
     const facilityFilter = addFacilityFilter(diagnostics.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)
+
+    const doctorFilter = addDoctorFilter(diagnostics.doctorId, auth)
+    if (doctorFilter) conditions.push(doctorFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 

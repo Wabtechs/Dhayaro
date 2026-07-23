@@ -38,6 +38,16 @@ export function enforceFacilityAccess(
   return { facilityId: auth.user.facilityId || null }
 }
 
+export function addDoctorFilter(
+  doctorColumn: AnyPgColumn,
+  auth: { user: { role: string; sub: string } },
+): SQL | undefined {
+  if (auth.user.role === 'DOCTOR') {
+    return eq(doctorColumn, auth.user.sub)
+  }
+  return undefined
+}
+
 export function logError(endpoint: string, error: unknown) {
   const msg = error instanceof Error ? error.message : String(error)
   console.error(`${endpoint}:`, msg)

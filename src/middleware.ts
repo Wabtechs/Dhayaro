@@ -23,7 +23,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/diseases': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
   '/api/v1/queue': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE'],
   '/api/v1/lab': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'],
-  '/api/v1/archives': ['SUPER_ADMIN', 'ADMIN', 'ARCHIVIST'],
+  '/api/v1/archives': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'NURSE', 'ARCHIVIST'],
   '/api/v1/notifications': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/patient': ['PATIENT'],
 }

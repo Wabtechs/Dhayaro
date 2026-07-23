@@ -152,7 +152,8 @@ export default function DocumentsView() {
   const consultationsList = (consultationsData?.items ?? []) as ConsultationItem[]
   const doctorsList = usersList.filter((u) => u.role === 'doctor')
 
-  const resolveDoctorName = (doctorId?: string) => {
+  const resolveDoctorName = (item: DocumentItem) => {
+    const doctorId = (item.assignedDoctorId || item.doctorId) as string | undefined
     if (!doctorId) return '—'
     const u = usersList.find((item) => item.id === doctorId)
     if (!u) return '—'
@@ -533,7 +534,7 @@ export default function DocumentsView() {
                           {String(item.title || '—')}
                         </TableCell>
                         <TableCell>{patientName}</TableCell>
-                        <TableCell>{resolveDoctorName(item.doctorId)}</TableCell>
+                        <TableCell>{resolveDoctorName(item)}</TableCell>
                         <TableCell>
                           <Badge
                             className={

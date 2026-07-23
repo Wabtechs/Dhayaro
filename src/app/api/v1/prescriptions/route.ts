@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { prescriptions, treatments, medications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addDoctorFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -19,10 +19,13 @@ export async function GET(request: NextRequest) {
     const conditions = []
     if (treatmentId) conditions.push(eq(prescriptions.treatmentId, treatmentId))
 
+    const doctorFilter = addDoctorFilter(treatments.doctorId, auth)
+    if (doctorFilter) conditions.push(doctorFilter)
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
     const [[countResult], items] = await Promise.all([
-      getDb().select({ value: count() }).from(prescriptions).where(whereClause),
+      getDb().select({ value: count() }).from(prescriptions).innerJoin(treatments, eq(prescriptions.treatmentId, treatments.id)).where(whereClause),
       getDb().select({
         id: prescriptions.id,
         treatmentId: prescriptions.treatmentId,
@@ -39,6 +42,7 @@ export async function GET(request: NextRequest) {
         medicationDosage: medications.dosage,
       })
       .from(prescriptions)
+      .innerJoin(treatments, eq(prescriptions.treatmentId, treatments.id))
       .leftJoin(medications, eq(prescriptions.medicationId, medications.id))
       .where(whereClause)
       .orderBy(desc(prescriptions.createdAt))
