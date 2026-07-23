@@ -96,7 +96,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           id: payload.sub,
           email,
           name: email,
-          role: 'admin',
+          role: (payload.role || 'doctor').toLowerCase() as User['role'],
+          facility: payload.facilityId || '',
           createdAt: new Date().toISOString(),
           isActive: true,
         }

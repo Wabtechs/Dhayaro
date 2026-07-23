@@ -80,8 +80,6 @@ export default function DashboardPage() {
   const { data, isLoading } = useDashboardData()
   const user = useAuthStore(s => s.user)
 
-  const activeFacilityId = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null
-
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -94,6 +92,7 @@ export default function DashboardPage() {
   }
 
   const { stats, recentCases, chartData, patientMap, facilityMap } = data
+  const activeFacilityId = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null
   const userName = user?.name?.split(' ').slice(-1)[0] || user?.name || 'Docteur'
   const roleLabel = user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role : ''
   const activeFacilityName = activeFacilityId ? facilityMap[activeFacilityId] : null

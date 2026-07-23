@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node --import tsx lib/seed.ts"
+    "db:seed": "node --import tsx lib/seed.ts",
+    "db:migrate-patient": "node scripts/migrate-patient-portal.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",

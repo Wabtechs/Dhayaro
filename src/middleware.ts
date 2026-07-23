@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'dhayaro-dev-secret-key-change-in-production'
+)
+
 const PUBLIC_PATHS = [
   '/',
   '/login',
@@ -12,7 +16,7 @@ const PUBLIC_PATHS = [
 ]
 
 const ROLE_ROUTES: Record<string, string[]> = {
-  '/api/v1/users': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/users': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/facilities': ['SUPER_ADMIN', 'ADMIN'],
   '/api/v1/audit': ['SUPER_ADMIN', 'ADMIN'],
   '/api/v1/reports': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'ACCOUNTANT'],
@@ -50,10 +54,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ detail: 'Not authenticated' }, { status: 401 })
     }
     try {
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'dhayaro-dev-secret-key-change-in-production'
-      )
-      const { payload } = await jwtVerify(token, secret)
+      const { payload } = await jwtVerify(token, JWT_SECRET)
 
       const allowedRoles = getAllowedRoles(pathname)
       if (allowedRoles) {
@@ -82,10 +83,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'dhayaro-dev-secret-key-change-in-production'
-    )
-    await jwtVerify(token, secret)
+    await jwtVerify(token, JWT_SECRET)
     return NextResponse.next()
   } catch {
     const response = NextResponse.redirect(new URL('/login', request.url))

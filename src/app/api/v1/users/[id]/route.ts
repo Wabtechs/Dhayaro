@@ -67,18 +67,18 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    const set: Record<string, unknown> = { updated_at: new Date() }
+    const set: Record<string, unknown> = { updatedAt: new Date() }
     if (body.firstname !== undefined) set.firstname = body.firstname
     if (body.lastname !== undefined) set.lastname = body.lastname
     if (body.email !== undefined) set.email = body.email
     if (body.phone !== undefined) set.phone = body.phone
     if (body.role !== undefined) set.role = body.role
-    if (body.facilityId !== undefined) set.facility_id = sanitizeUuid(body.facilityId)
+    if (body.facilityId !== undefined) set.facilityId = sanitizeUuid(body.facilityId)
     if (body.specialty !== undefined) set.specialty = body.specialty
-    if (body.licenseNumber !== undefined) set.license_number = body.licenseNumber
+    if (body.licenseNumber !== undefined) set.licenseNumber = body.licenseNumber
     if (body.availability !== undefined) set.availability = body.availability
-    if (body.isActive !== undefined) set.is_active = body.isActive
-    if (body.password) set.password_hash = await hashPassword(body.password)
+    if (body.isActive !== undefined) set.isActive = body.isActive
+    if (body.password) set.passwordHash = await hashPassword(body.password)
 
     const [updated] = await getDb()
       .update(users)

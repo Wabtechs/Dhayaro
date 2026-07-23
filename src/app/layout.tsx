@@ -74,13 +74,13 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
-    ],
-    apple: '/apple-touch-icon.png',
-  },
+    icons: {
+      icon: [
+        { url: '/favicon.svg', type: 'image/svg+xml' },
+      ],
+      apple: '/favicon.svg',
+      shortcut: [{ url: '/favicon.svg' }],
+    },
   alternates: {
     canonical: SITE_URL,
   },

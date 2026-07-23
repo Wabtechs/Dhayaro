@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireRole(request, ['ADMIN', 'SUPER_ADMIN'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()

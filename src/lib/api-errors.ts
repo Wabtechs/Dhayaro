@@ -54,7 +54,7 @@ export function parsePagination(searchParams: URLSearchParams) {
 export function pickAllowedKeys(body: Record<string, unknown>, allowedKeys: readonly string[]) {
   const fields: Record<string, unknown> = {}
   for (const key of allowedKeys) {
-    if (key in body && body[key] !== null) {
+    if (key in body && body[key] !== null && body[key] !== undefined && body[key] !== '') {
       fields[key] = body[key]
     }
   }

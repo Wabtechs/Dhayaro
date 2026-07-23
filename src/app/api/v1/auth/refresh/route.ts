@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Invalid or expired refresh token' }, { status: 401 })
     }
 
-    const access_token = await createToken({ sub: payload.sub, email: payload.email, role: payload.role })
+    const access_token = await createToken({ sub: payload.sub, email: payload.email, role: payload.role, facilityId: payload.facilityId })
 
     return NextResponse.json({ access_token })
   } catch {

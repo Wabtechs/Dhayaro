@@ -82,14 +82,8 @@ function transformKeys(obj: unknown): unknown {
     }
 
     if (!result.title && result.diagnosis) { result.title = result.diagnosis; }
-    if (!result.description && result.diagnosis) { result.description = result.diagnosis; }
-    if (!result.priority) { result.priority = 'medium'; }
     if (!Array.isArray(result.symptoms)) { result.symptoms = []; }
     if (!Array.isArray(result.tags)) { result.tags = []; }
-
-    if (result.firstname && result.lastname && !result.name) {
-      result.name = `${result.firstname} ${result.lastname}`;
-    }
 
     if (result.firstName && result.lastName && !result.name) {
       result.name = `${result.firstName} ${result.lastName}`;
@@ -98,30 +92,6 @@ function transformKeys(obj: unknown): unknown {
     if (result.details && typeof result.details === 'object' && !Array.isArray(result.details)) {
       const d = result.details as Record<string, unknown>;
       result.details = Object.entries(d).map(([k, v]) => `${k}: ${v}`).join(', ');
-    }
-
-    if (!result.type && FACILITY_TYPE_MAP[result.facilityType as string]) {
-      result.type = FACILITY_TYPE_MAP[result.facilityType as string];
-    }
-
-    if (!result.gender && result.sex) {
-      result.gender = String(result.sex).toLowerCase();
-    }
-
-    if (!result.bloodType && result.bloodGroup) {
-      result.bloodType = result.bloodGroup;
-    }
-
-    if (!result.medicalRecordNumber && result.patientUuid) {
-      result.medicalRecordNumber = result.patientUuid;
-    }
-
-    if (!result.entity && result.resource) {
-      result.entity = result.resource;
-    }
-
-    if (!result.entityId && result.resourceId) {
-      result.entityId = result.resourceId;
     }
 
     if (!result.facility && result.facilityId) {
@@ -902,14 +872,8 @@ export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (preferences: Record<string, unknown>) => {
-      const token = localStorage.getItem('dhayaro_token') || ''
-      const res = await fetch('/api/v1/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ preferences }),
-      })
-      if (!res.ok) throw new Error('Failed to update settings')
-      return res.json()
+      const token = getTokenFromStorage();
+      return api.put<unknown>('/settings', { preferences }, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });

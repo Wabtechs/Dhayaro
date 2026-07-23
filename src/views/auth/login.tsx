@@ -69,6 +69,7 @@ export default function Login() {
       router.push('/dashboard')
     } catch {
       setError('Échec de connexion pour ce compte')
+    } finally {
       setLoading(false)
     }
   }

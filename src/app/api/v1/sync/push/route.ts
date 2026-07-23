@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       conditions.push(inArray(syncQueue.id, validIds))
     }
 
-    const result = await getDb()
+    const updated = await getDb()
       .update(syncQueue)
       .set({
         status: 'synced',
@@ -39,8 +39,9 @@ export async function POST(request: NextRequest) {
         errorMessage: null,
       })
       .where(and(...conditions))
+      .returning({ id: syncQueue.id })
 
-    return NextResponse.json({ updated: result.rowCount ?? 0 })
+    return NextResponse.json({ updated: updated.length })
   } catch (e) {
     logError('POST /sync/push', e)
     return apiError(500, 'Internal server error')

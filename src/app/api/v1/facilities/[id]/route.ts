@@ -34,12 +34,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireRole(request, ['ADMIN', 'SUPER_ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, FACILITY_KEYS)
+    allowedFields.updatedAt = new Date()
 
     const [updated] = await getDb()
       .update(facilities)
@@ -63,7 +64,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN'])
+    const auth = await requireRole(request, ['ADMIN', 'SUPER_ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params

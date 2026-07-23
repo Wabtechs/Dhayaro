@@ -31,6 +31,14 @@ export async function createToken(payload: { sub: string; email: string; role: s
     .sign(JWT_SECRET)
 }
 
+export async function createRefreshToken(payload: { sub: string; email: string; role: string; facilityId?: string | null }): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET)
+}
+
 export async function verifyToken(token: string): Promise<{ sub: string; email: string; role: string; facilityId?: string | null } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)

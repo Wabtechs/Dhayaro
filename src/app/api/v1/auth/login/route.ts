@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { createToken, verifyPassword } from '@/lib/auth'
+import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
 import { checkRateLimit, getRateLimitKey, cleanupRateLimit } from '@/lib/rate-limit'
 
 const LOGIN_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
@@ -50,9 +50,16 @@ export async function POST(request: NextRequest) {
       facilityId: user.facilityId || null,
     })
 
+    const refreshToken = await createRefreshToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      facilityId: user.facilityId || null,
+    })
+
     const response = NextResponse.json({
       access_token: token,
-      refresh_token: token,
+      refresh_token: refreshToken,
       token_type: 'bearer',
       user: {
         id: user.id,
