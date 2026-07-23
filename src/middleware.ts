@@ -17,7 +17,7 @@ const PUBLIC_PATHS = [
 
 const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/users': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
-  '/api/v1/facilities': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/facilities': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/audit': ['SUPER_ADMIN', 'ADMIN'],
   '/api/v1/reports': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'ACCOUNTANT'],
   '/api/v1/diseases': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
