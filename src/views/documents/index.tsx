@@ -82,48 +82,6 @@ const typeLabels: Record<string, string> = {
   ORDONNANCE: 'Ordonnance',
 }
 
-interface DocumentItem {
-  id: string
-  facilityId?: string
-  patientId?: string
-  consultationId?: string
-  doctorId?: string
-  documentType: string
-  title: string
-  content?: Record<string, unknown>
-  filePath?: string
-  isPrinted?: boolean
-  createdAt: string
-  updatedAt?: string
-  patientFirstname?: string
-  patientLastname?: string
-  [key: string]: unknown
-}
-
-interface PatientItem {
-  id: string
-  firstName?: string
-  lastName?: string
-  name?: string
-  [key: string]: unknown
-}
-
-interface UserItem {
-  id: string
-  name?: string
-  role?: string
-  firstname?: string
-  firstName?: string
-  lastname?: string
-  lastName?: string
-  [key: string]: unknown
-}
-
-interface ConsultationItem {
-  id: string
-  [key: string]: unknown
-}
-
 export { DocumentsView }
 export default function DocumentsView() {
   const router = useRouter()
@@ -194,6 +152,7 @@ export default function DocumentsView() {
   const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
+  const [previewDocument, setPreviewDocument] = useState<DocumentItem | null>(null)
   const [newDocument, setNewDocument] = useState({
     patientId: '',
     doctorId: '',
@@ -573,7 +532,7 @@ export default function DocumentsView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => router.push(`/documents/${item.id}`)}
+                              onClick={() => setPreviewDocument(item)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -743,6 +702,79 @@ export default function DocumentsView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!previewDocument} onOpenChange={(open) => !open && setPreviewDocument(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{previewDocument?.title || 'Document'}</DialogTitle>
+            <DialogDescription>
+              {typeLabels[String(previewDocument?.documentType || '').toUpperCase()] || previewDocument?.documentType || '—'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Patient</p>
+                <p className="font-medium">
+                  {previewDocument
+                    ? `${(previewDocument as Record<string, unknown>).patientFirstname || ''} ${(previewDocument as Record<string, unknown>).patientLastname || ''}`.trim() || '—'
+                    : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Médecin</p>
+                <p className="font-medium">{previewDocument ? resolveDoctorName(previewDocument) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Date</p>
+                <p className="font-medium">
+                  {previewDocument?.createdAt ? formatDate(previewDocument.createdAt as string) : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Imprimé</p>
+                <p className="font-medium">
+                  {previewDocument?.isPrinted ? 'Oui' : 'Non'}
+                </p>
+              </div>
+            </div>
+
+            {previewDocument?.content && Object.keys(previewDocument.content).length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Contenu</p>
+                <div className="space-y-2">
+                  {Object.entries(previewDocument.content).map(([key, value]) => (
+                    <div key={key} className="rounded-lg border bg-muted/30 p-3">
+                      <p className="text-xs uppercase text-muted-foreground">{key}</p>
+                      <p className="mt-1 text-sm font-medium whitespace-pre-wrap">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {previewDocument?.filePath && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Chemin fichier</p>
+                <p className="text-sm break-all bg-muted/30 p-2 rounded">{previewDocument.filePath}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
+              Fermer
+            </Button>
+            <Button onClick={() => {
+              setPreviewDocument(null)
+              router.push(`/documents/${previewDocument?.id}`)
+            }}>
+              Voir le détail complet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

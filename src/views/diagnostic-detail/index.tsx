@@ -16,6 +16,8 @@ import {
   Pencil,
   Trash2,
   FileText,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -65,6 +67,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, formatDateTime } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { generateMedicalReportPDF } from '@/lib/export-medical'
 
 const diagnosticTypeConfig: Record<string, { label: string; color: string }> = {
   PROVISIONAL: { label: 'Provisoire', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -90,6 +93,7 @@ export default function DiagnosticDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     diagnosticType: 'PROVISIONAL' as string,
     diseaseId: '',
@@ -220,6 +224,34 @@ export default function DiagnosticDetailPage() {
     })
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleExportPDF = async () => {
+    setExporting('pdf')
+    try {
+      const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+      if (description) sections.push({ title: 'Description', content: description })
+      if (notes) sections.push({ title: 'Notes', content: notes })
+
+      generateMedicalReportPDF({
+        type: 'diagnostic',
+        title: `Diagnostic: ${truncatedDescription}`,
+        patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String(patient.bloodGroup || '') } : null,
+        doctor: doctor ? { firstname: String(doctor.firstName || doctor.firstname || ''), lastname: String(doctor.lastName || doctor.lastname || ''), specialty: String(doctor.specialty || '') } : null,
+        facility: null,
+        createdAt: formatDate(createdAt),
+        updatedAt: formatDate(updatedAt),
+        sections,
+      })
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   const truncatedDescription = description.length > 60 ? `${description.slice(0, 60)}...` : description
 
   return (
@@ -259,6 +291,14 @@ export default function DiagnosticDetailPage() {
             Modifier
           </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimer
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting === 'pdf'}>
+            {exporting === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            PDF
+          </Button>
           {can('diagnostics:validate') && !isValidated && (
           <Button variant="outline" size="sm" onClick={handleValidate} disabled={updateDiagnostic.isPending}>
             <CheckCircle className="mr-2 h-4 w-4" />

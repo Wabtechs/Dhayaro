@@ -20,6 +20,8 @@ import {
   FlaskConical,
   Microscope,
   Pill,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -58,6 +60,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import { generateMedicalReportPDF } from '@/lib/export-medical'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   WAITING: { label: 'En attente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -82,6 +85,7 @@ export default function ConsultationDetailPage() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     motif: '', notes: '', provisionalDiagnosis: '', status: 'WAITING', doctorId: '',
   })
@@ -207,6 +211,40 @@ export default function ConsultationDetailPage() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleExportPDF = async () => {
+    setExporting('pdf')
+    try {
+      const sections: Array<{ title: string; content: string | Record<string, unknown> | Array<Record<string, unknown>> }> = []
+      if (motif) sections.push({ title: 'Motif de consultation', content: motif })
+      if (symptoms.length > 0) sections.push({ title: 'Symptômes', content: { Liste: symptoms.join(', ') } })
+      if (Object.keys(vitalSigns).length > 0) sections.push({ title: 'Signes vitaux', content: vitalSigns })
+      if (provisionalDiagnosis) sections.push({ title: 'Diagnostic provisoire', content: provisionalDiagnosis })
+      if (notes) sections.push({ title: 'Notes', content: notes })
+      if (relatedDiagnostics.length > 0) sections.push({ title: 'Diagnostics', content: relatedDiagnostics.map((d) => ({ description: String(d.description || ''), type: String(d.diagnosticType || ''), validated: d.isValidated ? 'Oui' : 'Non' })) })
+      if (relatedTreatments.length > 0) sections.push({ title: 'Traitements', content: relatedTreatments.map((t) => ({ description: String(t.description || ''), status: String(t.status || ''), notes: String(t.notes || '') })) })
+      if (relatedLabExams.length > 0) sections.push({ title: 'Examens laboratoire', content: relatedLabExams.map((e) => ({ examName: String(e.examName || ''), status: String(e.status || ''), indication: String(e.clinicalIndication || '') })) })
+
+      generateMedicalReportPDF({
+        type: 'consultation',
+        title: `Consultation ${consultationNumber}`,
+        patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String(patient.bloodGroup || '') } : null,
+        doctor: doctor ? { firstname: String(doctor.firstName || doctor.firstname || ''), lastname: String(doctor.lastName || doctor.lastname || ''), specialty: String(doctor.specialty || '') } : null,
+        facility: facility ? { name: String(facility.name || ''), address: String(facility.address || ''), city: String(facility.city || ''), phone: String(facility.phone || '') } : null,
+        createdAt: formatDate(createdAt),
+        updatedAt: formatDate(updatedAt),
+        sections,
+      })
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -243,6 +281,14 @@ export default function ConsultationDetailPage() {
             Modifier
           </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimer
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting === 'pdf'}>
+            {exporting === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            PDF
+          </Button>
           {statusActions.map((action) => (
             <Button
               key={action.status}

@@ -8,10 +8,16 @@ import {
   Loader2,
   AlertCircle,
   Pill,
+  FileDown,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
 import { api } from '@/services/api'
+import { generateOrdonnancePDF } from '@/lib/export-pdf'
+import { generateOrdonnanceExcel } from '@/lib/export-excel'
+import { generateOrdonnanceDOCX } from '@/lib/export-docx'
 
 interface OrdonnanceData {
   treatment: {
@@ -72,6 +78,7 @@ export default function OrdonnancePage() {
   const [data, setData] = useState<OrdonnanceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchOrdonnance = async () => {
@@ -100,6 +107,42 @@ export default function OrdonnancePage() {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleExportPDF = async () => {
+    if (!data) return
+    setExporting('pdf')
+    try {
+      generateOrdonnancePDF(data)
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (!data) return
+    setExporting('excel')
+    try {
+      generateOrdonnanceExcel(data)
+    } catch (err) {
+      console.error('Excel export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportDOCX = async () => {
+    if (!data) return
+    setExporting('docx')
+    try {
+      await generateOrdonnanceDOCX(data)
+    } catch (err) {
+      console.error('DOCX export error:', err)
+    } finally {
+      setExporting(null)
+    }
   }
 
   if (loading) {
@@ -146,10 +189,51 @@ export default function OrdonnancePage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
-        <Button size="sm" onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Imprimer
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            disabled={exporting === 'pdf'}
+          >
+            {exporting === 'pdf' ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
+            PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={exporting === 'excel'}
+          >
+            {exporting === 'excel' ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+            )}
+            Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportDOCX}
+            disabled={exporting === 'docx'}
+          >
+            {exporting === 'docx' ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            DOCX
+          </Button>
+          <Button size="sm" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimer
+          </Button>
+        </div>
       </div>
 
       <div ref={printRef} className="ordonnance-print rounded-lg border bg-white p-8 text-black shadow-sm">

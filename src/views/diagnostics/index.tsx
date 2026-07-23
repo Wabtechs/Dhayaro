@@ -94,10 +94,10 @@ interface DiagnosticItem {
   validatedAt?: string
   createdAt: string
   updatedAt: string
-  patientFirstName?: string
-  patientLastName?: string
-  doctorFirstName?: string
-  doctorLastName?: string
+  patientFirstname?: string
+  patientLastname?: string
+  doctorFirstname?: string
+  doctorLastname?: string
   diseaseCode?: string
   diseaseName?: string
   [key: string]: unknown
@@ -173,8 +173,8 @@ export default function DiagnosticsView() {
       if (validatedFilter === 'validated' && !item.isValidated) return false
       if (validatedFilter === 'pending' && item.isValidated) return false
       if (!search) return true
-      const patientName = `${item.patientFirstName || ''} ${item.patientLastName || ''}`.toLowerCase()
-      const doctorName = `${item.doctorFirstName || ''} ${item.doctorLastName || ''}`.toLowerCase()
+      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.toLowerCase()
+      const doctorName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.toLowerCase()
       const diseaseName = String(item.diseaseName || '').toLowerCase()
       return (
         String(item.description || '').toLowerCase().includes(q) ||
@@ -511,8 +511,8 @@ export default function DiagnosticsView() {
                   {paginated.map((item: DiagnosticItem) => {
                     const type = String(item.diagnosticType || '').toUpperCase()
                     const typeConfig = diagnosticTypeConfig[type] || { label: type, color: 'bg-gray-100 text-gray-700' }
-                    const patientName = `${item.patientFirstName || ''} ${item.patientLastName || ''}`.trim() || '—'
-                    const docName = `${item.doctorFirstName || ''} ${item.doctorLastName || ''}`.trim() || '—'
+                    const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim() || '—'
+                    const docName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.trim() || '—'
                     return (
                       <TableRow
                         key={item.id}

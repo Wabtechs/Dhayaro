@@ -15,6 +15,8 @@ import {
   Loader2,
   Pencil,
   Trash2,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -65,6 +67,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { generateMedicalReportPDF } from '@/lib/export-medical'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   REQUESTED: { label: 'Demandé', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -112,8 +115,6 @@ export default function LaboratoryDetailPage() {
   const updateLabExam = useUpdateLabExam()
   const deleteLabExam = useDeleteLabExam()
   const { toast } = useToast()
-
-  const e = exam as LabExamRecord | null | undefined
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -197,10 +198,10 @@ export default function LaboratoryDetailPage() {
 
   const patientName = patient
     ? `${(patient.firstName as string) || (patient.firstname as string) || ''} ${(patient.lastName as string) || (patient.lastname as string) || ''}`.trim()
-    : `${e.patientFirstname || ''} ${e.patientLastname || ''}`.trim() || 'Inconnu'
+    : `${(e.patientFirstname as string) || ''} ${(e.patientLastname as string) || ''}`.trim() || 'Inconnu'
   const doctorName = doctor
     ? `${(doctor.firstName as string) || (doctor.firstname as string) || ''} ${(doctor.lastName as string) || (doctor.lastname as string) || ''}`.trim()
-    : `${e.doctorFirstname || ''} ${e.doctorLastname || ''}`.trim() || 'Inconnu'
+    : `${(e.doctorFirstname as string) || ''} ${(e.doctorLastname as string) || ''}`.trim() || 'Inconnu'
   const labTechnicianName = labTechnician
     ? `${(labTechnician.firstName as string) || (labTechnician.firstname as string) || ''} ${(labTechnician.lastName as string) || (labTechnician.lastname as string) || ''}`.trim()
     : 'Inconnu'
