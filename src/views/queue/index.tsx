@@ -645,7 +645,7 @@ export default function QueueView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
-              Annuler
+              Confirmer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

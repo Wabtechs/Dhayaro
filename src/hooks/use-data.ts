@@ -72,6 +72,7 @@ function transformKeys(obj: unknown): unknown {
       if (key === 'patientUuid') { key = 'medicalRecordNumber'; }
       if (key === 'resource') { key = 'entity'; }
       if (key === 'resourceId') { key = 'entityId'; }
+      if (key === 'isRead') { key = 'read'; }
 
       return [key, val] as const;
     });

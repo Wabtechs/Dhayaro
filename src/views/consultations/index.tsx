@@ -157,12 +157,16 @@ export default function ConsultationsView() {
   const filtered = useMemo(() => {
     const allItems = (data?.items ?? []) as ConsultationItem[]
     const q = search.toLowerCase()
-    return allItems.filter((item) => {
+    return allItems.map((item) => {
+      const patientName = item.patientName || ((item.patientFirstname || item.patientLastname) ? `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim() : '')
+      const doctorName = item.doctorName || ((item.doctorFirstname || item.doctorLastname) ? `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.trim() : '')
+      return { ...item, patientName, doctorName }
+    }).filter((item) => {
       if (!search) return true
       return (
-        String(item.patientName || item.patient || '').toLowerCase().includes(q) ||
-        String(item.doctorName || item.doctor || '').toLowerCase().includes(q) ||
-        String(item.motif || item.reason || '').toLowerCase().includes(q) ||
+        String(item.patientName || '').toLowerCase().includes(q) ||
+        String(item.doctorName || '').toLowerCase().includes(q) ||
+        String(item.motif || '').toLowerCase().includes(q) ||
         String(item.consultationNumber || item.id || '').toLowerCase().includes(q)
       )
     })
@@ -236,7 +240,7 @@ export default function ConsultationsView() {
       notes: (c.notes as string) || '',
       provisionalDiagnosis: (c.provisionalDiagnosis as string) || '',
       status: (c.status as string) || 'WAITING',
-      doctorId: (c.doctorId as string) || '',
+      doctorId: ((c.assignedDoctorId || c.doctorId) as string) || '',
     })
     setEditDialogOpen(true)
   }
@@ -331,7 +335,7 @@ export default function ConsultationsView() {
                       <SelectValue placeholder="Sélectionner un médecin" />
                     </SelectTrigger>
                     <SelectContent>
-                      {usersList.filter((u) => u.role === 'doctor').map((u) => (
+                      {usersList.filter((u) => u.role === 'doctor' || u.role === 'specialist').map((u) => (
                         <SelectItem key={u.id} value={u.id}>
                           {u.name}
                         </SelectItem>
@@ -606,7 +610,7 @@ export default function ConsultationsView() {
                   <SelectValue placeholder="Sélectionner un médecin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersList.filter((u) => u.role === 'doctor').map((u) => (
+                  {usersList.filter((u) => u.role === 'doctor' || u.role === 'specialist').map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.name}
                     </SelectItem>
@@ -657,7 +661,7 @@ export default function ConsultationsView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={() => { confirmDelete?.callback(); setConfirmDelete(null) }}>
-              Annuler
+              Confirmer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

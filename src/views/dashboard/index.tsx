@@ -9,7 +9,6 @@ import {
   TrendingUp,
   ListOrdered,
   FileText,
-  Users,
   Activity,
   ArrowRight,
 } from 'lucide-react'
@@ -93,7 +92,7 @@ export default function DashboardPage() {
 
   const { stats, recentCases, chartData, patientMap, facilityMap } = data
   const activeFacilityId = typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null
-  const userName = user?.name?.split(' ').slice(-1)[0] || user?.name || 'Docteur'
+  const userName = user?.name?.split(' ').slice(-1)[0] || user?.name || 'Utilisateur'
   const roleLabel = user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role : ''
   const activeFacilityName = activeFacilityId ? facilityMap[activeFacilityId] : null
 
@@ -132,7 +131,6 @@ export default function DashboardPage() {
     { label: 'File d\'attente', icon: ListOrdered, href: '/queue', color: 'text-orange-500' },
     { label: 'Consultations', icon: Stethoscope, href: '/consultations', color: 'text-blue-500' },
     { label: 'Documents', icon: FileText, href: '/documents', color: 'text-purple-500' },
-    { label: 'Utilisateurs', icon: Users, href: '/users', color: 'text-emerald-500' },
   ]
 
   return (
