@@ -19,6 +19,7 @@ import {
   FileText,
   FlaskConical,
   Microscope,
+  Pill,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -376,7 +377,18 @@ export default function ConsultationDetailPage() {
                       <p className="text-sm font-medium text-foreground">
                         {String(t.description as string)}
                       </p>
-                      <Badge variant="outline">{String(t.status as string)}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{String(t.status as string)}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => router.push(`/ordonnance/${t.id}`)}
+                        >
+                          <Pill className="mr-1 h-3 w-3" />
+                          Ordonnance
+                        </Button>
+                      </div>
                     </div>
                     {t.notes && (
                       <p className="mt-1 text-xs text-muted-foreground">{String(t.notes as string)}</p>

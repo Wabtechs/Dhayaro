@@ -571,6 +571,13 @@ export default function TreatmentsView() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/ordonnance/${item.id}`)}
+                            >
+                              <Pill className="h-4 w-4" />
+                            </Button>
                             {can('treatments:create') && (
                             <Button
                               variant="ghost"
