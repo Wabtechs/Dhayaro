@@ -13,6 +13,8 @@ import {
   Pencil,
   Trash2,
   Eye,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -70,6 +72,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
 const ITEMS_PER_PAGE = 10
 
@@ -138,6 +141,7 @@ export default function ConsultationsView() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
   const { data, isLoading } = useConsultationsData(
     search ? `search=${search}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}` : (statusFilter !== 'all' ? `status=${statusFilter}` : '')
@@ -540,6 +544,49 @@ export default function ConsultationsView() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewData({
+                                type: 'consultation',
+                                title: `Consultation ${item.consultationNumber || ''}`,
+                                patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                createdAt: item.createdAt,
+                                sections: [
+                                  { title: 'Motif', content: item.motif || '—' },
+                                  ...(item.symptoms?.length ? [{ title: 'Symptômes', content: item.symptoms.join(', ') }] : []),
+                                  ...(item.vitalSigns && Object.keys(item.vitalSigns).length ? [{ title: 'Signes vitaux', content: item.vitalSigns }] : []),
+                                  ...(item.provisionalDiagnosis ? [{ title: 'Diagnostic provisoire', content: item.provisionalDiagnosis }] : []),
+                                  ...(item.notes ? [{ title: 'Notes', content: item.notes }] : []),
+                                ],
+                              })}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const d: PreviewData = {
+                                  type: 'consultation',
+                                  title: `Consultation ${item.consultationNumber || ''}`,
+                                  patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                  doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                  createdAt: item.createdAt,
+                                  sections: [
+                                    { title: 'Motif', content: item.motif || '—' },
+                                    ...(item.symptoms?.length ? [{ title: 'Symptômes', content: item.symptoms.join(', ') }] : []),
+                                    ...(item.vitalSigns && Object.keys(item.vitalSigns).length ? [{ title: 'Signes vitaux', content: item.vitalSigns }] : []),
+                                    ...(item.provisionalDiagnosis ? [{ title: 'Diagnostic provisoire', content: item.provisionalDiagnosis }] : []),
+                                    ...(item.notes ? [{ title: 'Notes', content: item.notes }] : []),
+                                  ],
+                                }
+                                setPreviewData(d)
+                              }}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -666,6 +713,19 @@ export default function ConsultationsView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MedicalPreviewDialog
+        open={!!previewData}
+        onOpenChange={(open) => !open && setPreviewData(null)}
+        data={previewData}
+        onNavigate={() => {
+          if (previewData) {
+            const item = data?.items?.find((i: ConsultationItem) => `Consultation ${i.consultationNumber || ''}` === previewData.title)
+            if (item) router.push(`/consultations/${item.id}`)
+          }
+          setPreviewData(null)
+        }}
+      />
     </div>
   )
 }

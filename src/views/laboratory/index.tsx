@@ -13,6 +13,8 @@ import {
   Pencil,
   Trash2,
   Eye,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -71,6 +73,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
 const ITEMS_PER_PAGE = 10
 
@@ -144,6 +147,7 @@ export default function LaboratoryView() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
   const query = useMemo(() => {
     const parts: string[] = []
@@ -555,6 +559,51 @@ export default function LaboratoryView() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewData({
+                                type: 'lab_result',
+                                title: `Examen: ${item.examName || ''}`,
+                                patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                createdAt: item.createdAt,
+                                sections: [
+                                  { title: 'Examen', content: item.examName || '—' },
+                                  ...(item.categoryName ? [{ title: 'Catégorie', content: item.categoryName }] : []),
+                                  ...(item.clinicalIndication ? [{ title: 'Indication clinique', content: item.clinicalIndication }] : []),
+                                  { title: 'Statut', content: item.status || '—' },
+                                  ...(item.results && Object.keys(item.results).length ? [{ title: 'Résultats', content: item.results }] : []),
+                                  ...(item.resultNotes ? [{ title: 'Notes de résultat', content: item.resultNotes }] : []),
+                                ],
+                              })}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const d: PreviewData = {
+                                  type: 'lab_result',
+                                  title: `Examen: ${item.examName || ''}`,
+                                  patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                  doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                  createdAt: item.createdAt,
+                                  sections: [
+                                    { title: 'Examen', content: item.examName || '—' },
+                                    ...(item.categoryName ? [{ title: 'Catégorie', content: item.categoryName }] : []),
+                                    ...(item.clinicalIndication ? [{ title: 'Indication clinique', content: item.clinicalIndication }] : []),
+                                    { title: 'Statut', content: item.status || '—' },
+                                    ...(item.results && Object.keys(item.results).length ? [{ title: 'Résultats', content: item.results }] : []),
+                                    ...(item.resultNotes ? [{ title: 'Notes de résultat', content: item.resultNotes }] : []),
+                                  ],
+                                }
+                                setPreviewData(d)
+                              }}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -721,6 +770,20 @@ export default function LaboratoryView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MedicalPreviewDialog
+        open={!!previewData}
+        onOpenChange={(open) => !open && setPreviewData(null)}
+        data={previewData}
+        onNavigate={() => {
+          if (previewData) {
+            const allItems = data?.items || []
+            const item = allItems.find((i: LabExamItem) => `Examen: ${i.examName || ''}` === previewData.title)
+            if (item) router.push(`/laboratory/${item.id}`)
+          }
+          setPreviewData(null)
+        }}
+      />
     </div>
   )
 }

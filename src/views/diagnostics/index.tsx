@@ -13,6 +13,8 @@ import {
   Pencil,
   Trash2,
   Eye,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -71,6 +73,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
 const ITEMS_PER_PAGE = 10
 
@@ -144,6 +147,7 @@ export default function DiagnosticsView() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [validatedFilter, setValidatedFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
   const { data, isLoading } = useDiagnosticsData()
 
@@ -572,6 +576,49 @@ export default function DiagnosticsView() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewData({
+                                type: 'diagnostic',
+                                title: `Diagnostic ${item.diagnosticType || ''}`,
+                                patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                createdAt: item.createdAt,
+                                sections: [
+                                  { title: 'Type', content: item.diagnosticType || '—' },
+                                  { title: 'Description', content: item.description || '—' },
+                                  ...(item.diseaseName ? [{ title: 'Maladie', content: `${item.diseaseCode ? item.diseaseCode + ' - ' : ''}${item.diseaseName}` }] : []),
+                                  ...(item.notes ? [{ title: 'Notes', content: item.notes }] : []),
+                                  { title: 'Validé', content: item.isValidated ? 'Oui' : 'Non' },
+                                ],
+                              })}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const d: PreviewData = {
+                                  type: 'diagnostic',
+                                  title: `Diagnostic ${item.diagnosticType || ''}`,
+                                  patient: item.patientFirstname ? { firstname: item.patientFirstname, lastname: item.patientLastname || '' } : null,
+                                  doctor: item.doctorFirstname ? { firstname: item.doctorFirstname, lastname: item.doctorLastname || '' } : null,
+                                  createdAt: item.createdAt,
+                                  sections: [
+                                    { title: 'Type', content: item.diagnosticType || '—' },
+                                    { title: 'Description', content: item.description || '—' },
+                                    ...(item.diseaseName ? [{ title: 'Maladie', content: `${item.diseaseCode ? item.diseaseCode + ' - ' : ''}${item.diseaseName}` }] : []),
+                                    ...(item.notes ? [{ title: 'Notes', content: item.notes }] : []),
+                                    { title: 'Validé', content: item.isValidated ? 'Oui' : 'Non' },
+                                  ],
+                                }
+                                setPreviewData(d)
+                              }}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -706,6 +753,20 @@ export default function DiagnosticsView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MedicalPreviewDialog
+        open={!!previewData}
+        onOpenChange={(open) => !open && setPreviewData(null)}
+        data={previewData}
+        onNavigate={() => {
+          if (previewData) {
+            const allItems = data?.items || []
+            const item = allItems.find((i: DiagnosticItem) => `Diagnostic ${i.diagnosticType || ''}` === previewData.title)
+            if (item) router.push(`/diagnostics/${item.id}`)
+          }
+          setPreviewData(null)
+        }}
+      />
     </div>
   )
 }
