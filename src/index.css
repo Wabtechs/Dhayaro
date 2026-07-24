@@ -145,7 +145,13 @@
 }
 
 @media print {
-  .no-print {
+  .no-print,
+  nav,
+  header,
+  aside,
+  [data-sidebar],
+  [role="navigation"],
+  [role="banner"] {
     display: none !important;
   }
   .ordonnance-print {
@@ -155,5 +161,17 @@
   }
   body {
     background: white !important;
+    color: black !important;
+  }
+  .space-y-6 > div:first-child {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
   }
 }

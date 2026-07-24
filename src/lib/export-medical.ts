@@ -2,7 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 interface PrintData {
-  type: 'consultation' | 'diagnostic' | 'lab-exam'
+  type: string
   title: string
   patient?: { firstname: string; lastname: string; dateOfBirth?: string; sex?: string; bloodGroup?: string } | null
   doctor?: { firstname: string; lastname: string; specialty?: string } | null

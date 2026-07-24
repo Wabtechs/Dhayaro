@@ -18,6 +18,7 @@ import {
   FileText,
   Printer,
   FileDown,
+  FileSpreadsheet,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -68,6 +69,8 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, formatDateTime } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import { generateMedicalReportPDF } from '@/lib/export-medical'
+import { generateMedicalReportExcel } from '@/lib/export-excel'
+import { generateMedicalReportDOCX } from '@/lib/export-docx'
 
 const diagnosticTypeConfig: Record<string, { label: string; color: string }> = {
   PROVISIONAL: { label: 'Provisoire', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -252,6 +255,45 @@ export default function DiagnosticDetailPage() {
     }
   }
 
+  const buildReportSections = (): Array<{ title: string; content: string | Record<string, unknown> }> => {
+    const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+    if (description) sections.push({ title: 'Description', content: description })
+    if (notes) sections.push({ title: 'Notes', content: notes })
+    return sections
+  }
+
+  const buildReportData = () => ({
+    type: 'diagnostic',
+    title: `Diagnostic: ${truncatedDescription}`,
+    patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String(patient.bloodGroup || '') } : null,
+    doctor: doctor ? { firstname: String(doctor.firstName || doctor.firstname || ''), lastname: String(doctor.lastName || doctor.lastname || ''), specialty: String(doctor.specialty || '') } : null,
+    facility: null,
+    createdAt: formatDate(createdAt),
+    updatedAt: formatDate(updatedAt),
+  })
+
+  const handleExportExcel = async () => {
+    setExporting('excel')
+    try {
+      generateMedicalReportExcel({ ...buildReportData(), sections: buildReportSections() })
+    } catch (err) {
+      console.error('Excel export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportDOCX = async () => {
+    setExporting('docx')
+    try {
+      await generateMedicalReportDOCX({ ...buildReportData(), sections: buildReportSections() })
+    } catch (err) {
+      console.error('DOCX export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   const truncatedDescription = description.length > 60 ? `${description.slice(0, 60)}...` : description
 
   return (
@@ -298,6 +340,14 @@ export default function DiagnosticDetailPage() {
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting === 'pdf'}>
             {exporting === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
             PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exporting === 'excel'}>
+            {exporting === 'excel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportDOCX} disabled={exporting === 'docx'}>
+            {exporting === 'docx' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+            DOCX
           </Button>
           {can('diagnostics:validate') && !isValidated && (
           <Button variant="outline" size="sm" onClick={handleValidate} disabled={updateDiagnostic.isPending}>

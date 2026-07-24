@@ -13,6 +13,10 @@ import {
   Pencil,
   Trash2,
   Eye,
+  Printer,
+  FileDown,
+  FileSpreadsheet,
+  Loader2,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -70,6 +74,9 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { generateMedicalReportPDF } from '@/lib/export-medical'
+import { generateMedicalReportExcel } from '@/lib/export-excel'
+import { generateMedicalReportDOCX } from '@/lib/export-docx'
 
 const ITEMS_PER_PAGE = 10
 
@@ -80,6 +87,48 @@ const typeLabels: Record<string, string> = {
   LAB_RESULT: 'Résultat labo',
   REFERRAL: 'Référence',
   ORDONNANCE: 'Ordonnance',
+}
+
+interface DocumentItem {
+  id: string
+  patientId?: string
+  doctorId?: string
+  assignedDoctorId?: string
+  consultationId?: string
+  documentType?: string
+  title?: string
+  content?: Record<string, unknown>
+  filePath?: string
+  isPrinted?: boolean
+  patientFirstname?: string
+  patientLastname?: string
+  createdAt?: string
+  [key: string]: unknown
+}
+
+interface PatientItem {
+  id: string
+  firstname?: string
+  firstName?: string
+  lastname?: string
+  lastName?: string
+  [key: string]: unknown
+}
+
+interface UserItem {
+  id: string
+  role?: string
+  name?: string
+  firstname?: string
+  firstName?: string
+  lastname?: string
+  lastName?: string
+  [key: string]: unknown
+}
+
+interface ConsultationItem {
+  id: string
+  [key: string]: unknown
 }
 
 export { DocumentsView }
@@ -149,6 +198,7 @@ export default function DocumentsView() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState<string | null>(null)
   const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
@@ -285,6 +335,97 @@ export default function DocumentsView() {
         }
       },
     })
+  }
+
+  const handlePrintDocument = () => {
+    window.print()
+  }
+
+  const handleExportDocumentPDF = async () => {
+    if (!previewDocument) return
+    setExporting('pdf')
+    try {
+      const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+      if (previewDocument.content && Object.keys(previewDocument.content).length > 0) {
+        for (const [key, value] of Object.entries(previewDocument.content)) {
+          sections.push({ title: key, content: typeof value === 'object' ? value as Record<string, unknown> : String(value) })
+        }
+      }
+      if (sections.length === 0) {
+        sections.push({ title: 'Contenu', content: 'Document sans contenu détaillé' })
+      }
+      generateMedicalReportPDF({
+        type: String(previewDocument.documentType || 'document').toLowerCase(),
+        title: String(previewDocument.title || 'Document'),
+        patient: previewDocument.patientId ? { firstname: String(previewDocument.patientFirstname || ''), lastname: String(previewDocument.patientLastname || '') } : null,
+        doctor: null,
+        facility: null,
+        createdAt: previewDocument.createdAt ? formatDate(previewDocument.createdAt as string) : '',
+        sections,
+      })
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportDocumentExcel = async () => {
+    if (!previewDocument) return
+    setExporting('excel')
+    try {
+      const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+      if (previewDocument.content && Object.keys(previewDocument.content).length > 0) {
+        for (const [key, value] of Object.entries(previewDocument.content)) {
+          sections.push({ title: key, content: typeof value === 'object' ? value as Record<string, unknown> : String(value) })
+        }
+      }
+      if (sections.length === 0) {
+        sections.push({ title: 'Contenu', content: 'Document sans contenu détaillé' })
+      }
+      generateMedicalReportExcel({
+        type: String(previewDocument.documentType || 'document').toLowerCase(),
+        title: String(previewDocument.title || 'Document'),
+        patient: previewDocument.patientId ? { firstname: String(previewDocument.patientFirstname || ''), lastname: String(previewDocument.patientLastname || '') } : null,
+        doctor: null,
+        facility: null,
+        createdAt: previewDocument.createdAt ? formatDate(previewDocument.createdAt as string) : '',
+        sections,
+      })
+    } catch (err) {
+      console.error('Excel export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportDocumentDOCX = async () => {
+    if (!previewDocument) return
+    setExporting('docx')
+    try {
+      const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+      if (previewDocument.content && Object.keys(previewDocument.content).length > 0) {
+        for (const [key, value] of Object.entries(previewDocument.content)) {
+          sections.push({ title: key, content: typeof value === 'object' ? value as Record<string, unknown> : String(value) })
+        }
+      }
+      if (sections.length === 0) {
+        sections.push({ title: 'Contenu', content: 'Document sans contenu détaillé' })
+      }
+      await generateMedicalReportDOCX({
+        type: String(previewDocument.documentType || 'document').toLowerCase(),
+        title: String(previewDocument.title || 'Document'),
+        patient: previewDocument.patientId ? { firstname: String(previewDocument.patientFirstname || ''), lastname: String(previewDocument.patientLastname || '') } : null,
+        doctor: null,
+        facility: null,
+        createdAt: previewDocument.createdAt ? formatDate(previewDocument.createdAt as string) : '',
+        sections,
+      })
+    } catch (err) {
+      console.error('DOCX export error:', err)
+    } finally {
+      setExporting(null)
+    }
   }
 
   return (
@@ -762,11 +903,27 @@ export default function DocumentsView() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
+          <DialogFooter className="flex-row flex-wrap gap-2 sm:flex-nowrap">
+            <Button variant="outline" size="sm" onClick={handlePrintDocument}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimer
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportDocumentPDF} disabled={exporting === 'pdf'}>
+              {exporting === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+              PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportDocumentExcel} disabled={exporting === 'excel'}>
+              {exporting === 'excel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportDocumentDOCX} disabled={exporting === 'docx'}>
+              {exporting === 'docx' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              DOCX
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPreviewDocument(null)}>
               Fermer
             </Button>
-            <Button onClick={() => {
+            <Button size="sm" onClick={() => {
               setPreviewDocument(null)
               router.push(`/documents/${previewDocument?.id}`)
             }}>

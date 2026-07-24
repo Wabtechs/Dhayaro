@@ -17,6 +17,8 @@ import {
   Trash2,
   Printer,
   FileDown,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -68,6 +70,8 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import { generateMedicalReportPDF } from '@/lib/export-medical'
+import { generateMedicalReportExcel } from '@/lib/export-excel'
+import { generateMedicalReportDOCX } from '@/lib/export-docx'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   REQUESTED: { label: 'Demandé', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -108,7 +112,8 @@ export default function LaboratoryDetailPage() {
   const router = useRouter()
   const { can } = usePermissions()
 
-  const { data: exam, isLoading, error } = useLabExamDetail(id)
+  const { data: examData, isLoading, error } = useLabExamDetail(id)
+  const exam = examData as LabExamRecord | undefined
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
   const { data: categoriesData } = useLabCategoriesData()
@@ -120,6 +125,7 @@ export default function LaboratoryDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     examName: '',
     categoryId: '',
@@ -156,7 +162,7 @@ export default function LaboratoryDetailPage() {
     )
   }
 
-  if (error || !e) {
+  if (error || !exam) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <AlertCircle className="mb-4 h-16 w-16 text-muted-foreground/40" />
@@ -178,19 +184,19 @@ export default function LaboratoryDetailPage() {
     )
   }
 
-  const status = (e.status as string) || 'REQUESTED'
-  const examName = (e.examName as string) || ''
-  const clinicalIndication = (e.clinicalIndication as string) || ''
-  const resultNotes = (e.resultNotes as string) || ''
-  const results = (e.results as Record<string, unknown>) || {}
-  const requestedAt = (e.requestedAt as string) || ''
-  const completedAt = (e.completedAt as string) || ''
-  const validatedAt = (e.validatedAt as string) || ''
-  const examId = (e.id as string) || id
-  const patientId = (e.patientId as string) || ''
-  const doctorId = (e.doctorId as string) || ''
-  const labTechnicianId = (e.labTechnicianId as string) || ''
-  const categoryId = (e.categoryId as string) || ''
+  const status = (exam.status as string) || 'REQUESTED'
+  const examName = (exam.examName as string) || ''
+  const clinicalIndication = (exam.clinicalIndication as string) || ''
+  const resultNotes = (exam.resultNotes as string) || ''
+  const results = (exam.results as Record<string, unknown>) || {}
+  const requestedAt = (exam.requestedAt as string) || ''
+  const completedAt = (exam.completedAt as string) || ''
+  const validatedAt = (exam.validatedAt as string) || ''
+  const examId = (exam.id as string) || id
+  const patientId = (exam.patientId as string) || ''
+  const doctorId = (exam.doctorId as string) || ''
+  const labTechnicianId = (exam.labTechnicianId as string) || ''
+  const categoryId = (exam.categoryId as string) || ''
 
   const patient = patientItems.find((p) => p.id === patientId)
   const doctor = userItems.find((u) => u.id === doctorId)
@@ -198,14 +204,14 @@ export default function LaboratoryDetailPage() {
 
   const patientName = patient
     ? `${(patient.firstName as string) || (patient.firstname as string) || ''} ${(patient.lastName as string) || (patient.lastname as string) || ''}`.trim()
-    : `${(e.patientFirstname as string) || ''} ${(e.patientLastname as string) || ''}`.trim() || 'Inconnu'
+    : `${(exam.patientFirstname as string) || ''} ${(exam.patientLastname as string) || ''}`.trim() || 'Inconnu'
   const doctorName = doctor
     ? `${(doctor.firstName as string) || (doctor.firstname as string) || ''} ${(doctor.lastName as string) || (doctor.lastname as string) || ''}`.trim()
-    : `${(e.doctorFirstname as string) || ''} ${(e.doctorLastname as string) || ''}`.trim() || 'Inconnu'
+    : `${(exam.doctorFirstname as string) || ''} ${(exam.doctorLastname as string) || ''}`.trim() || 'Inconnu'
   const labTechnicianName = labTechnician
     ? `${(labTechnician.firstName as string) || (labTechnician.firstname as string) || ''} ${(labTechnician.lastName as string) || (labTechnician.lastname as string) || ''}`.trim()
     : 'Inconnu'
-  const categoryName = (e.categoryName as string) || (categoriesList.find((c) => c.id === categoryId)?.name as string) || 'Inconnu'
+  const categoryName = (exam.categoryName as string) || (categoriesList.find((c) => c.id === categoryId)?.name as string) || 'Inconnu'
 
   const resultEntries = Object.entries(results).filter(([, v]) => v !== undefined && v !== null && v !== '')
 
@@ -290,6 +296,66 @@ export default function LaboratoryDetailPage() {
     })
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const buildReportSections = (): Array<{ title: string; content: string | Record<string, unknown> }> => {
+    const sections: Array<{ title: string; content: string | Record<string, unknown> }> = []
+    if (clinicalIndication) sections.push({ title: 'Indication clinique', content: clinicalIndication })
+    if (resultEntries.length > 0) {
+      const obj: Record<string, unknown> = {}
+      for (const [k, v] of resultEntries) obj[k] = v
+      sections.push({ title: 'Résultats', content: obj })
+    }
+    if (resultNotes) sections.push({ title: 'Notes résultat', content: resultNotes })
+    sections.push({ title: 'Statut', content: statusConfig[status]?.label || status })
+    return sections
+  }
+
+  const buildReportData = () => ({
+    type: 'lab-exam',
+    title: examName,
+    patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String(patient.bloodGroup || '') } : null,
+    doctor: doctor ? { firstname: String(doctor.firstName || doctor.firstname || ''), lastname: String(doctor.lastName || doctor.lastname || ''), specialty: String(doctor.specialty || '') } : null,
+    facility: null,
+    createdAt: formatDate(requestedAt),
+    updatedAt: completedAt ? formatDate(completedAt) : undefined,
+  })
+
+  const handleExportPDF = async () => {
+    setExporting('pdf')
+    try {
+      generateMedicalReportPDF({ ...buildReportData(), sections: buildReportSections() })
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    setExporting('excel')
+    try {
+      generateMedicalReportExcel({ ...buildReportData(), sections: buildReportSections() })
+    } catch (err) {
+      console.error('Excel export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportDOCX = async () => {
+    setExporting('docx')
+    try {
+      await generateMedicalReportDOCX({ ...buildReportData(), sections: buildReportSections() })
+    } catch (err) {
+      console.error('DOCX export error:', err)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -336,6 +402,22 @@ export default function LaboratoryDetailPage() {
             Supprimer
           </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimer
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting === 'pdf'}>
+            {exporting === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exporting === 'excel'}>
+            {exporting === 'excel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportDOCX} disabled={exporting === 'docx'}>
+            {exporting === 'docx' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+            DOCX
+          </Button>
         </div>
       </div>
 
