@@ -720,7 +720,8 @@ export default function ConsultationsView() {
         data={previewData}
         onNavigate={() => {
           if (previewData) {
-            const item = data?.items?.find((i: ConsultationItem) => `Consultation ${i.consultationNumber || ''}` === previewData.title)
+            const items = (data?.items ?? []) as ConsultationItem[]
+            const item = items.find((i) => `Consultation ${i.consultationNumber || ''}` === previewData.title)
             if (item) router.push(`/consultations/${item.id}`)
           }
           setPreviewData(null)

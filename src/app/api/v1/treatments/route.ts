@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { treatments, patients, users } from '@/lib/schema'
+import { treatments, patients, users, episodeEntities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
     const { facilityId } = enforceFacilityAccess(body, auth)
     const consultationId = sanitizeUuid(body.consultationId)
     const diagnosisId = sanitizeUuid(body.diagnosisId)
+    const episodeId = sanitizeUuid(body.episodeId)
     const now = new Date()
 
     const [row] = await db.insert(treatments).values({
@@ -135,9 +136,20 @@ export async function POST(request: NextRequest) {
       endDate: body.endDate || null,
       notes: body.notes || null,
       outcome: body.outcome || null,
+      episodeId: episodeId || null,
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    if (episodeId) {
+      await db.insert(episodeEntities).values({
+        id: crypto.randomUUID(),
+        episodeId,
+        entityType: 'TREATMENT',
+        entityId: row.id,
+        createdAt: now,
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

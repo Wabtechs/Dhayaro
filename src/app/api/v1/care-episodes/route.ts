@@ -1,0 +1,118 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getDb } from '@/lib/db'
+import { careEpisodes, patients, users } from '@/lib/schema'
+import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { sanitizeUuid } from '@/lib/validation'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { requireAuth } from '@/lib/auth'
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    const { searchParams } = new URL(request.url)
+    const { page, size, search, offset } = parsePagination(searchParams)
+
+    const conditions = []
+    if (search) {
+      conditions.push(or(
+        ilike(careEpisodes.episodeNumber, `%${search}%`),
+        ilike(careEpisodes.admitReason, `%${search}%`),
+      )!)
+    }
+
+    const patientId = sanitizeUuid(searchParams.get('patientId'))
+    const status = searchParams.get('status')
+
+    if (patientId) conditions.push(eq(careEpisodes.patientId, patientId))
+    if (status) conditions.push(eq(careEpisodes.status, status as 'ADMITTED' | 'TRIAGE' | 'CONSULTATION' | 'TREATMENT' | 'HOSPITALIZED' | 'DISCHARGED' | 'TRANSFERRED' | 'ARCHIVED'))
+
+    const facilityFilter = addFacilityFilter(careEpisodes.facilityId, auth, searchParams)
+    if (facilityFilter) conditions.push(facilityFilter)
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    const [[countResult], items] = await Promise.all([
+      getDb().select({ value: count() }).from(careEpisodes).where(whereClause),
+      getDb().select({
+        id: careEpisodes.id,
+        facilityId: careEpisodes.facilityId,
+        patientId: careEpisodes.patientId,
+        episodeNumber: careEpisodes.episodeNumber,
+        status: careEpisodes.status,
+        admitDate: careEpisodes.admitDate,
+        dischargeDate: careEpisodes.dischargeDate,
+        admitReason: careEpisodes.admitReason,
+        dischargeOutcome: careEpisodes.dischargeOutcome,
+        isArchived: careEpisodes.isArchived,
+        createdAt: careEpisodes.createdAt,
+        updatedAt: careEpisodes.updatedAt,
+        patientFirstname: patients.firstname,
+        patientLastname: patients.lastname,
+      })
+      .from(careEpisodes)
+      .leftJoin(patients, eq(careEpisodes.patientId, patients.id))
+      .where(whereClause)
+      .orderBy(desc(careEpisodes.createdAt))
+      .limit(size)
+      .offset(offset),
+    ])
+
+    return NextResponse.json({
+      items,
+      total: countResult?.value ?? 0,
+      page,
+      size,
+    })
+  } catch (e) {
+    logError('GET /care-episodes', e)
+    return apiError(500, 'Internal server error')
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    const body = await request.json()
+
+    const patientId = sanitizeUuid(body.patientId)
+    if (!patientId) {
+      return apiError(400, 'patientId is required and must be a valid UUID')
+    }
+
+    const db = getDb()
+
+    const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
+    if (patientCheck.length === 0) {
+      return apiError(400, 'Patient not found')
+    }
+
+    const { facilityId } = enforceFacilityAccess(body, auth)
+    const now = new Date()
+    const year = now.getFullYear()
+    const [{ value: maxNum }] = await db.select({ value: count() }).from(careEpisodes)
+    const episodeNumber = `EP-${year}-${String((maxNum ?? 0) + 1).padStart(6, '0')}`
+
+    const [row] = await db.insert(careEpisodes).values({
+      id: crypto.randomUUID(),
+      facilityId: facilityId || null,
+      patientId,
+      episodeNumber,
+      status: body.status || 'ADMITTED',
+      admitDate: body.admitDate ? new Date(body.admitDate) : now,
+      admitReason: body.admitReason || null,
+      isArchived: false,
+      metadata: body.metadata || {},
+      createdAt: now,
+      updatedAt: now,
+    }).returning()
+
+    return NextResponse.json(row, { status: 201 })
+  } catch (e) {
+    logError('POST /care-episodes', e)
+    return apiError(500, 'Internal server error')
+  }
+}

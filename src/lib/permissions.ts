@@ -19,6 +19,10 @@ export type Permission =
   | 'analytics:read'
   | 'audit:read'
   | 'settings:read' | 'settings:edit'
+  | 'episodes:list' | 'episodes:create' | 'episodes:edit' | 'episodes:archive'
+  | 'protocols:list' | 'protocols:create' | 'protocols:edit' | 'protocols:delete'
+  | 'knowledge-base:list' | 'knowledge-base:search'
+  | 'clinical-decision:read'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -39,6 +43,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'reports:read', 'reports:export',
     'analytics:read', 'audit:read',
     'settings:read', 'settings:edit',
+    'episodes:list', 'episodes:create', 'episodes:edit', 'episodes:archive',
+    'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
+    'knowledge-base:list', 'knowledge-base:search',
+    'clinical-decision:read',
   ],
   admin: [
     'users:list', 'users:create', 'users:edit', 'users:delete',
@@ -58,6 +66,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'reports:read', 'reports:export',
     'analytics:read', 'audit:read',
     'settings:read', 'settings:edit',
+    'episodes:list', 'episodes:create', 'episodes:edit', 'episodes:archive',
+    'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
+    'knowledge-base:list', 'knowledge-base:search',
+    'clinical-decision:read',
   ],
   receptionist: [
     'patients:list', 'patients:create', 'patients:edit',
@@ -67,6 +79,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'documents:list', 'documents:create',
     'notifications:list',
     'settings:read',
+    'episodes:list', 'episodes:create', 'episodes:edit',
   ],
   doctor: [
     'patients:list', 'patients:create', 'patients:edit',
@@ -82,6 +95,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'analytics:read',
     'settings:read',
+    'episodes:list', 'episodes:create', 'episodes:edit', 'episodes:archive',
+    'protocols:list', 'protocols:create', 'protocols:edit',
+    'knowledge-base:list', 'knowledge-base:search',
+    'clinical-decision:read',
   ],
   specialist: [
     'patients:list', 'patients:create', 'patients:edit',
@@ -97,6 +114,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'analytics:read',
     'settings:read',
+    'episodes:list', 'episodes:create', 'episodes:edit', 'episodes:archive',
+    'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
+    'knowledge-base:list', 'knowledge-base:search',
+    'clinical-decision:read',
   ],
   laboratory: [
     'patients:list',
@@ -128,6 +149,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'documents:list',
     'notifications:list',
     'settings:read',
+    'episodes:list', 'episodes:create', 'episodes:edit',
   ],
   accountant: [
     'patients:list',
@@ -149,6 +171,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'lab:list',
     'notifications:list',
     'settings:read',
+    'episodes:list', 'episodes:archive',
   ],
   patient: [
     'notifications:list',

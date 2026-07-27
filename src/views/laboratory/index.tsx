@@ -777,8 +777,8 @@ export default function LaboratoryView() {
         data={previewData}
         onNavigate={() => {
           if (previewData) {
-            const allItems = data?.items || []
-            const item = allItems.find((i: LabExamItem) => `Examen: ${i.examName || ''}` === previewData.title)
+            const allItems = (data?.items ?? []) as LabExamItem[]
+            const item = allItems.find((i) => `Examen: ${i.examName || ''}` === previewData.title)
             if (item) router.push(`/laboratory/${item.id}`)
           }
           setPreviewData(null)

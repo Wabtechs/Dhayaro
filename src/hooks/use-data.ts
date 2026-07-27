@@ -881,3 +881,124 @@ export function useUpdateSettings() {
     },
   });
 }
+
+export function useCareEpisodesData(params?: string) {
+  return useQuery({
+    queryKey: ['care-episodes', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/care-episodes${params ? '?' + params : ''}`),
+  });
+}
+
+export function useCareEpisodeDetail(id: string) {
+  return useQuery({ queryKey: ['care-episode', id], queryFn: () => fetchData<unknown>(`/care-episodes/${id}`), enabled: !!id });
+}
+
+export function useCreateCareEpisode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/care-episodes', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-episodes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateCareEpisode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/care-episodes/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['care-episodes'] });
+      queryClient.invalidateQueries({ queryKey: ['care-episode', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useArchiveCareEpisode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>(`/care-episodes/${id}/archive`, {}, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-episodes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['clinical-knowledge-base'] });
+      queryClient.invalidateQueries({ queryKey: ['disease-statistics'] });
+    },
+  });
+}
+
+export function useClinicalKnowledgeBaseData(params?: string) {
+  return useQuery({
+    queryKey: ['clinical-knowledge-base', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/clinical-knowledge-base${params ? '?' + params : ''}`),
+  });
+}
+
+export function useDiseaseStatisticsData(params?: string) {
+  return useQuery({
+    queryKey: ['disease-statistics', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/disease-statistics${params ? '?' + params : ''}`),
+  });
+}
+
+export function useTherapeuticProtocolsData(params?: string) {
+  return useQuery({
+    queryKey: ['therapeutic-protocols', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/therapeutic-protocols${params ? '?' + params : ''}`),
+  });
+}
+
+export function useTherapeuticProtocolDetail(id: string) {
+  return useQuery({ queryKey: ['therapeutic-protocol', id], queryFn: () => fetchData<unknown>(`/therapeutic-protocols/${id}`), enabled: !!id });
+}
+
+export function useCreateTherapeuticProtocol() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/therapeutic-protocols', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['therapeutic-protocols'] });
+    },
+  });
+}
+
+export function useUpdateTherapeuticProtocol() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/therapeutic-protocols/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['therapeutic-protocols'] });
+      queryClient.invalidateQueries({ queryKey: ['therapeutic-protocol', variables.id] });
+    },
+  });
+}
+
+export function useDeleteTherapeuticProtocol() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/therapeutic-protocols/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['therapeutic-protocols'] });
+    },
+  });
+}

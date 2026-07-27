@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { documents, patients } from '@/lib/schema'
+import { documents, patients, episodeEntities } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
@@ -84,13 +84,16 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
+    const episodeId = sanitizeUuid(body.episodeId)
+    const db = getDb()
 
-    const [row] = await getDb().insert(documents).values({
+    const [row] = await db.insert(documents).values({
       id: crypto.randomUUID(),
       facilityId: enforceFacilityAccess(body, auth).facilityId,
       patientId: sanitizeUuid(body.patientId) || null,
       consultationId: sanitizeUuid(body.consultationId) || null,
       doctorId: auth.user.sub,
+      episodeId: episodeId || null,
       documentType: body.documentType,
       title: body.title,
       content: body.content || {},
@@ -98,6 +101,16 @@ export async function POST(request: NextRequest) {
       isPrinted: false,
       createdAt: now,
     }).returning()
+
+    if (episodeId) {
+      await db.insert(episodeEntities).values({
+        id: crypto.randomUUID(),
+        episodeId,
+        entityType: 'DOCUMENT',
+        entityId: row.id,
+        createdAt: now,
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

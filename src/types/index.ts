@@ -349,3 +349,95 @@ export interface SyncLog {
   timestamp: string
   errorMessage?: string
 }
+
+export type EpisodeStatus = 'ADMITTED' | 'TRIAGE' | 'CONSULTATION' | 'TREATMENT' | 'HOSPITALIZED' | 'DISCHARGED' | 'TRANSFERRED' | 'ARCHIVED'
+export type EpisodeEntityType = 'CONSULTATION' | 'DIAGNOSIS' | 'TREATMENT' | 'LAB_EXAM' | 'DOCUMENT'
+export type DischargeOutcome = 'GUERISON' | 'AMELIORATION' | 'DECES' | 'TRANSFERT' | 'FUITE'
+
+export interface CareEpisode {
+  id: string
+  facilityId?: string
+  facility?: Facility
+  patientId: string
+  patient?: Patient
+  episodeNumber: string
+  status: EpisodeStatus
+  admitDate: string
+  dischargeDate?: string
+  admitReason?: string
+  dischargeSummary: Record<string, unknown>
+  dischargeOutcome?: DischargeOutcome
+  isArchived: boolean
+  metadata: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+  entities?: EpisodeEntity[]
+}
+
+export interface EpisodeEntity {
+  id: string
+  episodeId: string
+  entityType: EpisodeEntityType
+  entityId: string
+  createdAt: string
+}
+
+export interface ClinicalKnowledgeEntry {
+  id: string
+  sourceEpisodeId?: string
+  ageRange?: string
+  sex?: 'M' | 'F' | 'OTHER'
+  symptoms: string[]
+  diagnostics: string[]
+  treatments: string[]
+  examResults: Record<string, unknown>
+  evolution?: string
+  durationDays?: number
+  outcome?: string
+  diseaseId?: string
+  disease?: Disease
+  facilityId?: string
+  isAnonymized: boolean
+  createdAt: string
+}
+
+export interface DiseaseStatistics {
+  id: string
+  diseaseId: string
+  disease?: Disease
+  totalCases: number
+  recoveryRate: number
+  mortalityRate: number
+  avgHospitalizationDays: number
+  commonTreatments: { name: string; count: number }[]
+  commonMedications: { name: string; count: number }[]
+  commonExams: { name: string; count: number }[]
+  commonComplications: { name: string; count: number }[]
+  lastCalculated: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TherapeuticProtocol {
+  id: string
+  facilityId?: string
+  diseaseId?: string
+  disease?: Disease
+  name: string
+  description?: string
+  steps: { order: number; description: string; duration?: string; medication?: string; dosage?: string }[]
+  targetPopulation?: string
+  contraindications: string[]
+  efficacyRate?: number
+  isActive: boolean
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SimilarCaseResult {
+  caseId: string
+  similarity: number
+  treatment: string
+  outcome: string
+}

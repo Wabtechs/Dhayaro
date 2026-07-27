@@ -760,8 +760,8 @@ export default function DiagnosticsView() {
         data={previewData}
         onNavigate={() => {
           if (previewData) {
-            const allItems = data?.items || []
-            const item = allItems.find((i: DiagnosticItem) => `Diagnostic ${i.diagnosticType || ''}` === previewData.title)
+            const allItems = (data?.items ?? []) as DiagnosticItem[]
+            const item = allItems.find((i) => `Diagnostic ${i.diagnosticType || ''}` === previewData.title)
             if (item) router.push(`/diagnostics/${item.id}`)
           }
           setPreviewData(null)

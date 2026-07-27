@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { labExams, patients, users, labCategories } from '@/lib/schema'
+import { labExams, patients, users, labCategories, episodeEntities } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
@@ -123,8 +123,10 @@ export async function POST(request: NextRequest) {
     const doctorId = sanitizeUuid(body.doctorId) || auth.user.sub
 
     const now = new Date()
+    const episodeId = sanitizeUuid(body.episodeId)
+    const db = getDb()
 
-    const [row] = await getDb().insert(labExams).values({
+    const [row] = await db.insert(labExams).values({
       id: crypto.randomUUID(),
       facilityId: enforceFacilityAccess(body, auth).facilityId,
       patientId,
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
       labTechnicianId: sanitizeUuid(body.labTechnicianId) || null,
       categoryId: sanitizeUuid(body.categoryId) || null,
       consultationId: sanitizeUuid(body.consultationId) || null,
+      episodeId: episodeId || null,
       examName: body.examName,
       clinicalIndication: body.clinicalIndication || null,
       status: 'REQUESTED',
@@ -141,6 +144,16 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    if (episodeId) {
+      await db.insert(episodeEntities).values({
+        id: crypto.randomUUID(),
+        episodeId,
+        entityType: 'LAB_EXAM',
+        entityId: row.id,
+        createdAt: now,
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

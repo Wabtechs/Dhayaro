@@ -23,6 +23,9 @@ export const archiveTypeEnum = pgEnum('archive_type', ['CONSULTATION', 'DIAGNOST
 export const notificationTypeEnum = pgEnum('notification_type', ['INFO', 'WARNING', 'SUCCESS', 'ERROR'])
 export const examCategoryEnum = pgEnum('exam_category', ['BIOLOGICAL', 'RADIOLOGY', 'IMAGING', 'ANATOMY', 'CARDIOLOGY', 'OTHER'])
 export const outcomeStatusEnum = pgEnum('outcome_status', ['SUCCESS', 'FAILURE', 'IN_PROGRESS', 'PENDING'])
+export const episodeStatusEnum = pgEnum('episode_status', ['ADMITTED', 'TRIAGE', 'CONSULTATION', 'TREATMENT', 'HOSPITALIZED', 'DISCHARGED', 'TRANSFERRED', 'ARCHIVED'])
+export const episodeEntityTypeEnum = pgEnum('episode_entity_type', ['CONSULTATION', 'DIAGNOSIS', 'TREATMENT', 'LAB_EXAM', 'DOCUMENT'])
+export const dischargeOutcomeEnum = pgEnum('discharge_outcome', ['GUERISON', 'AMELIORATION', 'DECES', 'TRANSFERT', 'FUITE'])
 
 // FACILITIES
 
@@ -125,6 +128,7 @@ export const consultations = pgTable('consultations', {
   notes: text('notes'),
   provisionalDiagnosis: text('provisional_diagnosis'),
   status: consultationStatusEnum('status').notNull().default('WAITING'),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
   isFollowUp: boolean('is_follow_up').default(false),
   previousConsultationId: uuid('previous_consultation_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -135,6 +139,7 @@ export const consultations = pgTable('consultations', {
   index('idx_consultations_doctor').on(t.doctorId),
   index('idx_consultations_status').on(t.status),
   index('idx_consultations_number').on(t.consultationNumber),
+  index('idx_consultations_episode').on(t.episodeId),
 ])
 
 // DISEASES (CIM-10)
@@ -150,6 +155,7 @@ export const diseases = pgTable('diseases', {
   treatments: jsonb('treatments').$type<string[]>().default([]),
   isContagious: boolean('is_contagious').default(false),
   severity: text('severity').default('MODERATE'),
+  statisticsMetadata: jsonb('statistics_metadata').$type<Record<string, unknown>>().default({}),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -168,6 +174,7 @@ export const diagnostics = pgTable('diagnostics', {
   patientId: uuid('patient_id').references(() => patients.id).notNull(),
   doctorId: uuid('doctor_id').references(() => users.id).notNull(),
   diseaseId: uuid('disease_id').references(() => diseases.id),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
   diagnosticType: diagnosticTypeEnum('diagnostic_type').notNull(),
   description: text('description').notNull(),
   notes: text('notes'),
@@ -182,6 +189,7 @@ export const diagnostics = pgTable('diagnostics', {
   index('idx_diagnostics_patient').on(t.patientId),
   index('idx_diagnostics_doctor').on(t.doctorId),
   index('idx_diagnostics_disease').on(t.diseaseId),
+  index('idx_diagnostics_episode').on(t.episodeId),
 ])
 
 // MEDICATIONS
@@ -212,6 +220,7 @@ export const treatments = pgTable('treatments', {
   patientId: uuid('patient_id').references(() => patients.id).notNull(),
   doctorId: uuid('doctor_id').references(() => users.id).notNull(),
   diagnosisId: uuid('diagnosis_id').references(() => diagnostics.id),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
   description: text('description').notNull(),
   status: treatmentStatusEnum('status').notNull().default('PRESCRIBED'),
   startDate: date('start_date').notNull(),
@@ -225,6 +234,7 @@ export const treatments = pgTable('treatments', {
   index('idx_treatments_patient').on(t.patientId),
   index('idx_treatments_doctor').on(t.doctorId),
   index('idx_treatments_status').on(t.status),
+  index('idx_treatments_episode').on(t.episodeId),
 ])
 
 // PRESCRIPTIONS
@@ -264,6 +274,7 @@ export const labExams = pgTable('lab_exams', {
   labTechnicianId: uuid('lab_technician_id').references(() => users.id),
   categoryId: uuid('category_id').references(() => labCategories.id),
   consultationId: uuid('consultation_id').references(() => consultations.id),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
   examName: text('exam_name').notNull(),
   clinicalIndication: text('clinical_indication'),
   status: labExamStatusEnum('status').notNull().default('REQUESTED'),
@@ -281,6 +292,7 @@ export const labExams = pgTable('lab_exams', {
   index('idx_lab_exams_doctor').on(t.doctorId),
   index('idx_lab_exams_status').on(t.status),
   index('idx_lab_exams_category').on(t.categoryId),
+  index('idx_lab_exams_episode').on(t.episodeId),
 ])
 
 // QUEUE
@@ -318,6 +330,7 @@ export const documents = pgTable('documents', {
   patientId: uuid('patient_id').references(() => patients.id),
   consultationId: uuid('consultation_id').references(() => consultations.id),
   doctorId: uuid('doctor_id').references(() => users.id).notNull(),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
   documentType: documentTypeEnum('document_type').notNull(),
   title: text('title').notNull(),
   content: jsonb('content').$type<Record<string, unknown>>().default({}),
@@ -328,6 +341,7 @@ export const documents = pgTable('documents', {
   index('idx_documents_facility').on(t.facilityId),
   index('idx_documents_patient').on(t.patientId),
   index('idx_documents_type').on(t.documentType),
+  index('idx_documents_episode').on(t.episodeId),
 ])
 
 // NOTIFICATIONS
@@ -403,6 +417,123 @@ export const syncQueue = pgTable('sync_queue', {
 }, (t) => [
   index('idx_sync_user').on(t.userId),
   index('idx_sync_status').on(t.status),
+])
+
+// CARE EPISODES
+
+export const careEpisodes = pgTable('care_episodes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  patientId: uuid('patient_id').references(() => patients.id).notNull(),
+  episodeNumber: text('episode_number').notNull().unique(),
+  status: episodeStatusEnum('status').notNull().default('ADMITTED'),
+  admitDate: timestamp('admit_date', { withTimezone: true }).notNull().defaultNow(),
+  dischargeDate: timestamp('discharge_date', { withTimezone: true }),
+  admitReason: text('admit_reason'),
+  dischargeSummary: jsonb('discharge_summary').$type<Record<string, unknown>>().default({}),
+  dischargeOutcome: dischargeOutcomeEnum('discharge_outcome'),
+  isArchived: boolean('is_archived').notNull().default(false),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_care_episodes_facility').on(t.facilityId),
+  index('idx_care_episodes_patient').on(t.patientId),
+  index('idx_care_episodes_status').on(t.status),
+  index('idx_care_episodes_number').on(t.episodeNumber),
+])
+
+// EPISODE ENTITIES (polymorphic join)
+
+export const episodeEntities = pgTable('episode_entities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id).notNull(),
+  entityType: episodeEntityTypeEnum('entity_type').notNull(),
+  entityId: uuid('entity_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_episode_entities_episode').on(t.episodeId),
+  index('idx_episode_entities_type').on(t.entityType),
+])
+
+// CLINICAL KNOWLEDGE BASE (anonymized cases)
+
+export const clinicalKnowledgeBase = pgTable('clinical_knowledge_base', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceEpisodeId: uuid('source_episode_id'),
+  ageRange: text('age_range'),
+  sex: genderEnum('sex'),
+  symptoms: jsonb('symptoms').$type<string[]>().default([]),
+  diagnostics: jsonb('diagnostics').$type<string[]>().default([]),
+  treatments: jsonb('treatments').$type<string[]>().default([]),
+  examResults: jsonb('exam_results').$type<Record<string, unknown>>().default({}),
+  evolution: text('evolution'),
+  durationDays: integer('duration_days'),
+  outcome: text('outcome'),
+  diseaseId: uuid('disease_id').references(() => diseases.id),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  isAnonymized: boolean('is_anonymized').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_knowledge_base_disease').on(t.diseaseId),
+  index('idx_knowledge_base_facility').on(t.facilityId),
+  index('idx_knowledge_base_sex').on(t.sex),
+])
+
+// DISEASE STATISTICS (pre-computed)
+
+export const diseaseStatistics = pgTable('disease_statistics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  diseaseId: uuid('disease_id').references(() => diseases.id).notNull().unique(),
+  totalCases: integer('total_cases').default(0),
+  recoveryRate: integer('recovery_rate').default(0),
+  mortalityRate: integer('mortality_rate').default(0),
+  avgHospitalizationDays: integer('avg_hospitalization_days').default(0),
+  commonTreatments: jsonb('common_treatments').$type<{ name: string; count: number }[]>().default([]),
+  commonMedications: jsonb('common_medications').$type<{ name: string; count: number }[]>().default([]),
+  commonExams: jsonb('common_exams').$type<{ name: string; count: number }[]>().default([]),
+  commonComplications: jsonb('common_complications').$type<{ name: string; count: number }[]>().default([]),
+  lastCalculated: timestamp('last_calculated', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_disease_statistics_disease').on(t.diseaseId),
+])
+
+// THERAPEUTIC PROTOCOLS
+
+export const therapeuticProtocols = pgTable('therapeutic_protocols', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  diseaseId: uuid('disease_id').references(() => diseases.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  steps: jsonb('steps').$type<{ order: number; description: string; duration?: string; medication?: string; dosage?: string }[]>().default([]),
+  targetPopulation: text('target_population'),
+  contraindications: jsonb('contraindications').$type<string[]>().default([]),
+  efficacyRate: integer('efficacy_rate'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_therapeutic_protocols_facility').on(t.facilityId),
+  index('idx_therapeutic_protocols_disease').on(t.diseaseId),
+  index('idx_therapeutic_protocols_active').on(t.isActive),
+])
+
+// SIMILAR CASE SEARCHES (cache)
+
+export const similarCaseSearches = pgTable('similar_case_searches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  diagnosticId: uuid('diagnostic_id').references(() => diagnostics.id),
+  querySymptoms: jsonb('query_symptoms').$type<string[]>().default([]),
+  queryDiseaseId: uuid('query_disease_id').references(() => diseases.id),
+  results: jsonb('results').$type<{ caseId: string; similarity: number; treatment: string; outcome: string }[]>().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_similar_case_searches_diagnostic').on(t.diagnosticId),
+  index('idx_similar_case_searches_disease').on(t.queryDiseaseId),
 ])
 
 // LEGACY clinical_cases table (kept for backward compatibility)

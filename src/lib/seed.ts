@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -197,6 +197,12 @@ async function seed() {
   await db.delete(diagnostics)
   await db.delete(consultations)
   await db.delete(clinicalCases)
+  await db.delete(similarCaseSearches)
+  await db.delete(episodeEntities)
+  await db.delete(careEpisodes)
+  await db.delete(clinicalKnowledgeBase)
+  await db.delete(diseaseStatistics)
+  await db.delete(therapeuticProtocols)
   await db.delete(patients)
   await db.delete(users)
   await db.delete(diseases)
@@ -635,6 +641,145 @@ async function seed() {
   )
   console.log(`Archives: 100`)
 
+  console.log('Generating 20 care episodes...')
+  const episodeStatuses = ['ADMITTED','TRIAGE','CONSULTATION','TREATMENT','HOSPITALIZED','DISCHARGED','TRANSFERRED','ARCHIVED'] as const
+  const dischargeOutcomes = ['GUERISON','AMELIORATION','DECES','TRANSFERT','FUITE'] as const
+  const insertedEpisodes: Array<{ id: string; patientId: string; facilityId: string | null }> = []
+  const episodeBatch: Array<Record<string, unknown>> = []
+  for (let i = 0; i < 20; i++) {
+    const p = pick(insertedPatients)
+    const epId = uuid()
+    const status = pick(episodeStatuses)
+    const admit = daysAgo(randInt(10, 300))
+    const discharge = status === 'DISCHARGED' || status === 'ARCHIVED' ? new Date(admit.getTime() + randInt(1, 30) * 86400000) : null
+    const facilityId = pick(insertedFacilities).id
+    episodeBatch.push({
+      id: epId,
+      facilityId,
+      patientId: p.id,
+      episodeNumber: `EP-${admit.getFullYear()}-${String(i + 1).padStart(6, '0')}`,
+      status,
+      admitDate: admit,
+      dischargeDate: discharge,
+      admitReason: pick(['Fièvre persistante','Douleur abdominale aiguë','Traumatisme','Infection respiratoire','Suivi diabète','Hypertension','Anémie','Paludisme récidivant']),
+      dischargeSummary: discharge ? { consultationsCount: randInt(1, 5), diagnosticsCount: randInt(1, 3), treatmentsCount: randInt(1, 4) } : {},
+      dischargeOutcome: status === 'DISCHARGED' || status === 'ARCHIVED' ? pick(dischargeOutcomes) : null,
+      isArchived: status === 'ARCHIVED',
+      metadata: {},
+      createdAt: admit,
+      updatedAt: discharge || admit,
+    })
+    insertedEpisodes.push({ id: epId, patientId: p.id, facilityId })
+  }
+  await db.insert(careEpisodes).values(episodeBatch as any)
+  console.log(`Care Episodes: ${episodeBatch.length}`)
+
+  console.log('Generating 50 episode entities...')
+  const entityTypes = ['CONSULTATION','DIAGNOSIS','TREATMENT','LAB_EXAM','DOCUMENT'] as const
+  await db.insert(episodeEntities).values(
+    Array.from({ length: 50 }, () => {
+      const ep = pick(insertedEpisodes)
+      const type = pick(entityTypes)
+      let entityId = uuid()
+      if (type === 'CONSULTATION' && insertedConsultations.length > 0) {
+        entityId = pick(insertedConsultations).id
+      } else if (type === 'DIAGNOSIS' && insertedDiagnostics.length > 0) {
+        entityId = pick(insertedDiagnostics).id
+      } else if (type === 'TREATMENT' && insertedTreatments.length > 0) {
+        entityId = pick(insertedTreatments).id
+      }
+      return {
+        id: uuid(),
+        episodeId: ep.id,
+        entityType: type,
+        entityId,
+        createdAt: daysAgo(randInt(10, 300)),
+      }
+    })
+  )
+  console.log(`Episode Entities: 50`)
+
+  console.log('Generating 30 clinical knowledge base entries...')
+  const sexValues = ['M', 'F'] as const
+  const evolutionValues = ['GUERISON', 'AMELIORATION', 'DECES'] as const
+  const ageRanges = ['0-4','5-14','15-24','25-34','35-44','45-54','55-64','65-74','75+'] as const
+  await db.insert(clinicalKnowledgeBase).values(
+    Array.from({ length: 30 }, () => {
+      const tmpl = pick(clinicalTemplates)
+      const disease = pick(insertedDiseases)
+      return {
+        id: uuid(),
+        sourceEpisodeId: null,
+        ageRange: pick(ageRanges),
+        sex: pick(sexValues),
+        symptoms: tmpl.symptoms,
+        diagnostics: [tmpl.diag],
+        treatments: [tmpl.treatment],
+        examResults: { notes: tmpl.notes },
+        evolution: pick(evolutionValues),
+        durationDays: randInt(1, 45),
+        outcome: pick(evolutionValues),
+        diseaseId: disease.id,
+        facilityId: pick(insertedFacilities).id,
+        isAnonymized: true,
+        createdAt: daysAgo(randInt(10, 300)),
+      }
+    })
+  )
+  console.log(`Clinical Knowledge Base: 30`)
+
+  console.log('Generating 12 disease statistics...')
+  await db.insert(diseaseStatistics).values(
+    insertedDiseases.map((d) => ({
+      id: uuid(),
+      diseaseId: d.id,
+      totalCases: randInt(5, 200),
+      recoveryRate: randInt(40, 95),
+      mortalityRate: randInt(1, 30),
+      avgHospitalizationDays: randInt(2, 30),
+      commonTreatments: [{ name: pick(clinicalTemplates).treatment.split('+')[0].trim(), count: randInt(5, 50) }],
+      commonMedications: [{ name: pick(['Artésunate','Metformine','Amlodipine','Ciprofloxacine','Ceftriaxone','Furosémide','Aspirine','Paracétamol','Amoxicilline','Omeprazole']), count: randInt(5, 50) }],
+      commonExams: [{ name: pick(['Goutte épaisse','ECG','Radiographie','Scanner','NFS','Glycémie']), count: randInt(5, 50) }],
+      commonComplications: [{ name: pick(['Anémie','Insuffisance rénale','Détresse respiratoire','Sepsis','Décès']), count: randInt(1, 20) }],
+      lastCalculated: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+  )
+  console.log(`Disease Statistics: ${insertedDiseases.length}`)
+
+  console.log('Generating 10 therapeutic protocols...')
+  const protocolData = [
+    { name: 'Paludisme sévère - Adulte', desc: 'Protocole OMS pour paludisme sévère à P. falciparum', diseaseIdx: 0, steps: [{ order: 1, description: 'Artésunate IV 2.4mg/kg à 0h, 12h, 24h', duration: '24h' }, { order: 2, description: 'Arthémer-Luméfantrine PO après 24h', duration: '3 jours' }] },
+    { name: 'Pneumonie communautaire', desc: 'Traitement première ligne pneumonie', diseaseIdx: 4, steps: [{ order: 1, description: 'Ceftriaxone 2g IV/jour', duration: '7-10 jours' }, { order: 2, description: 'Azithromycine 500mg PO', duration: '5 jours' }] },
+    { name: 'Diabète type 2 - Initiation', desc: 'Protocole d\'initiation Metformine', diseaseIdx: 2, steps: [{ order: 1, description: 'Metformine 500mg 2x/j', duration: '2 semaines' }, { order: 2, description: 'Metformine 1000mg 2x/j', duration: 'continu' }] },
+    { name: 'HTA - Première intention', desc: 'Traitement hypertension artérielle', diseaseIdx: 3, steps: [{ order: 1, description: 'Amlodipine 5-10mg PO/j', duration: 'continu' }] },
+    { name: 'Anémie ferriprive', desc: 'Correction anémie par fer', diseaseIdx: 7, steps: [{ order: 1, description: 'Venofer 200mg IV x5', duration: '5 jours' }, { order: 2, description: 'Fer oral 3 mois', duration: '3 mois' }] },
+    { name: 'Infection urinaire', desc: 'Traitement pyélonéphrite aiguë', diseaseIdx: 6, steps: [{ order: 1, description: 'Ciprofloxacine 500mg 2x/j PO', duration: '14 jours' }] },
+    { name: 'Appendicite aiguë', desc: 'Protocole chirurgical appendicite', diseaseIdx: 5, steps: [{ order: 1, description: 'Appendicoscopie sous coelioscopie', duration: 'Urgence' }] },
+    { name: 'ICFE - Stabilisation', desc: 'Insuffisance cardiaque décompensée', diseaseIdx: 8, steps: [{ order: 1, description: 'Furosémide IV', duration: 'Aigu' }, { order: 2, description: 'Ramipril + Carvedilol PO', duration: 'continu' }] },
+    { name: 'Gastropathie HP+', desc: 'Éradication Helicobacter pylori', diseaseIdx: 9, steps: [{ order: 1, description: 'IPP + Amoxicilline 1g + Clarithromycine 500mg', duration: '14 jours' }] },
+    { name: 'Lithiase rénale', desc: 'Traitement colique néphrétique', diseaseIdx: 10, steps: [{ order: 1, description: 'Métamizole 2g IV + Tamsulosine', duration: 'Aigu' }] },
+  ]
+  await db.insert(therapeuticProtocols).values(
+    protocolData.map((p) => ({
+      id: uuid(),
+      facilityId: pick(insertedFacilities).id,
+      diseaseId: insertedDiseases[Math.min(p.diseaseIdx, insertedDiseases.length - 1)]?.id || null,
+      name: p.name,
+      description: p.desc,
+      steps: p.steps,
+      targetPopulation: 'Adultes',
+      contraindications: [],
+      efficacyRate: randInt(60, 95),
+      isActive: true,
+      createdBy: pick(insertedUsers).id,
+      createdAt: daysAgo(randInt(30, 300)),
+      updatedAt: daysAgo(randInt(10, 30)),
+    }))
+  )
+  console.log(`Therapeutic Protocols: ${protocolData.length}`)
+
   console.log('Generating 50 sync queue entries...')
   await db.insert(syncQueue).values(
     Array.from({ length: 50 }, (_, _i) => ({
@@ -671,7 +816,12 @@ async function seed() {
   console.log(`  Documents:          ${docBatchSize}`)
   console.log(`  Archives:           100`)
   console.log(`  Sync Queue:         50`)
-  console.log(`  TOTAL:              ~${insertedPatients.length + insertedConsultations.length + diagnosticsCount + insertedTreatments.length + prescCount + labCount + insertedCases.length + auditEntries.length + insertedNotifs.length + 350}`)
+  console.log(`  Care Episodes:      ${episodeBatch.length}`)
+  console.log(`  Episode Entities:   50`)
+  console.log(`  Knowledge Base:     30`)
+  console.log(`  Disease Statistics: ${insertedDiseases.length}`)
+  console.log(`  Therapeutic Protocols: ${protocolData.length}`)
+  console.log(`  TOTAL:              ~${insertedPatients.length + insertedConsultations.length + diagnosticsCount + insertedTreatments.length + prescCount + labCount + insertedCases.length + auditEntries.length + insertedNotifs.length + 420}`)
 }
 
 seed().catch((e) => {

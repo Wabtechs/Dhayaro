@@ -38,6 +38,10 @@ import {
   Settings,
   Shield,
   LogOut,
+  ClipboardList,
+  FileCheck,
+  BookOpen,
+  Lightbulb,
 } from 'lucide-react'
 
 interface NavItem {
@@ -75,6 +79,20 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Traitements', icon: Pill, href: '/treatments', permission: 'treatments:list' },
       { label: 'Laboratoire', icon: TestTube, href: '/laboratory', permission: 'lab:list' },
+      { label: 'Protocoles', icon: FileCheck, href: '/protocols', permission: 'protocols:list' },
+    ],
+  },
+  {
+    label: 'ÉPISODES',
+    items: [
+      { label: 'Épisodes de soins', icon: ClipboardList, href: '/care-episodes', permission: 'episodes:list' },
+    ],
+  },
+  {
+    label: 'CONNAISSANCE',
+    items: [
+      { label: 'Base de connaissances', icon: BookOpen, href: '/knowledge-base', permission: 'knowledge-base:list' },
+      { label: 'Aide à la décision', icon: Lightbulb, href: '/clinical-decision', permission: 'clinical-decision:read' },
     ],
   },
   {
