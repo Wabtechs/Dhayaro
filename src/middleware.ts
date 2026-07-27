@@ -30,6 +30,13 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/clinical-knowledge-base': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
   '/api/v1/disease-statistics': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
   '/api/v1/therapeutic-protocols': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
+  '/api/v1/diagnostics': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'],
+  '/api/v1/treatments': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'PHARMACIST'],
+  '/api/v1/prescriptions': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'PHARMACIST'],
+  '/api/v1/clinical-cases': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
+  '/api/v1/documents': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'LABORATORY', 'ARCHIVIST'],
+  '/api/v1/settings': ['SUPER_ADMIN', 'ADMIN'],
+  '/api/v1/sync': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST'],
 }
 
 function isPublicPath(pathname: string): boolean {

@@ -11,7 +11,7 @@ import type { Permission } from '@/lib/permissions'
 import type { UserRole } from '@/types'
 
 export function usePermissions() {
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const role = user?.role as UserRole | undefined
 
   return {

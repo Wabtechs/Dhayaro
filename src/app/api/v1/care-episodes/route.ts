@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { careEpisodes, patients, users } from '@/lib/schema'
-import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { eq, desc, ilike, and, or, count, like } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -93,8 +93,10 @@ export async function POST(request: NextRequest) {
     const { facilityId } = enforceFacilityAccess(body, auth)
     const now = new Date()
     const year = now.getFullYear()
-    const [{ value: maxNum }] = await db.select({ value: count() }).from(careEpisodes)
-    const episodeNumber = `EP-${year}-${String((maxNum ?? 0) + 1).padStart(6, '0')}`
+    const yearPrefix = `EP-${year}-`
+    const [{ value: yearCount }] = await db.select({ value: count() }).from(careEpisodes)
+      .where(like(careEpisodes.episodeNumber, `${yearPrefix}%`))
+    const episodeNumber = `EP-${year}-${String((yearCount ?? 0) + 1).padStart(6, '0')}`
 
     const [row] = await db.insert(careEpisodes).values({
       id: crypto.randomUUID(),

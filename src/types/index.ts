@@ -20,6 +20,7 @@ export interface User {
 export interface Facility {
   id: string
   name: string
+  code?: string
   type: 'hospital' | 'clinic' | 'laboratory' | 'pharmacy'
   address: string
   city: string
@@ -30,6 +31,7 @@ export interface Facility {
   staffCount: number
   isActive: boolean
   createdAt: string
+  updatedAt?: string
 }
 
 export interface Patient {
@@ -81,6 +83,7 @@ export interface Consultation {
   status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
   isFollowUp?: boolean
   previousConsultationId?: string
+  episodeId?: string
   createdAt: string
   updatedAt: string
 }
@@ -118,6 +121,7 @@ export interface Diagnostic {
   isValidated?: boolean
   validatedBy?: string
   validatedAt?: string
+  episodeId?: string
   createdAt: string
   updatedAt: string
 }
@@ -151,6 +155,7 @@ export interface Treatment {
   notes?: string
   outcome?: string
   prescriptions?: Prescription[]
+  episodeId?: string
   createdAt: string
   updatedAt: string
 }
@@ -188,6 +193,7 @@ export interface LabExam {
   validatedAt?: string
   requestedAt: string
   completedAt?: string
+  episodeId?: string
   createdAt: string
   updatedAt: string
 }
@@ -233,18 +239,21 @@ export interface MedicalDocument {
   content: Record<string, unknown>
   filePath?: string
   isPrinted?: boolean
+  episodeId?: string
   createdAt: string
 }
 
 export interface Notification {
   id: string
   userId: string
+  facilityId?: string
   title: string
   message: string
-  type: 'info' | 'success' | 'warning' | 'error' | 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR'
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR'
   read: boolean
   createdAt: string
   link?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface Archive {

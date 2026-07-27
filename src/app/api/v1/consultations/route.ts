@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       return apiError(400, 'Doctor not found')
     }
 
-    const consultationNumber = 'CONS-' + Date.now()
+    const consultationNumber = 'CONS-' + Date.now() + '-' + crypto.randomUUID().slice(0, 8)
     const { facilityId } = enforceFacilityAccess(body, auth)
     const now = new Date()
     const episodeId = sanitizeUuid(body.episodeId)

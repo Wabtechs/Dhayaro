@@ -44,12 +44,10 @@ function transformKeys(obj: unknown): unknown {
         val = d.description ? String(d.description).split(',').map((s: string) => s.trim()) : [];
         key = 'symptoms';
       }
-      if (key === 'provisionalDiagnosis') { key = 'diagnosis'; }
       if (key === 'outcomeStatus') {
         val = OUTCOME_MAP[String(val)] || 'active';
         key = 'status';
       }
-      if (key === 'doctorId') { key = 'assignedDoctorId'; }
       if (key === 'tagsJson' && val && typeof val === 'object') {
         const d = val as Record<string, unknown>;
         val = Array.isArray(d.tags) ? d.tags : [];
@@ -61,10 +59,6 @@ function transformKeys(obj: unknown): unknown {
       }
       if (key === 'firstname') { key = 'firstName'; }
       if (key === 'lastname') { key = 'lastName'; }
-      if (key === 'sex' && typeof val === 'string') {
-        val = val.toLowerCase();
-        key = 'gender';
-      }
       if (key === 'role' && typeof val === 'string') {
         val = val.toLowerCase();
       }
@@ -104,6 +98,23 @@ function transformKeys(obj: unknown): unknown {
   return obj;
 }
 
+function transformClinicalCase(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(transformClinicalCase);
+  if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+    const result = transformKeys(obj) as Record<string, unknown>;
+    if ('doctorId' in result) {
+      result.assignedDoctorId = result.doctorId;
+      delete result.doctorId;
+    }
+    if ('provisionalDiagnosis' in result) {
+      result.diagnosis = result.provisionalDiagnosis;
+      delete result.provisionalDiagnosis;
+    }
+    return result;
+  }
+  return obj;
+}
+
 async function fetchData<T>(endpoint: string, facilityOverride?: string): Promise<T> {
   const token = getToken();
   const activeFacility = facilityOverride ?? (typeof window !== 'undefined' ? localStorage.getItem('dhayaro_active_facility') : null);
@@ -128,7 +139,7 @@ export function useDashboardData() {
           api.get<unknown>(`/facilities${ff}`, token).catch(() => null),
         ]);
         const apiStats = transformKeys(rawStats) as { total?: number; pending?: number; inProgress?: number; success?: number; failure?: number } | null;
-        const cases = transformKeys(rawCases) as { items: ClinicalCase[]; total: number } | null;
+        const cases = transformClinicalCase(rawCases) as { items: ClinicalCase[]; total: number } | null;
         const patients = transformKeys(rawPatients) as { total?: number } | null;
         const facilities = transformKeys(rawFacilities) as { total?: number } | null;
 
@@ -204,7 +215,10 @@ export function useDashboardData() {
 export function useClinicalCasesData(facilityId?: string) {
   return useQuery({
     queryKey: ['clinical-cases', facilityId],
-    queryFn: () => fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases?size=100', facilityId),
+    queryFn: async () => {
+      const raw = await fetchData<{ items: unknown[]; total: number }>('/clinical-cases?size=100', facilityId);
+      return { items: raw.items.map(transformClinicalCase) as ClinicalCase[], total: raw.total };
+    },
   });
 }
 
@@ -256,9 +270,8 @@ export function useTreatmentsData() {
   return useQuery({
     queryKey: ['treatments'],
     queryFn: async () => {
-      const data = await fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases');
-      const withTreatment = data.items.filter((c) => c.treatment);
-      return { items: withTreatment, total: withTreatment.length };
+      const data = await fetchData<{ items: unknown[]; total: number }>('/treatments');
+      return data;
     },
   });
 }
@@ -267,8 +280,8 @@ export function useStudiesData() {
   return useQuery({
     queryKey: ['studies'],
     queryFn: async () => {
-      const data = await fetchData<{ items: ClinicalCase[]; total: number }>('/clinical-cases');
-      const resolved = data.items.filter((c) => c.status === 'resolved');
+      const raw = await fetchData<{ items: unknown[]; total: number }>('/clinical-cases');
+      const resolved = raw.items.filter((c: unknown) => (c as Record<string, unknown>).status === 'resolved');
       return { items: resolved, total: resolved.length };
     },
   });
@@ -285,7 +298,7 @@ export function usePatientDetail(id: string) {
 export function useClinicalCaseDetail(id: string) {
   return useQuery({
     queryKey: ['clinical-case', id],
-    queryFn: () => fetchData<unknown>(`/clinical-cases/${id}`),
+    queryFn: () => fetchData<unknown>(`/clinical-cases/${id}`).then(transformClinicalCase),
     enabled: !!id,
   });
 }

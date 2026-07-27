@@ -203,11 +203,11 @@ async function seed() {
   await db.delete(clinicalKnowledgeBase)
   await db.delete(diseaseStatistics)
   await db.delete(therapeuticProtocols)
+  await db.delete(notifications)
   await db.delete(patients)
   await db.delete(users)
   await db.delete(diseases)
   await db.delete(labCategories)
-  await db.delete(notifications)
   await db.delete(facilities)
   console.log('  Cleaned all tables\n')
 
