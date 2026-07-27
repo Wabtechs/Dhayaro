@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { careEpisodes, patients, users } from '@/lib/schema'
-import { eq, desc, ilike, and, or, count, like } from 'drizzle-orm'
+import { eq, desc, ilike, and, or, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -94,9 +94,11 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const year = now.getFullYear()
     const yearPrefix = `EP-${year}-`
-    const [{ value: yearCount }] = await db.select({ value: count() }).from(careEpisodes)
-      .where(like(careEpisodes.episodeNumber, `${yearPrefix}%`))
-    const episodeNumber = `EP-${year}-${String((yearCount ?? 0) + 1).padStart(6, '0')}`
+    const [{ value: maxNum }] = await db.select({
+      value: sql<number>`coalesce(max(cast(right(${careEpisodes.episodeNumber}, 6) as integer)), 0)`
+    }).from(careEpisodes)
+      .where(ilike(careEpisodes.episodeNumber, `${yearPrefix}%`))
+    const episodeNumber = `EP-${year}-${String((maxNum ?? 0) + 1).padStart(6, '0')}`
 
     const [row] = await db.insert(careEpisodes).values({
       id: crypto.randomUUID(),
@@ -105,7 +107,10 @@ export async function POST(request: NextRequest) {
       episodeNumber,
       status: body.status || 'ADMITTED',
       admitDate: body.admitDate ? new Date(body.admitDate) : now,
+      dischargeDate: null,
       admitReason: body.admitReason || null,
+      dischargeSummary: {},
+      dischargeOutcome: null,
       isArchived: false,
       metadata: body.metadata || {},
       createdAt: now,
@@ -114,7 +119,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
+    console.error('POST /care-episodes ERROR:', e instanceof Error ? e.message : e)
+    if (e && typeof e === 'object' && 'cause' in e) console.error('CAUSE:', e.cause)
     logError('POST /care-episodes', e)
-    return apiError(500, 'Internal server error')
+    return apiError(500, e instanceof Error ? e.message : 'Internal server error')
   }
 }

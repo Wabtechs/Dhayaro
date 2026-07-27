@@ -76,7 +76,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ ...episode, entities: entityData })
   } catch (e) {
     logError('GET /care-episodes/[id]', e)
-    return apiError(500, 'Internal server error')
+    return apiError(500, e instanceof Error ? e.message : 'Internal server error')
   }
 }
 
