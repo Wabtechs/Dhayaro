@@ -266,6 +266,32 @@ export function useNotificationsData(page = 1, size = 20) {
   });
 }
 
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/notifications/read', { ids }, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/notifications/read', { all: true }, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
 export function useTreatmentsData() {
   return useQuery({
     queryKey: ['treatments'],

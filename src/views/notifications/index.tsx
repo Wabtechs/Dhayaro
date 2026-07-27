@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import { useNotificationsData } from '@/hooks/use-data'
+import { useNotificationsData, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/use-data'
 import { useAppStore } from '@/store'
 import { formatDateTime } from '@/lib/utils'
 import type { Notification } from '@/types'
@@ -158,6 +158,19 @@ export default function NotificationsPage() {
     (s) => s.markAllNotificationsRead
   )
 
+  const markReadMutation = useMarkNotificationRead()
+  const markAllReadMutation = useMarkAllNotificationsRead()
+
+  const handleMarkRead = (id: string) => {
+    markNotificationRead(id)
+    markReadMutation.mutate([id])
+  }
+
+  const handleMarkAllRead = () => {
+    markAllNotificationsRead()
+    markAllReadMutation.mutate()
+  }
+
   const filterNotifications = (filter: string) => {
     switch (filter) {
       case 'unread':
@@ -215,7 +228,7 @@ export default function NotificationsPage() {
                 <NotificationItem
                   key={n.id}
                   notification={n}
-                  onRead={markNotificationRead}
+                  onRead={handleMarkRead}
                 />
               ))}
             </div>
@@ -237,7 +250,7 @@ export default function NotificationsPage() {
                 <NotificationItem
                   key={n.id}
                   notification={n}
-                  onRead={markNotificationRead}
+                  onRead={handleMarkRead}
                 />
               ))}
             </div>
@@ -262,7 +275,7 @@ export default function NotificationsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={markAllNotificationsRead}
+            onClick={handleMarkAllRead}
           >
             <CheckCheck className="mr-2 h-4 w-4" />
             Tout marquer comme lu
