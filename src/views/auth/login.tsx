@@ -22,31 +22,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const demoAccounts = [
-    { label: 'Super Admin', email: 'superadmin@dhayaro.cd', password: 'admin123', role: 'SUPER_ADMIN' },
-    { label: 'Admin', email: 'admin@dhayaro.cd', password: 'admin123', role: 'ADMIN' },
-    { label: 'Réceptionniste', email: 'reception@dhayaro.cd', password: 'dhayaro123', role: 'RECEPTIONIST' },
-    { label: 'Dr. Kabongo', email: 'dr.kabongo@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. Clovis', email: 'dr.clovis@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. Sylvain', email: 'dr.sylvain@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. Pierre', email: 'dr.pierre@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. Françoise', email: 'dr.francoise@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. André', email: 'dr.andre@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. David', email: 'dr.david@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
-    { label: 'Dr. Espérance', email: 'dr.esperance@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
-    { label: 'Dr. Grâce', email: 'dr.grace@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
-    { label: 'Dr. Marie', email: 'dr.marie@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
-    { label: 'Inf. Mohamed', email: 'nurse.mohamed@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
-    { label: 'Inf. Cécile', email: 'nurse.cecile@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
-    { label: 'Labo Joseph', email: 'lab.joseph@dhayaro.cd', password: 'dhayaro123', role: 'LABORATORY' },
-    { label: 'Pharmacienne', email: 'pharm.beatrice@dhayaro.cd', password: 'dhayaro123', role: 'PHARMACIST' },
-    { label: 'Comptable', email: 'compta.augustin@dhayaro.cd', password: 'dhayaro123', role: 'ACCOUNTANT' },
-    { label: 'Archiviste', email: 'archive.monique@dhayaro.cd', password: 'dhayaro123', role: 'ARCHIVIST' },
-    { label: 'Patient Marcel', email: 'patient.marcel@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
-    { label: 'Patient Solange', email: 'patient.solange@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
-    { label: 'Patient Prosper', email: 'patient.prosper@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
-  ]
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -66,21 +41,6 @@ export default function Login() {
       router.push('/dashboard')
     } catch {
       setError('Identifiant ou mot de passe incorrect')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const quickLogin = async (acc: { email: string; password: string }) => {
-    setEmail(acc.email)
-    setPassword(acc.password)
-    setError('')
-    setLoading(true)
-    try {
-      await login(acc.email, acc.password)
-      router.push('/dashboard')
-    } catch {
-      setError('Échec de connexion pour ce compte')
     } finally {
       setLoading(false)
     }
@@ -224,31 +184,13 @@ export default function Login() {
             </CardContent>
           </Card>
 
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">
-              Comptes de test — cliquez pour connexion rapide :
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  disabled={loading}
-                  onClick={() => quickLogin(acc)}
-                  className="flex flex-col items-start gap-0.5 rounded-md border bg-background px-3 py-2 text-left transition-colors hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="text-xs font-semibold text-foreground">
-                    {acc.label}
-                  </span>
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-primary/80">
-                    {acc.role}
-                  </span>
-                  <span className="truncate text-[10px] text-muted-foreground">
-                    {acc.email}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="text-center">
+            <Link
+              href="/test-accounts"
+              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors"
+            >
+              Comptes de test
+            </Link>
           </div>
         </div>
       </div>
