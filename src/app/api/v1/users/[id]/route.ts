@@ -67,13 +67,31 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    if (body.role !== undefined) {
+      const validRoles = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST']
+      if (!validRoles.includes(body.role)) {
+        return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
+      }
+    }
+
+    const MULTI_FACILITY_ROLES = ['SUPER_ADMIN', 'ADMIN']
+    const targetRole = body.role as string | undefined
+    if (targetRole && !MULTI_FACILITY_ROLES.includes(targetRole)) {
+      const fid = body.facilityId !== undefined ? sanitizeUuid(body.facilityId) : undefined
+      if (fid !== undefined && !fid) {
+        return apiError(400, 'facilityId cannot be empty for this role')
+      }
+    }
+
     const set: Record<string, unknown> = { updatedAt: new Date() }
     if (body.firstname !== undefined) set.firstname = body.firstname
     if (body.lastname !== undefined) set.lastname = body.lastname
     if (body.email !== undefined) set.email = body.email
     if (body.phone !== undefined) set.phone = body.phone
     if (body.role !== undefined) set.role = body.role
-    if (body.facilityId !== undefined) set.facilityId = sanitizeUuid(body.facilityId)
+    if (body.facilityId !== undefined) {
+      set.facilityId = sanitizeUuid(body.facilityId)
+    }
     if (body.specialty !== undefined) set.specialty = body.specialty
     if (body.licenseNumber !== undefined) set.licenseNumber = body.licenseNumber
     if (body.availability !== undefined) set.availability = body.availability

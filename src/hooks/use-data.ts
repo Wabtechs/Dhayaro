@@ -1,9 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import type { ClinicalCase } from '@/types';
+import type { ClinicalCase, UserRole } from '@/types';
 
 function getToken(): string {
   return localStorage.getItem('dhayaro_token') || '';
+}
+
+interface RoleDashboardResponse {
+  role: string
+  stats: Record<string, number>
+  charts: Record<string, Array<{ name: string; value: number }>>
 }
 
 function toCamelCase(key: string): string {
@@ -209,6 +215,25 @@ export function useDashboardData() {
         };
       }
     },
+  });
+}
+
+export function useRoleDashboardData(userRole?: UserRole) {
+  return useQuery({
+    queryKey: ['role-dashboard', userRole],
+    queryFn: async () => {
+      try {
+        const data = await fetchData<RoleDashboardResponse>('/dashboard/stats');
+        return data;
+      } catch {
+        return {
+          role: userRole || 'admin',
+          stats: {} as Record<string, number>,
+          charts: {} as Record<string, Array<{ name: string; value: number }>>,
+        } as RoleDashboardResponse;
+      }
+    },
+    staleTime: 30 * 1000,
   });
 }
 
@@ -967,6 +992,22 @@ export function useArchiveCareEpisode() {
     mutationFn: async (id: string) => {
       const token = getTokenFromStorage();
       return api.post<unknown>(`/care-episodes/${id}/archive`, {}, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-episodes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['clinical-knowledge-base'] });
+      queryClient.invalidateQueries({ queryKey: ['disease-statistics'] });
+    },
+  });
+}
+
+export function useRestoreCareEpisode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.patch<unknown>(`/care-episodes/${id}/restore`, {}, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['care-episodes'] });

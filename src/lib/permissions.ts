@@ -236,3 +236,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 export function hasMinimumRole(userRole: UserRole, requiredRole: UserRole): boolean {
   return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[requiredRole] ?? 0)
 }
+
+export function isMultiFacilityRole(role: UserRole): boolean {
+  return role === 'super_admin' || role === 'admin'
+}

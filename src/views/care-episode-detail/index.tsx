@@ -1,26 +1,43 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Archive, Clock, User, FileText, Brain, Pill, TestTube, Stethoscope } from 'lucide-react'
+import { ArrowLeft, Archive, Clock, User, FileText, Brain, Pill, TestTube, Stethoscope, Pencil, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCareEpisodeDetail, useArchiveCareEpisode } from '@/hooks/use-data'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { useCareEpisodeDetail, useUpdateCareEpisode, useArchiveCareEpisode, useRestoreCareEpisode } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 
 const statusColors: Record<string, string> = {
-  ADMITTED: 'bg-blue-100 text-blue-800 border-blue-200',
-  TRIAGE: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  CONSULTATION: 'bg-purple-100 text-purple-800 border-purple-200',
-  TREATMENT: 'bg-orange-100 text-orange-800 border-orange-200',
-  HOSPITALIZED: 'bg-red-100 text-red-800 border-red-200',
-  DISCHARGED: 'bg-green-100 text-green-800 border-green-200',
-  TRANSFERRED: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  ARCHIVED: 'bg-gray-100 text-gray-800 border-gray-200',
+  ADMITTED: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+  TRIAGE: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800',
+  CONSULTATION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+  TREATMENT: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
+  HOSPITALIZED: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+  DISCHARGED: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+  TRANSFERRED: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800',
+  ARCHIVED: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700',
 }
 
 const statusLabels: Record<string, string> = {
@@ -57,17 +74,62 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
   const { toast } = useToast()
   const { can } = usePermissions()
   const { data, isLoading } = useCareEpisodeDetail(id)
+  const updateEpisode = useUpdateCareEpisode()
   const archiveEpisode = useArchiveCareEpisode()
+  const restoreEpisode = useRestoreCareEpisode()
 
   const episode = data as EpisodeDetail | undefined
+
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editForm, setEditForm] = useState({ status: '', admitReason: '', admitDate: '', dischargeDate: '' })
 
   const handleArchive = async () => {
     if (!episode) return
     try {
       await archiveEpisode.mutateAsync(episode.id)
       toast({ title: 'Succès', description: 'Épisode archivé avec succès' })
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible d\'archiver l\'épisode', variant: 'destructive' })
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible d\'archiver l\'épisode', variant: 'destructive' })
+    }
+  }
+
+  const handleRestore = async () => {
+    if (!episode) return
+    try {
+      await restoreEpisode.mutateAsync(episode.id)
+      toast({ title: 'Succès', description: 'Épisode restauré avec succès' })
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de restaurer l\'épisode', variant: 'destructive' })
+    }
+  }
+
+  const openEditDialog = () => {
+    if (!episode) return
+    setEditForm({
+      status: episode.status,
+      admitReason: episode.admitReason || '',
+      admitDate: episode.admitDate ? episode.admitDate.slice(0, 16) : '',
+      dischargeDate: episode.dischargeDate ? episode.dischargeDate.slice(0, 16) : '',
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleEdit = async () => {
+    if (!episode) return
+    try {
+      await updateEpisode.mutateAsync({
+        id: episode.id,
+        data: {
+          status: editForm.status,
+          admitReason: editForm.admitReason || null,
+          admitDate: editForm.admitDate ? new Date(editForm.admitDate).toISOString() : undefined,
+          dischargeDate: editForm.dischargeDate ? new Date(editForm.dischargeDate).toISOString() : null,
+        },
+      })
+      toast({ title: 'Succès', description: 'Épisode mis à jour' })
+      setShowEditDialog(false)
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de modifier l\'épisode', variant: 'destructive' })
     }
   }
 
@@ -98,6 +160,8 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
   const labExams = entities.labExams || []
   const documents = entities.documents || []
 
+  const statusKeys = Object.keys(statusLabels).filter(k => k !== 'ARCHIVED')
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -118,10 +182,22 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
           <Badge variant="outline" className={statusColors[episode.status] || ''}>
             {statusLabels[episode.status] || episode.status}
           </Badge>
+          {can('episodes:edit') && (
+            <Button variant="outline" onClick={openEditDialog}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Modifier
+            </Button>
+          )}
           {can('episodes:archive') && !episode.isArchived && (
             <Button variant="outline" onClick={handleArchive} disabled={archiveEpisode.isPending}>
               <Archive className="mr-2 h-4 w-4" />
               Archiver
+            </Button>
+          )}
+          {can('episodes:archive') && episode.isArchived && (
+            <Button variant="outline" onClick={handleRestore} disabled={restoreEpisode.isPending}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restaurer
             </Button>
           )}
         </div>
@@ -338,6 +414,61 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
           </Card>
         </>
       )}
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier l'épisode</DialogTitle>
+            <DialogDescription>
+              {episode.episodeNumber} — {episode.patientFirstname} {episode.patientLastname}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Statut</label>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm(prev => ({ ...prev, status: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusKeys.map((key) => (
+                    <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Motif d'admission</label>
+              <Input
+                value={editForm.admitReason}
+                onChange={(e) => setEditForm(prev => ({ ...prev, admitReason: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Date d'admission</label>
+              <Input
+                type="datetime-local"
+                value={editForm.admitDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, admitDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Date de sortie</label>
+              <Input
+                type="datetime-local"
+                value={editForm.dischargeDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, dischargeDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Annuler</Button>
+            <Button onClick={handleEdit} disabled={updateEpisode.isPending}>
+              {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

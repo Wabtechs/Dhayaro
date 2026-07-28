@@ -52,6 +52,8 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
 
+const MULTI_FACILITY_ROLES = new Set(['super_admin', 'admin'])
+
 const PAGE_SIZE = 10
 
 interface UserItem {
@@ -239,6 +241,11 @@ export default function Users() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    const targetRole = newRole
+    if (!MULTI_FACILITY_ROLES.has(targetRole) && !sanitizeUuid(newFacility)) {
+      toast({ title: 'Erreur', description: 'Un établissement est requis pour ce rôle.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -251,7 +258,7 @@ export default function Users() {
         email: newEmail,
         password: newPassword,
         role: ROLE_MAP[newRole] || 'DOCTOR',
-        facilityId: sanitizeUuid(newFacility),
+        facilityId: sanitizeUuid(newFacility) || null,
         phone: newPhone || undefined,
       }, token)
       await queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -283,6 +290,10 @@ export default function Users() {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingUser) return
+    if (!MULTI_FACILITY_ROLES.has(editRole) && !sanitizeUuid(editFacility)) {
+      toast({ title: 'Erreur', description: 'Un établissement est requis pour ce rôle.', variant: 'destructive' })
+      return
+    }
     setSaving(true)
     try {
       const nameParts = editName.trim().split(' ')
@@ -295,7 +306,7 @@ export default function Users() {
           lastname,
           email: editEmail,
           role: ROLE_MAP[editRole] || 'DOCTOR',
-          facilityId: sanitizeUuid(editFacility),
+          facilityId: sanitizeUuid(editFacility) || null,
         },
       })
       toast({ title: 'Utilisateur mis à jour', description: `${editName} a été modifié.` })
@@ -444,7 +455,7 @@ export default function Users() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Établissement</Label>
+                <Label>Établissement {!MULTI_FACILITY_ROLES.has(newRole) && <span className="text-destructive">*</span>}</Label>
                 <Select value={newFacility} onValueChange={setNewFacility}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un établissement" />
@@ -546,7 +557,7 @@ export default function Users() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Établissement</Label>
+                <Label>Établissement {!MULTI_FACILITY_ROLES.has(editRole) && <span className="text-destructive">*</span>}</Label>
                 <Select value={editFacility} onValueChange={setEditFacility}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un établissement" />

@@ -165,6 +165,10 @@ export default function PatientsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.firstName || !form.lastName || !form.gender || !form.dateOfBirth) {
+      toast({ title: 'Erreur', description: 'Prénom, nom, sexe et date de naissance sont requis.', variant: 'destructive' })
+      return
+    }
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''

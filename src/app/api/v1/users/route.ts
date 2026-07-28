@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -30,8 +30,10 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(users.role, roleParam as typeof ROLES[number]))
     }
 
-    const facilityFilter = addFacilityFilter(users.facilityId, auth, searchParams)
-    if (facilityFilter) conditions.push(facilityFilter)
+    const facilityParam = searchParams.get('facilityId')
+    if (facilityParam && auth.user.role === 'SUPER_ADMIN') {
+      conditions.push(eq(users.facilityId, facilityParam))
+    }
 
     const whereClause = and(...conditions)
 
@@ -98,6 +100,14 @@ export async function POST(request: NextRequest) {
     const validRoles = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST']
     if (!validRoles.includes(body.role)) {
       return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
+    }
+
+    const MULTI_FACILITY_ROLES = ['SUPER_ADMIN', 'ADMIN']
+    if (!MULTI_FACILITY_ROLES.includes(body.role)) {
+      const fid = sanitizeUuid(body.facilityId)
+      if (!fid) {
+        return apiError(400, 'facilityId is required for this role')
+      }
     }
 
     const passwordHash = await hashPassword(body.password)

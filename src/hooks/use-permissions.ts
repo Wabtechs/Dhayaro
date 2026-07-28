@@ -5,6 +5,7 @@ import {
   hasPermission,
   hasAnyPermission,
   hasMinimumRole,
+  isMultiFacilityRole,
   ROLE_LABELS,
 } from '@/lib/permissions'
 import type { Permission } from '@/lib/permissions'
@@ -39,6 +40,7 @@ export function usePermissions() {
     },
 
     isAdmin: () => role === 'admin' || role === 'super_admin',
+    isMultiFacility: () => role ? isMultiFacilityRole(role) : false,
     isDoctor: () => role === 'doctor' || role === 'specialist',
     isNurse: () => role === 'nurse',
     isLab: () => role === 'laboratory',

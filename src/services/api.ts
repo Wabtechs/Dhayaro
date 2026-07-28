@@ -137,6 +137,11 @@ class ApiClient {
     return { ...b, facilityId: activeFacility };
   }
 
+  patch<T>(endpoint: string, body: unknown, token: string) {
+    const enriched = this.enrichBody(body);
+    return this.requestWithAuth<T>(endpoint, { method: 'PATCH', body: enriched, token });
+  }
+
   delete<T>(endpoint: string, token: string) {
     return this.requestWithAuth<T>(endpoint, { method: 'DELETE', token });
   }

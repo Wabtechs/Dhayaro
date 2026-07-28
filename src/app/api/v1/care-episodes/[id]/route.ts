@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { careEpisodes, patients, episodeEntities, consultations, diagnostics, treatments, labExams, documents } from '@/lib/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { enforceFacilityAccess, apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 const ALLOWED_UPDATE_KEYS = ['status', 'dischargeDate', 'dischargeSummary', 'dischargeOutcome', 'isArchived', 'metadata', 'admitReason'] as const
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!episodeId) return apiError(400, 'Invalid episode ID')
 
     const db = getDb()
+
+    const conditions = [eq(careEpisodes.id, episodeId)]
+    const facilityFilter = addFacilityFilter(careEpisodes.facilityId, auth)
+    if (facilityFilter) conditions.push(facilityFilter)
 
     const [episode] = await db.select({
       id: careEpisodes.id,
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
     .from(careEpisodes)
     .leftJoin(patients, eq(careEpisodes.patientId, patients.id))
-    .where(eq(careEpisodes.id, episodeId))
+    .where(and(...conditions))
     .limit(1)
 
     if (!episode) return apiError(404, 'Episode not found')
@@ -92,8 +96,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json()
     const db = getDb()
 
-    const [existing] = await db.select({ id: careEpisodes.id }).from(careEpisodes).where(eq(careEpisodes.id, episodeId)).limit(1)
+    const conditions = [eq(careEpisodes.id, episodeId)]
+    const facilityFilter = addFacilityFilter(careEpisodes.facilityId, auth)
+    if (facilityFilter) conditions.push(facilityFilter)
+
+    const [existing] = await db.select({
+      id: careEpisodes.id,
+      isArchived: careEpisodes.isArchived,
+    }).from(careEpisodes).where(and(...conditions)).limit(1)
+
     if (!existing) return apiError(404, 'Episode not found')
+    if (existing.isArchived) return apiError(400, 'Cannot edit an archived episode')
 
     const fields = pickAllowedKeys(body, ALLOWED_UPDATE_KEYS)
 
@@ -116,8 +129,17 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const db = getDb()
 
-    const [existing] = await db.select({ id: careEpisodes.id }).from(careEpisodes).where(eq(careEpisodes.id, episodeId)).limit(1)
+    const conditions = [eq(careEpisodes.id, episodeId)]
+    const facilityFilter = addFacilityFilter(careEpisodes.facilityId, auth)
+    if (facilityFilter) conditions.push(facilityFilter)
+
+    const [existing] = await db.select({
+      id: careEpisodes.id,
+      isArchived: careEpisodes.isArchived,
+    }).from(careEpisodes).where(and(...conditions)).limit(1)
+
     if (!existing) return apiError(404, 'Episode not found')
+    if (existing.isArchived) return apiError(400, 'Episode is already archived')
 
     await db.update(careEpisodes).set({ isArchived: true, updatedAt: new Date() }).where(eq(careEpisodes.id, episodeId))
     return NextResponse.json({ detail: 'Episode archived' })

@@ -2,11 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, ClipboardList, Calendar, User, ArrowRight, Archive, Eye, FileText } from 'lucide-react'
+import { Search, Plus, Calendar, User, Eye, FileText, Pencil, MoreHorizontal, Archive, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectTrigger,
@@ -30,7 +30,24 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { useCareEpisodesData, useCreateCareEpisode, usePatientsData } from '@/hooks/use-data'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useCareEpisodesData, useCreateCareEpisode, useUpdateCareEpisode, useArchiveCareEpisode, useRestoreCareEpisode, usePatientsData } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
@@ -53,14 +70,14 @@ interface EpisodeItem {
 }
 
 const statusColors: Record<string, string> = {
-  ADMITTED: 'bg-blue-100 text-blue-800 border-blue-200',
-  TRIAGE: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  CONSULTATION: 'bg-purple-100 text-purple-800 border-purple-200',
-  TREATMENT: 'bg-orange-100 text-orange-800 border-orange-200',
-  HOSPITALIZED: 'bg-red-100 text-red-800 border-red-200',
-  DISCHARGED: 'bg-green-100 text-green-800 border-green-200',
-  TRANSFERRED: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  ARCHIVED: 'bg-gray-100 text-gray-800 border-gray-200',
+  ADMITTED: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+  TRIAGE: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800',
+  CONSULTATION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+  TREATMENT: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
+  HOSPITALIZED: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+  DISCHARGED: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+  TRANSFERRED: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800',
+  ARCHIVED: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700',
 }
 
 const statusLabels: Record<string, string> = {
@@ -82,6 +99,9 @@ export default function CareEpisodesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingEpisode, setEditingEpisode] = useState<EpisodeItem | null>(null)
+  const [editForm, setEditForm] = useState({ status: '', admitReason: '', admitDate: '', dischargeDate: '' })
+  const [archivingId, setArchivingId] = useState<string | null>(null)
 
   const params = useMemo(() => {
     const p = new URLSearchParams()
@@ -95,6 +115,9 @@ export default function CareEpisodesPage() {
   const { data, isLoading } = useCareEpisodesData(params)
   const { data: patientsData } = usePatientsData()
   const createEpisode = useCreateCareEpisode()
+  const updateEpisode = useUpdateCareEpisode()
+  const archiveEpisode = useArchiveCareEpisode()
+  const restoreEpisode = useRestoreCareEpisode()
 
   const episodes = (data as { items?: EpisodeItem[]; total?: number })?.items || []
   const total = (data as { total?: number })?.total || 0
@@ -121,7 +144,56 @@ export default function CareEpisodesPage() {
     }
   }
 
+  const openEditDialog = (ep: EpisodeItem) => {
+    setEditingEpisode(ep)
+    setEditForm({
+      status: ep.status,
+      admitReason: ep.admitReason || '',
+      admitDate: ep.admitDate ? ep.admitDate.slice(0, 16) : '',
+      dischargeDate: ep.dischargeDate ? ep.dischargeDate.slice(0, 16) : '',
+    })
+  }
+
+  const handleEdit = async () => {
+    if (!editingEpisode) return
+    try {
+      await updateEpisode.mutateAsync({
+        id: editingEpisode.id,
+        data: {
+          status: editForm.status,
+          admitReason: editForm.admitReason || null,
+          admitDate: editForm.admitDate ? new Date(editForm.admitDate).toISOString() : undefined,
+          dischargeDate: editForm.dischargeDate ? new Date(editForm.dischargeDate).toISOString() : null,
+        },
+      })
+      toast({ title: 'Succès', description: 'Épisode mis à jour' })
+      setEditingEpisode(null)
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de modifier l\'épisode', variant: 'destructive' })
+    }
+  }
+
+  const handleArchive = async (id: string) => {
+    try {
+      await archiveEpisode.mutateAsync(id)
+      toast({ title: 'Succès', description: 'Épisode archivé' })
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible d\'archiver l\'épisode', variant: 'destructive' })
+    }
+  }
+
+  const handleRestore = async (id: string) => {
+    try {
+      await restoreEpisode.mutateAsync(id)
+      toast({ title: 'Succès', description: 'Épisode restauré' })
+    } catch (e) {
+      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de restaurer l\'épisode', variant: 'destructive' })
+    }
+  }
+
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+
+  const statusKeys = Object.keys(statusLabels).filter(k => k !== 'ARCHIVED')
 
   return (
     <div className="space-y-6">
@@ -233,6 +305,35 @@ export default function CareEpisodesPage() {
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
+                        {(can('episodes:edit') || can('episodes:archive')) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {can('episodes:edit') && (
+                                <DropdownMenuItem onClick={() => openEditDialog(ep)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Modifier
+                                </DropdownMenuItem>
+                              )}
+                              {can('episodes:archive') && !ep.isArchived && (
+                                <DropdownMenuItem onClick={() => setArchivingId(ep.id)}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archiver
+                                </DropdownMenuItem>
+                              )}
+                              {can('episodes:archive') && ep.isArchived && (
+                                <DropdownMenuItem onClick={() => handleRestore(ep.id)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Restaurer
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -313,6 +414,78 @@ export default function CareEpisodesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingEpisode} onOpenChange={(open) => { if (!open) setEditingEpisode(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier l'épisode</DialogTitle>
+            <DialogDescription>
+              {editingEpisode?.episodeNumber} — {editingEpisode?.patientFirstname} {editingEpisode?.patientLastname}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Statut</label>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm(prev => ({ ...prev, status: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusKeys.map((key) => (
+                    <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Motif d'admission</label>
+              <Input
+                value={editForm.admitReason}
+                onChange={(e) => setEditForm(prev => ({ ...prev, admitReason: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Date d'admission</label>
+              <Input
+                type="datetime-local"
+                value={editForm.admitDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, admitDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Date de sortie</label>
+              <Input
+                type="datetime-local"
+                value={editForm.dischargeDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, dischargeDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingEpisode(null)}>Annuler</Button>
+            <Button onClick={handleEdit} disabled={updateEpisode.isPending}>
+              {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!archivingId} onOpenChange={(open) => { if (!open) setArchivingId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'archivage</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir archiver cet épisode de soins ? Cette action peut être annulée en le restaurant.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (archivingId) { handleArchive(archivingId); setArchivingId(null) } }}>
+              Archiver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

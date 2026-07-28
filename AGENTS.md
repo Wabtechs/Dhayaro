@@ -75,6 +75,23 @@ src/
 |---|---|---|
 | Admin | admin@dhayaro.cd | admin123 |
 | Super Admin | superadmin@dhayaro.cd | admin123 |
-| Doctor | dr.kabongo@dhayaro.cd | doctor123 |
-| Nurse | nurse.mohamed@dhayaro.cd | nurse123 |
-| Other roles | see login page | dhayaro123 |
+| Receptionist | reception@dhayaro.cd | dhayaro123 |
+| Doctor (Kabongo) | dr.kabongo@dhayaro.cd | doctor123 |
+| Doctor (Clovis) | dr.clovis@dhayaro.cd | doctor123 |
+| Doctor (Sylvain) | dr.sylvain@dhayaro.cd | doctor123 |
+| Doctor (Pierre) | dr.pierre@dhayaro.cd | doctor123 |
+| Doctor (Françoise) | dr.francoise@dhayaro.cd | doctor123 |
+| Doctor (André) | dr.andre@dhayaro.cd | doctor123 |
+| Doctor (David) | dr.david@dhayaro.cd | doctor123 |
+| Specialist (Espérance) | dr.esperance@dhayaro.cd | doctor123 |
+| Specialist (Grâce) | dr.grace@dhayaro.cd | doctor123 |
+| Specialist (Marie) | dr.marie@dhayaro.cd | doctor123 |
+| Laboratory | lab.joseph@dhayaro.cd | dhayaro123 |
+| Pharmacist | pharm.beatrice@dhayaro.cd | dhayaro123 |
+| Nurse (Mohamed) | nurse.mohamed@dhayaro.cd | nurse123 |
+| Nurse (Cécile) | nurse.cecile@dhayaro.cd | nurse123 |
+| Accountant | compta.augustin@dhayaro.cd | dhayaro123 |
+| Archivist | archive.monique@dhayaro.cd | dhayaro123 |
+| Patient | patient.marcel@dhayaro.cd | patient123 |
+| Patient | patient.solange@dhayaro.cd | patient123 |
+| Patient | patient.prosper@dhayaro.cd | patient123 |
