@@ -55,18 +55,18 @@ const ITEMS_PER_PAGE = 10
 
 interface PatientItem {
   id: string
-  firstName?: string
-  lastName?: string
+  firstname?: string
+  lastname?: string
   dateOfBirth: string
-  gender?: string
+  sex?: string
   phone?: string
   address?: string
-  bloodType?: string
+  bloodGroup?: string
   facilityId?: string
-  medicalRecordNumber?: string
+  patientUuid?: string
   allergies?: string[]
   isActive?: boolean
-  lastVisit?: string
+  createdAt?: string
   [key: string]: unknown
 }
 
@@ -139,7 +139,15 @@ export default function PatientsPage() {
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const filtered = useMemo(() => {
-    return ((data?.items ?? []) as PatientItem[]).filter((p) => {
+    return ((data?.items ?? []) as PatientItem[]).map((p) => ({
+      ...p,
+      firstName: (p as Record<string, unknown>).firstname as string || '',
+      lastName: (p as Record<string, unknown>).lastname as string || '',
+      gender: (p as Record<string, unknown>).sex as string || '',
+      bloodType: (p as Record<string, unknown>).bloodGroup as string || '',
+      medicalRecordNumber: (p as Record<string, unknown>).patientUuid as string || '',
+      lastVisit: (p as Record<string, unknown>).createdAt as string || '',
+    })).filter((p) => {
       const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase()
       const matchesSearch =
         !search ||
