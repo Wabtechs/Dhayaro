@@ -15,6 +15,7 @@ import {
   Eye,
   Printer,
   FileDown,
+  FileText,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -618,6 +619,13 @@ export default function DiagnosticsView() {
                               }}
                             >
                               <FileDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/diagnostics/${item.id}/fiche`)}
+                            >
+                              <FileText className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>

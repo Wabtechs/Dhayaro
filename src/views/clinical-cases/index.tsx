@@ -962,6 +962,16 @@ export default function ClinicalCasesPage() {
                       >
                         Voir
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/clinical-cases/${c.id}/fiche`)
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
