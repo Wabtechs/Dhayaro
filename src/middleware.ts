@@ -8,6 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(
 const PUBLIC_PATHS = [
   '/',
   '/login',
+  '/test-accounts',
   '/patient/login',
   '/forgot-password',
   '/api/v1/auth/login',
