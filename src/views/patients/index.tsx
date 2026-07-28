@@ -55,18 +55,18 @@ const ITEMS_PER_PAGE = 10
 
 interface PatientItem {
   id: string
-  firstName?: string
-  lastName?: string
+  firstname?: string
+  lastname?: string
   dateOfBirth: string
-  gender?: string
+  sex?: string
   phone?: string
   address?: string
-  bloodType?: string
+  bloodGroup?: string
   facilityId?: string
-  medicalRecordNumber?: string
+  patientUuid?: string
   allergies?: string[]
   isActive?: boolean
-  lastVisit?: string
+  createdAt?: string
   [key: string]: unknown
 }
 
@@ -139,23 +139,15 @@ export default function PatientsPage() {
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
   const filtered = useMemo(() => {
-    return ((data?.items ?? []) as PatientItem[]).map((p) => ({
-      ...p,
-      firstName: (p as Record<string, unknown>).firstname as string || '',
-      lastName: (p as Record<string, unknown>).lastname as string || '',
-      gender: (p as Record<string, unknown>).sex as string || '',
-      bloodType: (p as Record<string, unknown>).bloodGroup as string || '',
-      medicalRecordNumber: (p as Record<string, unknown>).patientUuid as string || '',
-      lastVisit: (p as Record<string, unknown>).createdAt as string || '',
-    })).filter((p) => {
-      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase()
+    return ((data?.items ?? []) as PatientItem[]).filter((p) => {
+      const fullName = `${p.firstname || ''} ${p.lastname || ''}`.toLowerCase()
       const matchesSearch =
         !search ||
         fullName.includes(search.toLowerCase()) ||
-        (p.medicalRecordNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.patientUuid || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.phone || '').includes(search)
       const matchesGender =
-        genderFilter === 'all' || (p.gender as string).toUpperCase() === genderFilter.toUpperCase()
+        genderFilter === 'all' || (p.sex as string).toUpperCase() === genderFilter.toUpperCase()
       const matchesFacility =
         facilityFilter === 'all' || p.facilityId === facilityFilter
       return matchesSearch && matchesGender && matchesFacility
@@ -205,13 +197,13 @@ export default function PatientsPage() {
   const openEditDialog = (patient: PatientItem) => {
     setEditingPatient(patient)
     setEditForm({
-      firstName: (patient.firstName as string) || '',
-      lastName: (patient.lastName as string) || '',
+      firstName: (patient.firstname as string) || '',
+      lastName: (patient.lastname as string) || '',
       dateOfBirth: (patient.dateOfBirth as string) || '',
-      gender: (((patient.gender as string) || '').toUpperCase()) as 'M' | 'F' | '',
+      gender: (((patient.sex as string) || '').toUpperCase()) as 'M' | 'F' | '',
       phone: (patient.phone as string) || '',
       address: (patient.address as string) || '',
-      bloodType: (patient.bloodType as string) || '',
+      bloodType: (patient.bloodGroup as string) || '',
       facilityId: (patient.facilityId as string) || '',
       allergies: Array.isArray(patient.allergies) ? (patient.allergies as string[]).join(', ') : '',
     })
@@ -248,7 +240,7 @@ export default function PatientsPage() {
   }
 
   const handleDelete = (patient: PatientItem) => {
-    const name = `${patient.firstName || ''} ${patient.lastName || ''}`.trim()
+    const name = `${patient.firstname || ''} ${patient.lastname || ''}`.trim()
     setConfirmDelete({
       description: `Êtes-vous sûr de vouloir supprimer le patient "${name}" ? Cette action est irréversible.`,
       callback: async () => {
@@ -621,28 +613,28 @@ export default function PatientsPage() {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {(patient.firstName || '?')[0]}
-                          {(patient.lastName || '?')[0]}
+                          {(patient.firstname || '?')[0]}
+                          {(patient.lastname || '?')[0]}
                         </AvatarFallback>
                       </Avatar>
-                      {patient.firstName || '—'} {patient.lastName || ''}
+                      {patient.firstname || '—'} {patient.lastname || ''}
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {patient.medicalRecordNumber || '—'}
+                    {patient.patientUuid || '—'}
                   </TableCell>
                   <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {genderLabels[(patient.gender as string)?.toUpperCase()] || patient.gender || '—'}
+                      {genderLabels[(patient.sex as string)?.toUpperCase()] || patient.sex || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono', bloodTypeColors[patient.bloodType || ''])}
+                      className={cn('font-mono', bloodTypeColors[patient.bloodGroup || ''])}
                     >
-                      {patient.bloodType || '—'}
+                      {patient.bloodGroup || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{patient.phone || '—'}</TableCell>
@@ -650,7 +642,7 @@ export default function PatientsPage() {
                     {getFacilityName(patient.facilityId)}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {patient.lastVisit ? formatDate(patient.lastVisit) : '—'}
+                    {patient.createdAt ? formatDate(patient.createdAt) : '—'}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -710,7 +702,7 @@ export default function PatientsPage() {
 
       <div className="space-y-3 md:hidden">
         {paginated.map((patient) => (
-          <Card key={patient.id}>
+            <Card key={patient.id}>
             <CardContent className="p-4">
               <button
                 onClick={() => router.push(`/patients/${patient.id}`)}
@@ -718,14 +710,14 @@ export default function PatientsPage() {
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarFallback className="text-xs">
-                    {(patient.firstName || '?')[0]}
-                    {(patient.lastName || '?')[0]}
+                    {(patient.firstname || '?')[0]}
+                    {(patient.lastname || '?')[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">
-                      {patient.firstName || '—'} {patient.lastName || ''}
+                      {patient.firstname || '—'} {patient.lastname || ''}
                     </p>
                     <Badge
                       variant={patient.isActive ? 'default' : 'secondary'}
@@ -740,18 +732,18 @@ export default function PatientsPage() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                    {patient.medicalRecordNumber || '—'}
+                    {patient.patientUuid || '—'}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <UserRound className="h-3 w-3" />
-                      {genderLabels[(patient.gender as string)?.toUpperCase()] || patient.gender || '—'}
+                      {genderLabels[(patient.sex as string)?.toUpperCase()] || patient.sex || '—'}
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono text-xs', bloodTypeColors[patient.bloodType || ''])}
+                      className={cn('font-mono text-xs', bloodTypeColors[patient.bloodGroup || ''])}
                     >
-                      {patient.bloodType || '—'}
+                      {patient.bloodGroup || '—'}
                     </Badge>
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
@@ -761,10 +753,10 @@ export default function PatientsPage() {
                       <MapPin className="h-3 w-3" />
                       {getFacilityName(patient.facilityId)}
                     </span>
-                    {patient.lastVisit && (
+                    {patient.createdAt && (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(patient.lastVisit)}
+                        {formatDate(patient.createdAt)}
                       </span>
                     )}
                   </div>
