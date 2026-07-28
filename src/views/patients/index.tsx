@@ -55,18 +55,18 @@ const ITEMS_PER_PAGE = 10
 
 interface PatientItem {
   id: string
-  firstname?: string
-  lastname?: string
+  firstName?: string
+  lastName?: string
   dateOfBirth: string
-  sex?: string
+  gender?: string
   phone?: string
   address?: string
-  bloodGroup?: string
+  bloodType?: string
   facilityId?: string
-  patientUuid?: string
+  medicalRecordNumber?: string
   allergies?: string[]
   isActive?: boolean
-  createdAt?: string
+  lastVisit?: string
   [key: string]: unknown
 }
 
