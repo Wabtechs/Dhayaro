@@ -23,16 +23,28 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const demoAccounts = [
-    { label: 'Admin', email: 'admin@dhayaro.cd', password: 'admin123', role: 'ADMIN' },
     { label: 'Super Admin', email: 'superadmin@dhayaro.cd', password: 'admin123', role: 'SUPER_ADMIN' },
+    { label: 'Admin', email: 'admin@dhayaro.cd', password: 'admin123', role: 'ADMIN' },
     { label: 'Réceptionniste', email: 'reception@dhayaro.cd', password: 'dhayaro123', role: 'RECEPTIONIST' },
     { label: 'Dr. Kabongo', email: 'dr.kabongo@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
     { label: 'Dr. Clovis', email: 'dr.clovis@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. Sylvain', email: 'dr.sylvain@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. Pierre', email: 'dr.pierre@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. Françoise', email: 'dr.francoise@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. André', email: 'dr.andre@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
+    { label: 'Dr. David', email: 'dr.david@dhayaro.cd', password: 'doctor123', role: 'DOCTOR' },
     { label: 'Dr. Espérance', email: 'dr.esperance@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
     { label: 'Dr. Grâce', email: 'dr.grace@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
+    { label: 'Dr. Marie', email: 'dr.marie@dhayaro.cd', password: 'doctor123', role: 'SPECIALIST' },
+    { label: 'Inf. Mohamed', email: 'nurse.mohamed@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
+    { label: 'Inf. Cécile', email: 'nurse.cecile@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
     { label: 'Labo Joseph', email: 'lab.joseph@dhayaro.cd', password: 'dhayaro123', role: 'LABORATORY' },
-    { label: 'Pharmacien', email: 'pharm.beatrice@dhayaro.cd', password: 'dhayaro123', role: 'PHARMACIST' },
-    { label: 'Infirmier', email: 'nurse.mohamed@dhayaro.cd', password: 'nurse123', role: 'NURSE' },
+    { label: 'Pharmacienne', email: 'pharm.beatrice@dhayaro.cd', password: 'dhayaro123', role: 'PHARMACIST' },
+    { label: 'Comptable', email: 'compta.augustin@dhayaro.cd', password: 'dhayaro123', role: 'ACCOUNTANT' },
+    { label: 'Archiviste', email: 'archive.monique@dhayaro.cd', password: 'dhayaro123', role: 'ARCHIVIST' },
+    { label: 'Patient Marcel', email: 'patient.marcel@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
+    { label: 'Patient Solange', email: 'patient.solange@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
+    { label: 'Patient Prosper', email: 'patient.prosper@dhayaro.cd', password: 'patient123', role: 'PATIENT' },
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
