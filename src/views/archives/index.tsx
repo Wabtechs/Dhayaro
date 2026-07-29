@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -56,8 +56,6 @@ import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import type { Archive, Patient } from '@/types'
 
-const ITEMS_PER_PAGE = 10
-
 const ENTITY_TYPES = [
   'CONSULTATION',
   'DIAGNOSTIC',
@@ -97,30 +95,22 @@ export default function ArchivesView() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data, isLoading } = useArchivesData(
-    typeFilter !== 'all' ? `entityType=${typeFilter}` : ''
-  )
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(typeFilter !== 'all' ? [`entityType=${typeFilter}`] : []),
+  ].join('&')
+  const { data, isLoading } = useArchivesData(searchParams)
+
+  const items = (data?.items ?? []) as ArchiveItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const { data: patientsData } = usePatientsData()
   const createArchive = useCreateArchive()
 
   const patientsList = ((patientsData?.items ?? []) as Patient[])
-
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as ArchiveItem[]
-    if (!search) return allItems
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      const patientName = `${item.patientFirstname ?? ''} ${item.patientLastname ?? ''}`.trim().toLowerCase()
-      return (
-        String(item.title || '').toLowerCase().includes(q) ||
-        patientName.includes(q)
-      )
-    })
-  }, [data, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -168,7 +158,7 @@ export default function ArchivesView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Archives</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} archive{filtered.length > 1 ? 's' : ''}
+              {totalCount} archive{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -309,7 +299,7 @@ export default function ArchivesView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucune archive disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -325,7 +315,7 @@ export default function ArchivesView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: ArchiveItem) => {
+                  {items.map((item: ArchiveItem) => {
                     const type = String(item.entityType || '').toUpperCase()
                     const config = typeConfig[type] || { label: type, color: 'bg-gray-100 text-gray-700' }
                     const patientName = `${item.patientFirstname ?? ''} ${item.patientLastname ?? ''}`.trim()

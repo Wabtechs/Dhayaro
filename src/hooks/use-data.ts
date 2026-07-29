@@ -238,11 +238,11 @@ export function useRoleDashboardData(userRole?: UserRole) {
   });
 }
 
-export function useClinicalCasesData(facilityId?: string) {
+export function useClinicalCasesData(params?: string) {
   return useQuery({
-    queryKey: ['clinical-cases', facilityId],
+    queryKey: ['clinical-cases', params],
     queryFn: async () => {
-      const raw = await fetchData<{ items: unknown[]; total: number }>('/clinical-cases?size=100', facilityId);
+      const raw = await fetchData<{ items: unknown[]; total: number }>(`/clinical-cases${params ? '?' + params : '?size=100'}`, undefined);
       return { items: raw.items.map(transformClinicalCase) as ClinicalCase[], total: raw.total };
     },
   });

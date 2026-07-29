@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Heart, Activity, Thermometer, Weight, Ruler, Droplets,
@@ -19,8 +19,6 @@ import { useQueueData, useUsersData, useSubmitTriage } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-
-const ITEMS_PER_PAGE = 10
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
   LOW: { label: 'Faible', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
@@ -50,28 +48,24 @@ export default function TriageView() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data: queueData, isLoading } = useQueueData('status=WAITING&size=50')
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(priorityFilter !== 'all' ? [`priority=${priorityFilter}`] : []),
+    'status=WAITING',
+  ].join('&')
+  const { data: queueData, isLoading } = useQueueData(searchParams)
+  const items = ((queueData as Record<string, unknown>)?.items ?? []) as QueueItem[]
+  const totalCount = ((queueData as Record<string, unknown>)?.total ?? 0) as number
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
+
   const { data: usersData } = useUsersData()
 
   const submitTriage = useSubmitTriage()
 
   const usersList = ((usersData as Record<string, unknown>)?.items ?? []) as Record<string, unknown>[]
   const doctorUsers = usersList.filter((u) => DOCTOR_ROLES.includes(String(u.role || '')))
-
-  const filtered = useMemo(() => {
-    const allItems = ((queueData as Record<string, unknown>)?.items ?? []) as QueueItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false
-      if (!q) return true
-      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      const ticket = String(item.ticketNumber || '').toLowerCase()
-      return patientName.includes(q) || ticket.includes(q)
-    })
-  }, [queueData, search, priorityFilter])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const [triageOpen, setTriageOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
@@ -161,7 +155,7 @@ export default function TriageView() {
     }
   }
 
-  const waitingCount = ((queueData as Record<string, unknown>)?.items as QueueItem[] | undefined)?.length ?? 0
+  const waitingCount = totalCount
 
   return (
     <div className="space-y-6">
@@ -219,14 +213,14 @@ export default function TriageView() {
                     Chargement...
                   </TableCell>
                 </TableRow>
-              ) : paginated.length === 0 ? (
+              ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Aucun patient en attente de triage
                   </TableCell>
                 </TableRow>
               ) : (
-                paginated.map((item) => {
+                items.map((item) => {
                   const pc = priorityConfig[item.priority || 'NORMAL'] || priorityConfig.NORMAL
                   return (
                     <TableRow key={item.id}>

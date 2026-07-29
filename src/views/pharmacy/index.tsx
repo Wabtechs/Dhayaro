@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Pill, Search, ChevronLeft, ChevronRight, CheckCircle, Eye,
@@ -16,8 +16,6 @@ import { useTreatmentsListData, useQueueData, useDispenseTreatment } from '@/hoo
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-
-const ITEMS_PER_PAGE = 10
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   PRESCRIBED: { label: 'Prescrit', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -46,8 +44,13 @@ export default function PharmacyView() {
   const [statusFilter, setStatusFilter] = useState<string>('PRESCRIBED')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const filterParam = statusFilter !== 'all' ? `status=${statusFilter}` : ''
-  const { data: treatmentsData, isLoading } = useTreatmentsListData(filterParam)
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(statusFilter !== 'all' ? [`status=${statusFilter}`] : []),
+  ].join('&')
+  const { data: treatmentsData, isLoading } = useTreatmentsListData(searchParams)
   const { data: queueData } = useQueueData()
 
   const dispenseTreatment = useDispenseTreatment()
@@ -59,19 +62,9 @@ export default function PharmacyView() {
     return entry?.id as string | undefined
   }
 
-  const filtered = useMemo(() => {
-    const allItems = ((treatmentsData as Record<string, unknown>)?.items ?? []) as TreatmentItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (!q) return true
-      const patient = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      const desc = String(item.description || '').toLowerCase()
-      return patient.includes(q) || desc.includes(q)
-    })
-  }, [treatmentsData, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const allItems = ((treatmentsData as Record<string, unknown>)?.items ?? []) as TreatmentItem[]
+  const totalCount = ((treatmentsData as Record<string, unknown>)?.total ?? 0) as number
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<TreatmentItem | null>(null)
@@ -158,14 +151,14 @@ export default function PharmacyView() {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement...</TableCell>
                 </TableRow>
-              ) : paginated.length === 0 ? (
+              ) : allItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Aucune prescription à délivrer
                   </TableCell>
                 </TableRow>
               ) : (
-                paginated.map((item) => {
+                allItems.map((item) => {
                   const sc = statusConfig[item.status || ''] || statusConfig.PRESCRIBED
                   return (
                     <TableRow key={item.id}>

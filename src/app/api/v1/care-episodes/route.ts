@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
       conditions.push(or(
         ilike(careEpisodes.episodeNumber, `%${search}%`),
         ilike(careEpisodes.admitReason, `%${search}%`),
+        ilike(patients.firstname, `%${search}%`),
+        ilike(patients.lastname, `%${search}%`),
       )!)
     }
 

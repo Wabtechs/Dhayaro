@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -66,8 +66,6 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 
-const ITEMS_PER_PAGE = 10
-
 const severityConfig: Record<string, { label: string; color: string }> = {
   LOW: { label: 'Faible', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300' },
   MODERATE: { label: 'Modérée', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -131,25 +129,22 @@ export default function DiseasesView() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const params = [
-    search ? `search=${encodeURIComponent(search)}` : '',
-    categoryFilter ? `category=${encodeURIComponent(categoryFilter)}` : '',
-    'size=1000',
-  ].filter(Boolean).join('&')
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${encodeURIComponent(search)}`] : []),
+    ...(categoryFilter ? [`category=${encodeURIComponent(categoryFilter)}`] : []),
+  ].join('&')
 
-  const { data, isLoading } = useDiseasesData(params || '')
+  const { data, isLoading } = useDiseasesData(searchParams)
 
   const createDisease = useCreateDisease()
   const updateDisease = useUpdateDisease()
   const deleteDisease = useDeleteDisease()
 
-  const diseasesList = useMemo(
-    () => (data?.items ?? []) as DiseaseItem[],
-    [data]
-  )
-
-  const totalPages = Math.max(1, Math.ceil(diseasesList.length / ITEMS_PER_PAGE))
-  const paginated = diseasesList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as DiseaseItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -344,7 +339,7 @@ export default function DiseasesView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Maladies</h1>
             <p className="text-sm text-muted-foreground">
-              {diseasesList.length} maladie{diseasesList.length > 1 ? 's' : ''} référencée{diseasesList.length > 1 ? 's' : ''}
+              {totalCount} maladie{totalCount > 1 ? 's' : ''} référencée{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -409,7 +404,7 @@ export default function DiseasesView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucune maladie disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -426,7 +421,7 @@ export default function DiseasesView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: DiseaseItem) => {
+                  {items.map((item: DiseaseItem) => {
                     const severity = String(item.severity || '').toUpperCase()
                     const config = severityConfig[severity] || { label: severity || '—', color: 'bg-gray-100 text-gray-700' }
                     return (

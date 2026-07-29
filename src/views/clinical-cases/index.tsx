@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
@@ -74,8 +74,6 @@ import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import type { CaseStatus, CasePriority } from '@/types'
 
-const ITEMS_PER_PAGE = 10
-
 interface CaseItem {
   id: string
   title: string
@@ -135,13 +133,6 @@ export default function ClinicalCasesPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { can } = usePermissions()
-  const { data: casesData, isLoading } = useClinicalCasesData()
-  const { data: patientsData } = usePatientsData()
-  const { data: facilitiesData } = useFacilitiesData()
-  const { data: usersData } = useUsersData()
-  const patientsList = (patientsData?.items ?? []) as PatientItem[]
-  const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
-  const usersList = (usersData?.items ?? []) as UserItem[]
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
@@ -181,28 +172,26 @@ export default function ClinicalCasesPage() {
     tags: '',
   })
 
-  const filteredCases = useMemo(() => {
-    return ((casesData?.items ?? []) as unknown as CaseItem[]).filter((c) => {
-      const matchesSearch =
-        !search ||
-        c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.description.toLowerCase().includes(search.toLowerCase()) ||
-        c.diagnosis.toLowerCase().includes(search.toLowerCase())
-      const matchesStatus =
-        statusFilter === 'all' || c.status === statusFilter
-      const matchesPriority =
-        priorityFilter === 'all' || c.priority === priorityFilter
-      const matchesFacility =
-        facilityFilter === 'all' || c.facilityId === facilityFilter
-      return matchesSearch && matchesStatus && matchesPriority && matchesFacility
-    })
-  }, [casesData, search, statusFilter, priorityFilter, facilityFilter])
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(statusFilter !== 'all' ? [`status=${statusFilter}`] : []),
+    ...(priorityFilter !== 'all' ? [`priority=${priorityFilter}`] : []),
+    ...(facilityFilter !== 'all' ? [`facilityId=${facilityFilter}`] : []),
+  ].join('&')
 
-  const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE)
-  const paginatedCases = filteredCases.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
+  const { data: casesData, isLoading } = useClinicalCasesData(searchParams)
+  const { data: patientsData } = usePatientsData()
+  const { data: facilitiesData } = useFacilitiesData()
+  const { data: usersData } = useUsersData()
+  const patientsList = (patientsData?.items ?? []) as PatientItem[]
+  const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
+  const usersList = (usersData?.items ?? []) as UserItem[]
+
+  const items = ((casesData?.items ?? []) as CaseItem[])
+  const totalCount = casesData?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const getPatientName = (patientId: string) => {
     const patient = patientsList.find((p) => p.id === patientId)
@@ -324,7 +313,7 @@ export default function ClinicalCasesPage() {
             Cas Cliniques
           </h1>
           <p className="text-sm text-muted-foreground">
-            {filteredCases.length} cas trouvé{filteredCases.length !== 1 ? 's' : ''}
+            {totalCount} cas trouvé{totalCount !== 1 ? 's' : ''}
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -773,7 +762,7 @@ export default function ClinicalCasesPage() {
         </div>
       </div>
 
-      {filteredCases.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <FileText className="mb-4 h-12 w-12 text-muted-foreground/50" />
           <h3 className="text-lg font-medium text-foreground">
@@ -785,7 +774,7 @@ export default function ClinicalCasesPage() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {paginatedCases.map((c) => (
+          {items.map((c) => (
             <Link key={c.id} href={`/clinical-cases/${c.id}`}>
               <Card className="h-full transition-shadow hover:shadow-md">
                 <CardHeader className="pb-3">
@@ -892,7 +881,7 @@ export default function ClinicalCasesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCases.map((c) => (
+              {items.map((c) => (
                 <TableRow
                   key={c.id}
                   className="cursor-pointer"

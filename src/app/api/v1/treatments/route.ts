@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
         ilike(treatments.description, `%${search}%`),
         ilike(treatments.notes, `%${search}%`),
         ilike(treatments.outcome, `%${search}%`),
+        ilike(patients.firstname, `%${search}%`),
+        ilike(patients.lastname, `%${search}%`),
       )!)
     }
 

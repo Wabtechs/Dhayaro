@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { archives, patients } from '@/lib/schema'
-import { eq, desc, and, count } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -12,12 +12,20 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const { page, size, offset } = parsePagination(searchParams)
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const entityType = searchParams.get('entityType')
     const patientId = sanitizeUuid(searchParams.get('patientId'))
 
     const conditions = []
+
+    if (search) {
+      conditions.push(or(
+        ilike(archives.title, `%${search}%`),
+        ilike(patients.firstname, `%${search}%`),
+        ilike(patients.lastname, `%${search}%`),
+      )!)
+    }
 
     if (entityType) {
       conditions.push(eq(archives.entityType, entityType as 'CONSULTATION' | 'DIAGNOSTIC' | 'TREATMENT' | 'LAB_EXAM' | 'DOCUMENT' | 'PATIENT_FILE'))

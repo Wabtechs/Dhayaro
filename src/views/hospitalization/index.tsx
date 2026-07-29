@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Search, ChevronLeft, ChevronRight, DoorOpen, LogOut, Plus,
@@ -18,8 +18,6 @@ import { useCareEpisodesData, usePatientsData, useCreateCareEpisode, useUpdateCa
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-
-const ITEMS_PER_PAGE = 10
 
 const episodeStatusConfig: Record<string, { label: string; color: string }> = {
   ADMITTED: { label: 'Admis', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -56,7 +54,13 @@ export default function HospitalizationView() {
   const [currentPage, setCurrentPage] = useState(1)
 
   const statusFilter = tab === 'hospitalized' ? 'HOSPITALIZED' : 'DISCHARGED'
-  const { data: episodesData, isLoading } = useCareEpisodesData(`status=${statusFilter}&size=50`)
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    `status=${statusFilter}`,
+  ].join('&')
+  const { data: episodesData, isLoading } = useCareEpisodesData(searchParams)
   const { data: patientsData } = usePatientsData()
 
   const createEpisode = useCreateCareEpisode()
@@ -64,20 +68,9 @@ export default function HospitalizationView() {
 
   const patientsList = ((patientsData as Record<string, unknown>)?.items ?? []) as Record<string, unknown>[]
 
-  const filtered = useMemo(() => {
-    const allItems = ((episodesData as Record<string, unknown>)?.items ?? []) as EpisodeItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (!q) return true
-      const patient = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      const episode = String(item.episodeNumber || '').toLowerCase()
-      const reason = String(item.admitReason || '').toLowerCase()
-      return patient.includes(q) || episode.includes(q) || reason.includes(q)
-    })
-  }, [episodesData, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const allItems = ((episodesData as Record<string, unknown>)?.items ?? []) as EpisodeItem[]
+  const totalCount = ((episodesData as Record<string, unknown>)?.total ?? 0) as number
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [admitOpen, setAdmitOpen] = useState(false)
   const [admitForm, setAdmitForm] = useState({ patientId: '', admitReason: '' })
@@ -145,7 +138,7 @@ export default function HospitalizationView() {
     }
   }
 
-  const hospitalizedCount = tab === 'hospitalized' ? filtered.length : 0
+  const hospitalizedCount = tab === 'hospitalized' ? totalCount : 0
 
   return (
     <div className="space-y-6">
@@ -207,14 +200,14 @@ export default function HospitalizationView() {
                 <TableRow>
                   <TableCell colSpan={tab === 'discharged' ? 7 : 6} className="text-center py-8 text-muted-foreground">Chargement...</TableCell>
                 </TableRow>
-              ) : paginated.length === 0 ? (
+              ) : allItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={tab === 'discharged' ? 7 : 6} className="text-center py-8 text-muted-foreground">
                     {tab === 'hospitalized' ? 'Aucun patient hospitalisé' : 'Aucune sortie enregistrée'}
                   </TableCell>
                 </TableRow>
               ) : (
-                paginated.map((item) => {
+                allItems.map((item) => {
                   const sc = episodeStatusConfig[item.status || ''] || { label: item.status || '—', color: '' }
                   return (
                     <TableRow key={item.id}>
