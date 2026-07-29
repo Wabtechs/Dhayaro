@@ -189,7 +189,7 @@ export default function ClinicalCasesPage() {
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
   const usersList = (usersData?.items ?? []) as UserItem[]
 
-  const items = ((casesData?.items ?? []) as CaseItem[])
+  const items = ((casesData?.items ?? []) as unknown as CaseItem[])
   const totalCount = casesData?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
