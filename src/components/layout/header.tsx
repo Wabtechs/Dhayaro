@@ -25,7 +25,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth-store'
-import { useNotificationsData, useFacilitiesData } from '@/hooks/use-data'
+import { useNotificationsData, useFacilitiesData, useMarkNotificationRead } from '@/hooks/use-data'
 import type { Notification } from '@/types'
 import {
   Menu,
@@ -70,6 +70,8 @@ export function Header() {
   const notifications = useAppStore((s) => s.notifications)
   const setNotifications = useAppStore((s) => s.setNotifications)
   const { user, logout } = useAuthStore()
+
+  const markRead = useMarkNotificationRead()
 
   const { data: notifData } = useNotificationsData()
 
@@ -171,7 +173,14 @@ export function Header() {
                   notifications.slice(0, 10).map((notification) => (
                     <DropdownMenuItem
                       key={notification.id}
-                      className="flex flex-col items-start gap-1 py-3"
+                      className={cn(
+                        'flex flex-col items-start gap-1 py-3',
+                        !notification.read && 'bg-muted/50'
+                      )}
+                      onClick={() => {
+                        if (!notification.read) markRead.mutate([notification.id])
+                        if (notification.link) router.push(notification.link)
+                      }}
                     >
                       <span className="text-sm font-medium text-foreground">{notification.title}</span>
                       {notification.message && (

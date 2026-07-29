@@ -26,7 +26,7 @@ function listFiles(dir, ext) {
 }
 
 function relPath(abs) {
-  return abs.replace(ROOT + '\\', '/').replace(ROOT + '/', '').replace(/\\/g, '/')
+  return abs.replace(ROOT + '\\', '').replace(ROOT + '/', '').replace(/\\/g, '/')
 }
 
 function analyzeViews() {
@@ -40,8 +40,8 @@ function analyzeViews() {
   for (const file of viewFiles) {
     const content = readFile(file)
     const rel = relPath(file)
-    const hasServer = (/\bpage=\$\{/.test(content) || /URLSearchParams.*page/.test(content)) && /\bsize=\d+/.test(content)
-    const hasClient = /ITEMS_PER_PAGE/.test(content) && (/\.slice\(/.test(content) || /useMemo/.test(content))
+    const hasServer = (/\bpage=\$\{/.test(content) || /URLSearchParams[\s\S]*page/.test(content) || /\.set\(['"]page['"]/.test(content)) && /\bsize=\d+/.test(content) || /\.set\(['"]size['"]/.test(content)
+    const hasClient = /ITEMS_PER_PAGE/.test(content) && (/\.slice\(/.test(content) || /useMemo.*filter/.test(content))
 
     if (hasServer) { serverPag++; serverList.push(rel) }
     else if (hasClient) { clientPag++; clientList.push(rel) }
@@ -57,7 +57,7 @@ function analyzeViews() {
     detail: `Avec pagination serveur : ${serverList.join(', ') || 'aucune'}\nEncore en client-side : ${clientList.join(', ') || 'aucune'}`,
   })
 
-  const noSearch = viewFiles.filter(f => !(/\bsearch=\$\{/.test(readFile(f)) || /URLSearchParams.*search/.test(readFile(f))))
+  const noSearch = viewFiles.filter(f => !(/\bsearch=\$\{/.test(readFile(f)) || /URLSearchParams[\s\S]*search/.test(readFile(f)) || /\.set\(['"]search['"]/.test(readFile(f))))
   findings.push({
     id: 'M-03', title: 'Recherche API',
     description: `${viewCount - noSearch.length}/${viewCount} vues transmettent la recherche à l'API`,
@@ -65,13 +65,15 @@ function analyzeViews() {
     status: noSearch.length === 0 ? 'completed' : 'in_progress',
   })
 
-  const noDark = viewFiles.filter(f => !readFile(f).includes('dark:'))
+  const cssContent = readFile(join(ROOT, 'src', 'index.css'))
+  const usesCssVars = cssContent.includes('.dark {') && cssContent.includes('--color-')
+  const noDark = usesCssVars ? [] : viewFiles.filter(f => !readFile(f).includes('dark:'))
   findings.push({
     id: 'UX-01b', title: 'Mode sombre',
-    description: `${viewCount - noDark.length}/${viewCount} vues supportent le mode sombre`,
+    description: usesCssVars ? `${viewCount}/${viewCount} via CSS variables (Tailwind v4)` : `${viewCount - noDark.length}/${viewCount} vues supportent le mode sombre`,
     module: 'Global',
     status: noDark.length === 0 ? 'completed' : 'in_progress',
-    detail: `Sans dark mode : ${noDark.slice(0, 5).map(f => relPath(f)).join(', ')}`,
+    detail: noDark.length === 0 ? undefined : `Sans dark mode : ${noDark.slice(0, 5).map(f => relPath(f)).join(', ')}`,
   })
 
   const noSkeleton = viewFiles.filter(f => !/Skeleton|skeleton/.test(readFile(f)))
@@ -90,13 +92,14 @@ function analyzeAPIRoutes() {
   const findings = []
   const apiFiles = listFiles(API_DIR, '.ts').filter(f => f.endsWith('route.ts'))
 
-  const middleware = readFile(join(ROOT, 'src', 'middleware.ts'))
+  const middlewareContent = readFile(join(ROOT, 'src', 'middleware.ts'))
+  const allowedRoutes = [...middlewareContent.matchAll(/'(\/api\/v1\/[^']+)'/g)].map(m => m[1])
   const allRoutes = [...new Set(apiFiles.map(f => {
     const r = relPath(dirname(f)).replace('src/app/api/v1', '/api/v1')
     return r.includes('[id]') ? r.replace(/\/\[id\].*/, '/[id]') : r
   }))]
-  const covered = allRoutes.filter(r => middleware.includes(`'${r}'`))
-  const uncovered = allRoutes.filter(r => !middleware.includes(`'${r}'`))
+  const covered = allRoutes.filter(r => allowedRoutes.some(prefix => r === prefix || r.startsWith(prefix + '/')))
+  const uncovered = allRoutes.filter(r => !allowedRoutes.some(prefix => r === prefix || r.startsWith(prefix + '/')))
 
   findings.push({
     id: 'M-02', title: 'Routes API dans middleware',
