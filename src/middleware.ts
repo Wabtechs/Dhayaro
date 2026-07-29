@@ -45,6 +45,8 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/triage': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST'],
   '/api/v1/pharmacy': ['SUPER_ADMIN', 'ADMIN', 'PHARMACIST'],
   '/api/v1/hospitalization': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE'],
+  '/api/v1/dashboard': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST', 'LABORATORY', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST'],
+  '/api/v1/auth/me': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST', 'LABORATORY', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST', 'PATIENT'],
 }
 
 function isPublicPath(pathname: string): boolean {
