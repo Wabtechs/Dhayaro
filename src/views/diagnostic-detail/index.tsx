@@ -50,6 +50,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Card,
   CardHeader,
@@ -241,7 +242,7 @@ export default function DiagnosticDetailPage() {
       generateMedicalReportPDF({
         type: 'diagnostic',
         title: `Diagnostic: ${truncatedDescription}`,
-        patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String(patient.bloodGroup || '') } : null,
+        patient: patient ? { firstname: String(patient.firstName || patient.firstname || ''), lastname: String(patient.lastName || patient.lastname || ''), dateOfBirth: String(patient.dateOfBirth || ''), sex: String(patient.sex || ''), bloodGroup: String((patient.bloodType || patient.bloodGroup) || '') } : null,
         doctor: doctor ? { firstname: String(doctor.firstName || doctor.firstname || ''), lastname: String(doctor.lastName || doctor.lastname || ''), specialty: String(doctor.specialty || '') } : null,
         facility: null,
         createdAt: formatDate(createdAt),

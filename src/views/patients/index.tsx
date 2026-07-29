@@ -57,14 +57,18 @@ const ITEMS_PER_PAGE = 10
 interface PatientItem {
   id: string
   firstname?: string
+  lastName?: string
+  firstName?: string
   lastname?: string
   dateOfBirth: string
   sex?: string
   phone?: string
   address?: string
   bloodGroup?: string
+  bloodType?: string
   facilityId?: string
   patientUuid?: string
+  medicalRecordNumber?: string
   allergies?: string[]
   isActive?: boolean
   createdAt?: string
@@ -201,13 +205,13 @@ export default function PatientsPage() {
   const openEditDialog = (patient: PatientItem) => {
     setEditingPatient(patient)
     setEditForm({
-      firstName: (patient.firstname as string) || '',
-      lastName: (patient.lastname as string) || '',
+      firstName: (patient.firstName as string) || (patient.firstname as string) || '',
+      lastName: (patient.lastName as string) || (patient.lastname as string) || '',
       dateOfBirth: (patient.dateOfBirth as string) || '',
       gender: (((patient.sex as string) || '').toUpperCase()) as 'M' | 'F' | '',
       phone: (patient.phone as string) || '',
       address: (patient.address as string) || '',
-      bloodType: (patient.bloodGroup as string) || '',
+      bloodType: (patient.bloodType as string) || (patient.bloodGroup as string) || '',
       facilityId: (patient.facilityId as string) || '',
       allergies: Array.isArray(patient.allergies) ? (patient.allergies as string[]).join(', ') : '',
     })
@@ -244,7 +248,7 @@ export default function PatientsPage() {
   }
 
   const handleDelete = (patient: PatientItem) => {
-    const name = `${patient.firstname || ''} ${patient.lastname || ''}`.trim()
+    const name = `${(patient.firstName || patient.firstname) || ''} ${(patient.lastName || patient.lastname) || ''}`.trim()
     setConfirmDelete({
       description: `Êtes-vous sûr de vouloir supprimer le patient "${name}" ? Cette action est irréversible.`,
       callback: async () => {
@@ -656,7 +660,7 @@ export default function PatientsPage() {
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {patient.patientUuid || '—'}
+                    {(patient.medicalRecordNumber || patient.patientUuid) || '—'}
                   </TableCell>
                   <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
                   <TableCell>
@@ -667,9 +671,9 @@ export default function PatientsPage() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono', bloodTypeColors[patient.bloodGroup || ''])}
+                      className={cn('font-mono', bloodTypeColors[(patient.bloodType || patient.bloodGroup) || ''])}
                     >
-                      {patient.bloodGroup || '—'}
+                      {(patient.bloodType || patient.bloodGroup) || '—'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{patient.phone || '—'}</TableCell>
@@ -745,14 +749,14 @@ export default function PatientsPage() {
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarFallback className="text-xs">
-                    {(patient.firstname || '?')[0]}
-                    {(patient.lastname || '?')[0]}
+                    {((patient.firstName || patient.firstname) || '?')[0]}
+                    {((patient.lastName || patient.lastname) || '?')[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">
-                      {patient.firstname || '—'} {patient.lastname || ''}
+                      {(patient.firstName || patient.firstname) || '—'} {(patient.lastName || patient.lastname) || ''}
                     </p>
                     <Badge
                       variant={patient.isActive ? 'default' : 'secondary'}
@@ -767,7 +771,7 @@ export default function PatientsPage() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                    {patient.patientUuid || '—'}
+                    {(patient.medicalRecordNumber || patient.patientUuid) || '—'}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -776,9 +780,9 @@ export default function PatientsPage() {
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn('font-mono text-xs', bloodTypeColors[patient.bloodGroup || ''])}
+                      className={cn('font-mono text-xs', bloodTypeColors[(patient.bloodType || patient.bloodGroup) || ''])}
                     >
-                      {patient.bloodGroup || '—'}
+                      {(patient.bloodType || patient.bloodGroup) || '—'}
                     </Badge>
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />

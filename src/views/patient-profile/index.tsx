@@ -3,6 +3,7 @@
 import { usePatientAuthStore } from '@/store/patient-auth-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { User, Phone, MapPin, Droplets, Heart, AlertTriangle, UserCircle, Building2, Calendar } from 'lucide-react'
 
 export default function PatientProfileView() {
@@ -10,8 +11,40 @@ export default function PatientProfileView() {
 
   if (!patient) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        Chargement...
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <Skeleton className="mt-0.5 h-8 w-8 rounded-lg" />
+                  <div className="min-w-0 space-y-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-48" />
+          </CardContent>
+        </Card>
       </div>
     )
   }

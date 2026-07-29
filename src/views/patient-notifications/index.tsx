@@ -5,6 +5,7 @@ import { usePatientAuthStore } from '@/store/patient-auth-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Bell, Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -32,7 +33,28 @@ export default function PatientNotificationsView() {
       .finally(() => setLoading(false))
   }, [token])
 
-  if (loading) return <div className="py-20 text-center text-muted-foreground">Chargement...</div>
+  if (loading) return (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-48" />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="divide-y">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3 py-3">
+                <Skeleton className="mt-0.5 h-7 w-7 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-2 w-2 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 
   return (
     <div className="space-y-6">

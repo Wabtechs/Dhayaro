@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic'
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +110,7 @@ const typeColor: Record<string, string> = {
 export default function ResearchPage() {
   const { user } = useAuthStore();
   const { toast } = useToast();
-  const { data: casesData } = useClinicalCasesData();
+  const { data: casesData, isLoading } = useClinicalCasesData();
 
   const casesCount = (casesData as unknown as { items?: unknown[] })?.items?.length ?? 0;
 
@@ -133,6 +134,57 @@ export default function ResearchPage() {
   });
   const casesByFacility = Array.from(casesByFacilityMap.entries()).map(([name, value]) => ({ name, value }));
   const casesByMonth = monthNames.map(name => ({ name, value: casesByMonthMap.get(name) || 0 }));
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tableau de Bord Chercheurs</h1>
+          <p className="text-muted-foreground">Bienvenue, Chercheur. Voici un aperçu de vos recherches et analyses.</p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-1 h-4 w-56" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full rounded-lg" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="mt-1 h-4 w-64" />
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Skeleton className="h-10 w-36" />
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-40" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

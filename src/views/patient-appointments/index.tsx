@@ -5,6 +5,7 @@ import { usePatientAuthStore } from '@/store/patient-auth-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar, Clock, Stethoscope } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -38,7 +39,27 @@ export default function PatientAppointmentsView() {
       .finally(() => setLoading(false))
   }, [token])
 
-  if (loading) return <div className="py-20 text-center text-muted-foreground">Chargement...</div>
+  if (loading) return (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-48" />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="divide-y">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3 py-3">
+                <Skeleton className="mt-1 h-4 w-4 rounded" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 
   return (
     <div className="space-y-6">

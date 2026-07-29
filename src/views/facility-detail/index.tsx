@@ -28,6 +28,7 @@ import {
   CardContent,
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -137,9 +138,65 @@ export default function FacilityDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Chargement de l&apos;établissement...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <div className="space-y-2">
+              <Skeleton className="h-7 w-48" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+            </div>
+          </div>
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <div className="flex gap-1">
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-24 rounded-md" />
+            </div>
+            <Card>
+              <CardHeader><Skeleton className="h-5 w-24" /></CardHeader>
+              <CardContent><Skeleton className="h-16 w-full" /></CardContent>
+            </Card>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card><CardContent className="flex items-center gap-3 p-4"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-3 w-12" /><Skeleton className="h-4 w-20" /></div></CardContent></Card>
+              <Card><CardContent className="flex items-center gap-3 p-4"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-3 w-12" /><Skeleton className="h-4 w-16" /></div></CardContent></Card>
+            </div>
+            <Card>
+              <CardHeader><Skeleton className="h-5 w-20" /></CardHeader>
+              <CardContent><div className="flex flex-wrap gap-2"><Skeleton className="h-6 w-24 rounded-full" /><Skeleton className="h-6 w-32 rounded-full" /><Skeleton className="h-6 w-20 rounded-full" /></div></CardContent>
+            </Card>
+          </div>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader><Skeleton className="h-5 w-24" /></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-8" /></div></div>
+                <Skeleton className="h-px w-full" />
+                <div className="flex items-center gap-3"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-4 w-8" /></div></div>
+                <Skeleton className="h-px w-full" />
+                <div className="flex items-center gap-3"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-8" /></div></div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><Skeleton className="h-5 w-16" /></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3"><Skeleton className="h-4 w-4 rounded" /><Skeleton className="h-4 w-32" /></div>
+                <div className="flex items-center gap-3"><Skeleton className="h-4 w-4 rounded" /><Skeleton className="h-4 w-40" /></div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><Skeleton className="h-5 w-16" /></CardHeader>
+              <CardContent><div className="flex items-start gap-3"><Skeleton className="h-4 w-4 rounded" /><div className="space-y-1"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }

@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardData } from '@/hooks/use-data'
 
 const LazyRechartsChart = dynamic(
@@ -31,7 +32,7 @@ const PERIODS = [
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState('month')
-  const { data } = useDashboardData()
+  const { data, isLoading } = useDashboardData()
 
   const totalTreatments = data?.stats?.total_cases ?? 0
   const resolutionRate = data?.stats?.resolution_rate ?? 0
@@ -86,35 +87,51 @@ export default function AnalyticsPage() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card
-              key={stat.title}
-              className="transition-shadow hover:shadow-md"
-            >
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
               <CardContent className="flex items-center gap-4 p-6">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}
-                >
-                  <Icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {typeof stat.value === 'number'
-                      ? formatNumber(stat.value)
-                      : stat.value}
-                  </p>
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-16" />
                 </div>
               </CardContent>
             </Card>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {statCards.map((stat) => {
+            const Icon = stat.icon
+            return (
+              <Card
+                key={stat.title}
+                className="transition-shadow hover:shadow-md"
+              >
+                <CardContent className="flex items-center gap-4 p-6">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}
+                  >
+                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {typeof stat.value === 'number'
+                        ? formatNumber(stat.value)
+                        : stat.value}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <LazyRechartsChart

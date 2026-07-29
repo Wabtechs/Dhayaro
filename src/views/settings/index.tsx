@@ -13,6 +13,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Settings,
   Bell,
@@ -66,7 +67,7 @@ export default function SettingsPage() {
   const darkMode = useAppStore((s) => s.darkMode);
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const { toast } = useToast();
-  const { data: settingsData } = useSettings();
+  const { data: settingsData, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -131,6 +132,40 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="mt-1 h-4 w-72" />
+        </div>
+        <Skeleton className="h-px w-full" />
+        <div className="flex gap-1">
+          <Skeleton className="h-8 w-28 rounded-md" />
+          <Skeleton className="h-8 w-32 rounded-md" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+          <Skeleton className="h-8 w-28 rounded-md" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="mt-1 h-4 w-56" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-9 w-full rounded-md" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-9 w-full rounded-md" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-9 w-full rounded-md" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-9 w-full rounded-md" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-9 w-full rounded-md" /></div>
+            </div>
+          </CardContent>
+          <CardFooter><Skeleton className="h-9 w-28 rounded-md" /></CardFooter>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
