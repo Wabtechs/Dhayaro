@@ -8,6 +8,7 @@ interface AuditItem {
   description: string
   status: 'completed' | 'in_progress' | 'pending'
   module?: string
+  prompt?: string | null
 }
 
 interface AuditCategory {
@@ -86,6 +87,8 @@ export default function AuditFoncPage() {
   const [data, setData] = useState<AuditData | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [promptItem, setPromptItem] = useState<AuditItem | null>(null)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -178,9 +181,19 @@ export default function AuditFoncPage() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                         </div>
-                        <span className={`ml-3 shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[item.status].class}`}>
-                          {STATUS_CONFIG[item.status].label}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          {item.prompt && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPromptItem(item); setCopied(false) }}
+                              className="text-[11px] px-2 py-1 rounded border border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                            >
+                              Prompt
+                            </button>
+                          )}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[item.status].class}`}>
+                            {STATUS_CONFIG[item.status].label}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -215,6 +228,39 @@ export default function AuditFoncPage() {
           </p>
         </div>
       </div>
+
+      {promptItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPromptItem(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <span className="text-xs font-mono text-muted-foreground">{promptItem.id}</span>
+                <h3 className="text-lg font-semibold text-foreground">{promptItem.title}</h3>
+              </div>
+              <button onClick={() => setPromptItem(null)} className="text-muted-foreground hover:text-foreground p-1">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6">
+              <pre className="text-xs leading-relaxed text-foreground whitespace-pre-wrap font-mono bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-border">
+                {promptItem.prompt}
+              </pre>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+              {copied && <span className="text-xs text-green-600 dark:text-green-400">Copié !</span>}
+              <button
+                onClick={() => { navigator.clipboard.writeText(promptItem.prompt || ''); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Copier le prompt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   )
 }

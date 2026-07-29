@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { AUDIT_PROMPTS } from '@/lib/audit-prompts'
 
 const AUDIT_DATA = {
   score: 90,
@@ -153,9 +154,13 @@ const AUDIT_DATA = {
 
 export async function GET() {
   const categoriesWithStats = AUDIT_DATA.categories.map((cat) => {
-    const completedCount = cat.items.filter((i) => i.status === 'completed').length
-    const inProgressCount = cat.items.filter((i) => i.status === 'in_progress').length
-    return { ...cat, completedCount, inProgressCount, totalCount: cat.items.length }
+    const items = cat.items.map((item) => ({
+      ...item,
+      prompt: AUDIT_PROMPTS[item.id] || null,
+    }))
+    const completedCount = items.filter((i) => i.status === 'completed').length
+    const inProgressCount = items.filter((i) => i.status === 'in_progress').length
+    return { ...cat, items, completedCount, inProgressCount, totalCount: items.length }
   })
 
   return NextResponse.json({
