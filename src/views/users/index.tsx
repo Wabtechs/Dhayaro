@@ -131,7 +131,7 @@ export default function Users() {
   const [page, setPage] = useState(1)
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
-  const { data: usersData, isLoading } = useUsersData()
+  const { data: usersData, isLoading } = useUsersData(undefined, 1, 1000, search)
   const { data: facilitiesData } = useFacilitiesData()
   const updateUser = useUpdateUser()
   const deleteUser = useDeleteUser()
@@ -177,11 +177,8 @@ export default function Users() {
 
   const filtered = useMemo(() => {
     const result = allUsers.filter((u) => {
-      const matchesSearch =
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
-      return matchesSearch && matchesRole
+      return matchesRole
     })
 
     result.sort((a, b) => {
@@ -220,7 +217,7 @@ export default function Users() {
     })
 
     return result
-  }, [allUsers, search, roleFilter, sortField, sortDir, facilityMap])
+  }, [allUsers, roleFilter, sortField, sortDir, facilityMap])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

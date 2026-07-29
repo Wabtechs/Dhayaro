@@ -256,25 +256,26 @@ export function usePatientsData(facilityId?: string, params?: string) {
   });
 }
 
-export function useFacilitiesData() {
+export function useFacilitiesData(params?: string) {
   return useQuery({
-    queryKey: ['facilities'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/facilities'),
+    queryKey: ['facilities', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/facilities${params ? '?' + params : ''}`),
     staleTime: 60000,
   });
 }
 
-export function useUsersData(facilityId?: string, page = 1, size = 50) {
+export function useUsersData(facilityId?: string, page = 1, size = 50, search = '') {
+  const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
   return useQuery({
-    queryKey: ['users', facilityId, page, size],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/users?page=${page}&size=${size}`, facilityId),
+    queryKey: ['users', facilityId, page, size, search],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/users?page=${page}&size=${size}${searchParam}`, facilityId),
   });
 }
 
-export function useAuditData() {
+export function useAuditData(params?: string) {
   return useQuery({
-    queryKey: ['audit'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/audit'),
+    queryKey: ['audit', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/audit${params ? '?' + params : ''}`),
   });
 }
 

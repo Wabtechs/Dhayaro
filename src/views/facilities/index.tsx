@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Building2,
@@ -73,11 +73,16 @@ const facilityTypeLabels: Record<Facility['type'], string> = {
 }
 
 export default function Facilities() {
-  const { data, isLoading } = useFacilitiesData()
+  const [search, setSearch] = useState('')
+  const params = useMemo(() => {
+    const p = new URLSearchParams()
+    if (search) p.set('search', search)
+    return p.toString()
+  }, [search])
+  const { data, isLoading } = useFacilitiesData(params)
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { can } = usePermissions()
-  const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -106,11 +111,8 @@ export default function Facilities() {
   const [editBedCount, setEditBedCount] = useState('')
 
   const filtered = facilities.filter((f) => {
-    const matchesSearch =
-      f.name.toLowerCase().includes(search.toLowerCase()) ||
-      (f.city || '').toLowerCase().includes(search.toLowerCase())
     const matchesType = typeFilter === 'all' || f.type === typeFilter
-    return matchesSearch && matchesType
+    return matchesType
   })
 
   const TYPE_MAP: Record<Facility['type'], string> = {

@@ -66,7 +66,11 @@ export default function TreatmentHistoryPage() {
   const [dateTo, setDateTo] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data: casesData, isLoading: casesLoading } = useClinicalCasesData()
+  const casesParams = new URLSearchParams()
+  if (search) casesParams.set('search', search)
+  const casesParamsStr = casesParams.toString()
+
+  const { data: casesData, isLoading: casesLoading } = useClinicalCasesData(casesParamsStr || undefined)
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
   const { data: facilitiesData } = useFacilitiesData()

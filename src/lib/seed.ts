@@ -651,7 +651,9 @@ async function seed() {
     const epId = uuid()
     const status = pick(episodeStatuses)
     const admit = daysAgo(randInt(10, 300))
-    const discharge = status === 'DISCHARGED' || status === 'ARCHIVED' ? new Date(admit.getTime() + randInt(1, 30) * 86400000) : null
+    const daysToAdd = status === 'DISCHARGED' || status === 'ARCHIVED' ? randInt(1, 30) : 0
+    const rawDischarge = new Date(admit.getTime() + daysToAdd * 86400000)
+    const discharge = status === 'DISCHARGED' || status === 'ARCHIVED' ? (rawDischarge > new Date() ? new Date() : rawDischarge) : null
     const facilityId = pick(insertedFacilities).id
     episodeBatch.push({
       id: epId,

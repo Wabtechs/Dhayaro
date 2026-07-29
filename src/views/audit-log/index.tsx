@@ -155,7 +155,12 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table')
 
-  const { data, isLoading } = useAuditData()
+  const searchParams = useMemo(() => {
+    const p = new URLSearchParams()
+    if (search) p.set('search', search)
+    return p.toString()
+  }, [search])
+  const { data, isLoading } = useAuditData(searchParams)
   const { data: usersData } = useUsersData()
   const auditEntries = ((data?.items ?? []) as AuditItem[])
   const users = ((usersData as unknown as { items?: UserItem[] })?.items ?? [])
@@ -163,13 +168,6 @@ export default function AuditLogPage() {
 
   const filtered = useMemo(() => {
     return auditEntries.filter((entry) => {
-      const user = userMap[entry.userId]
-      const matchesSearch =
-        (entry.details || '').toLowerCase().includes(search.toLowerCase()) ||
-        (entry.entity || '').toLowerCase().includes(search.toLowerCase()) ||
-        (entry.entityId || '').toLowerCase().includes(search.toLowerCase()) ||
-        (user?.name.toLowerCase().includes(search.toLowerCase()) ?? false)
-
       const category = getActionCategory(entry.action)
       const matchesAction =
         actionFilter === 'all' || category === actionFilter
@@ -182,9 +180,9 @@ export default function AuditLogPage() {
       const matchesTo =
         !dateTo || entryDate <= new Date(dateTo + 'T23:59:59Z')
 
-      return matchesSearch && matchesAction && matchesUser && matchesFrom && matchesTo
+      return matchesAction && matchesUser && matchesFrom && matchesTo
     })
-  }, [auditEntries, search, actionFilter, userFilter, dateFrom, dateTo, userMap])
+  }, [auditEntries, actionFilter, userFilter, dateFrom, dateTo, userMap])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice(
