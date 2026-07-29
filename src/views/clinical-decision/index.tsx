@@ -14,6 +14,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useDiseasesData, useClinicalKnowledgeBaseData, useTherapeuticProtocolsData, useDiseaseStatisticsData } from '@/hooks/use-data'
 
 interface SimilarCase {
@@ -57,10 +58,10 @@ export default function ClinicalDecisionPage() {
   const { data: knowledgeData, isLoading: knowledgeLoading } = useClinicalKnowledgeBaseData(
     selectedDisease ? `diseaseId=${selectedDisease}&size=20` : ''
   )
-  const { data: protocolsData } = useTherapeuticProtocolsData(
+  const { data: protocolsData, isLoading: protocolsLoading } = useTherapeuticProtocolsData(
     selectedDisease ? `diseaseId=${selectedDisease}` : ''
   )
-  const { data: statsData } = useDiseaseStatisticsData(
+  const { data: statsData, isLoading: statsLoading } = useDiseaseStatisticsData(
     selectedDisease ? `diseaseId=${selectedDisease}` : ''
   )
 
@@ -111,7 +112,20 @@ export default function ClinicalDecisionPage() {
 
       {selectedDisease && (
         <>
-          {stats && (
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-4 w-24" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-16" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -158,7 +172,19 @@ export default function ClinicalDecisionPage() {
               </CardHeader>
               <CardContent>
                 {knowledgeLoading ? (
-                  <p className="text-center py-4 text-muted-foreground">Chargement...</p>
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg border space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-12 rounded-full" />
+                          <Skeleton className="h-5 w-8 rounded-full" />
+                          <Skeleton className="h-5 w-20 rounded-full" />
+                        </div>
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
                 ) : similarCases.length === 0 ? (
                   <p className="text-center py-4 text-muted-foreground">Aucun cas similaire trouvé</p>
                 ) : (
@@ -205,7 +231,20 @@ export default function ClinicalDecisionPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {protocols.length === 0 ? (
+                  {protocolsLoading ? (
+                    <div className="space-y-3">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="p-3 rounded-lg border">
+                          <div className="flex items-center justify-between mb-1">
+                            <Skeleton className="h-5 w-40" />
+                            <Skeleton className="h-5 w-24 rounded-full" />
+                          </div>
+                          <Skeleton className="h-3 w-full mt-2" />
+                          <Skeleton className="h-3 w-20 mt-1" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : protocols.length === 0 ? (
                     <p className="text-center py-4 text-muted-foreground">Aucun protocole disponible</p>
                   ) : (
                     <div className="space-y-3">

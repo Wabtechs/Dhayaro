@@ -417,7 +417,7 @@ export default function ClinicalCaseDetailPage() {
               <div className="relative ml-3 border-l-2 border-muted py-2 pl-6">
                 <div className="relative mb-6">
                   <div className="absolute -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-primary">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">Cas créé</p>
@@ -427,10 +427,10 @@ export default function ClinicalCaseDetailPage() {
                 {updatedAt && updatedAt !== createdAt && (
                   <div className="relative mb-6">
                     <div className="absolute -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-blue-500">
-                      <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Dernière mise à jour</p>
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Dernière mise à jour</p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(updatedAt)}</p>
                     </div>
                   </div>
@@ -438,10 +438,10 @@ export default function ClinicalCaseDetailPage() {
                 {resolvedAt && (
                   <div className="relative mb-6">
                     <div className="absolute -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-green-500">
-                      <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Cas résolu</p>
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Cas résolu</p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(resolvedAt)}</p>
                     </div>
                   </div>

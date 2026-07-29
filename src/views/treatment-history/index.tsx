@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { useClinicalCasesData, usePatientsData, useUsersData, useFacilitiesData } from '@/hooks/use-data'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import type { CaseStatus } from '@/types'
@@ -114,8 +115,36 @@ export default function TreatmentHistoryPage() {
 
   if (casesLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">Chargement de l'historique...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Skeleton className="h-8 w-72 mb-2" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-16 mb-2" />
+                <Skeleton className="h-8 w-12" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Skeleton className="h-px w-full" />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full sm:w-80" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="rounded-lg border">
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

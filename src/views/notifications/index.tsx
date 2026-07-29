@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useNotificationsData, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/use-data'
 import { useAppStore } from '@/store'
 import { formatDateTime } from '@/lib/utils'
@@ -147,7 +148,7 @@ function NotificationItem({
 export default function NotificationsPage() {
   const [page, setPage] = useState(1)
   const size = 20
-  const { data: notifData } = useNotificationsData(page, size)
+  const { data: notifData, isLoading } = useNotificationsData(page, size)
   const notifications = (notifData?.items as Notification[]) || []
   const total = notifData?.total || 0
   const unreadCount = notifData?.unreadCount || 0
@@ -283,7 +284,21 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <Tabs defaultValue="all">
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-4 p-4 rounded-lg border">
+              <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Tabs defaultValue="all">
         <TabsList>
           <TabsTrigger value="all" className="gap-1.5">
             Toutes
@@ -314,6 +329,7 @@ export default function NotificationsPage() {
           {renderList(filterNotifications('read'))}
         </TabsContent>
       </Tabs>
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">

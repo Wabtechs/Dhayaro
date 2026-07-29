@@ -21,6 +21,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useClinicalKnowledgeBaseData, useDiseasesData } from '@/hooks/use-data'
 import { formatDate } from '@/lib/utils'
 
@@ -125,11 +126,17 @@ export default function KnowledgeBasePage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Chargement...
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  </TableRow>
+                ))
               ) : entries.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">

@@ -110,11 +110,13 @@ function analyzeAPIRoutes() {
     detail: uncovered.length === 0 ? undefined : `Non couvertes : ${uncovered.join(', ')}`,
   })
 
-  const withPagination = apiFiles.filter(f => /parsePagination/.test(readFile(f)) && /export async function GET/.test(readFile(f)))
-  const withoutPagination = apiFiles.filter(f => !/parsePagination/.test(readFile(f)) && /export async function GET/.test(readFile(f)))
+  const getRoutes = apiFiles.filter(f => /export async function GET/.test(readFile(f)))
+  const withPagination = getRoutes.filter(f => /parsePagination/.test(readFile(f)))
+  const singleItem = getRoutes.filter(f => relPath(f).includes('/[id]') || relPath(f).includes('/fiche') || relPath(f).includes('/ordonnance'))
+  const withoutPagination = getRoutes.filter(f => !/parsePagination/.test(readFile(f)) && !singleItem.includes(f))
   findings.push({
     id: 'P-01', title: 'Pagination API',
-    description: `${withPagination.length}/${withPagination.length + withoutPagination.length} routes GET paginées`,
+    description: `${withPagination.length}/${withPagination.length + withoutPagination.length} routes GET paginées (${singleItem.length} routes detail exclues)`,
     module: 'Global',
     status: withoutPagination.length === 0 ? 'completed' : 'in_progress',
     detail: withoutPagination.length === 0 ? undefined : `Sans pagination : ${withoutPagination.map(f => relPath(f)).join(', ')}`,
