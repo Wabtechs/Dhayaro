@@ -23,6 +23,8 @@ export type Permission =
   | 'protocols:list' | 'protocols:create' | 'protocols:edit' | 'protocols:delete'
   | 'knowledge-base:list' | 'knowledge-base:search'
   | 'clinical-decision:read'
+  | 'triage:list' | 'triage:manage'
+  | 'pharmacy:list' | 'pharmacy:dispense'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -47,6 +49,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
     'knowledge-base:list', 'knowledge-base:search',
     'clinical-decision:read',
+    'triage:list', 'triage:manage',
+    'pharmacy:list', 'pharmacy:dispense',
   ],
   admin: [
     'users:list', 'users:create', 'users:edit', 'users:delete',
@@ -70,6 +74,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
     'knowledge-base:list', 'knowledge-base:search',
     'clinical-decision:read',
+    'triage:list', 'triage:manage',
   ],
   receptionist: [
     'patients:list', 'patients:create', 'patients:edit',
@@ -82,6 +87,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'episodes:list', 'episodes:create', 'episodes:edit',
   ],
   doctor: [
+    'triage:list', 'triage:manage',
+    'pharmacy:list',
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create', 'consultations:edit',
     'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit',
@@ -118,6 +125,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'protocols:list', 'protocols:create', 'protocols:edit', 'protocols:delete',
     'knowledge-base:list', 'knowledge-base:search',
     'clinical-decision:read',
+    'triage:list', 'triage:manage',
   ],
   laboratory: [
     'patients:list',
@@ -138,6 +146,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'documents:list',
     'notifications:list',
     'settings:read',
+    'pharmacy:list', 'pharmacy:dispense',
   ],
   nurse: [
     'patients:list', 'patients:create', 'patients:edit',
@@ -150,6 +159,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'settings:read',
     'episodes:list', 'episodes:create', 'episodes:edit',
+    'triage:list', 'triage:manage',
   ],
   accountant: [
     'patients:list',

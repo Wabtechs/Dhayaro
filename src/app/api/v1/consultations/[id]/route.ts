@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const CONSULTATION_KEYS = ['motif', 'symptoms', 'vitalSigns', 'notes', 'provisionalDiagnosis', 'status', 'isFollowUp', 'previousConsultationId', 'facilityId', 'patientId', 'doctorId'] as const
 
@@ -132,6 +133,8 @@ export async function PUT(
       return apiError(404, 'Consultation not found')
     }
 
+    await logAudit(auth.user, 'UPDATE', 'consultation', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /consultations/[id]', e)
@@ -158,6 +161,8 @@ export async function DELETE(
     if (!deleted) {
       return apiError(404, 'Consultation not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'consultation', id, { consultationNumber: deleted.consultationNumber })
 
     return NextResponse.json({ detail: 'Consultation cancelled' })
   } catch (e) {

@@ -26,19 +26,11 @@ class ApiClient {
     return localStorage.getItem('dhayaro_token') || '';
   }
 
-  private getRefreshToken(): string {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem('dhayaro_refresh_token') || '';
-  }
-
   private async doRefresh(): Promise<string> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) throw new Error('No refresh token');
-
     const response = await fetch(`${this.baseUrl}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include',
     });
 
     if (!response.ok) throw new Error('Refresh failed');
@@ -47,7 +39,6 @@ class ApiClient {
     const newToken: string = data.access_token;
 
     localStorage.setItem('dhayaro_token', newToken);
-    document.cookie = `dhayaro_token=${newToken}; path=/; max-age=86400; SameSite=Lax`;
     this.onTokenRefreshed?.(newToken);
 
     return newToken;
@@ -68,7 +59,7 @@ class ApiClient {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (response.status === 401 && retry && this.getRefreshToken()) {
+    if (response.status === 401 && retry) {
       try {
         if (!this.refreshPromise) {
           this.refreshPromise = this.doRefresh();
@@ -80,7 +71,6 @@ class ApiClient {
         this.refreshPromise = null;
         if (typeof window !== 'undefined') {
           localStorage.removeItem('dhayaro_token');
-          localStorage.removeItem('dhayaro_refresh_token');
           localStorage.removeItem('dhayaro_user');
           document.cookie = 'dhayaro_token=; path=/; max-age=0';
           window.location.href = '/login';
@@ -103,10 +93,9 @@ class ApiClient {
     }, false);
   }
 
-  refreshToken(refreshToken: string) {
+  refreshToken() {
     return this.requestWithAuth<{ access_token: string }>('/auth/refresh', {
       method: 'POST',
-      body: { refresh_token: refreshToken },
     }, false);
   }
 

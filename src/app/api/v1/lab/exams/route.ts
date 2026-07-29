@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { labExams, patients, users, labCategories, episodeEntities } from '@/lib/schema'
-import { eq, desc, and, count } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,13 +13,21 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const { page, size, offset } = parsePagination(searchParams)
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const patientId = sanitizeUuid(searchParams.get('patientId'))
     const categoryId = sanitizeUuid(searchParams.get('categoryId'))
     const status = searchParams.get('status')
 
     const conditions = []
+
+    if (search) {
+      conditions.push(or(
+        ilike(labExams.examName, `%${search}%`),
+        ilike(labExams.clinicalIndication, `%${search}%`),
+        ilike(labExams.resultNotes, `%${search}%`),
+      )!)
+    }
 
     if (patientId) {
       conditions.push(eq(labExams.patientId, patientId))
@@ -154,6 +163,8 @@ export async function POST(request: NextRequest) {
         createdAt: now,
       })
     }
+
+    await logAudit(auth.user, 'CREATE', 'lab_exam', row.id, { examName: row.examName })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

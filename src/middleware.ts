@@ -9,11 +9,13 @@ const PUBLIC_PATHS = [
   '/',
   '/login',
   '/test-accounts',
+  '/audit-fonc',
   '/patient/login',
   '/forgot-password',
   '/api/v1/auth/login',
   '/api/v1/auth/patient-login',
   '/api/v1/auth/refresh',
+  '/api/v1/audit-fonc',
 ]
 
 const ROLE_ROUTES: Record<string, string[]> = {
@@ -31,6 +33,8 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/clinical-knowledge-base': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
   '/api/v1/disease-statistics': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
   '/api/v1/therapeutic-protocols': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'],
+  '/api/v1/patients': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
+  '/api/v1/consultations': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/diagnostics': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'],
   '/api/v1/treatments': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'PHARMACIST'],
   '/api/v1/prescriptions': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'PHARMACIST'],
@@ -38,6 +42,9 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/documents': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'LABORATORY', 'ARCHIVIST'],
   '/api/v1/settings': ['SUPER_ADMIN', 'ADMIN'],
   '/api/v1/sync': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST'],
+  '/api/v1/triage': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'RECEPTIONIST'],
+  '/api/v1/pharmacy': ['SUPER_ADMIN', 'ADMIN', 'PHARMACIST'],
+  '/api/v1/hospitalization': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE'],
 }
 
 function isPublicPath(pathname: string): boolean {

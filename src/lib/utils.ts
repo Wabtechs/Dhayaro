@@ -13,6 +13,7 @@ export function formatDate(date: Date | string | null | undefined): string {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Africa/Lubumbashi',
   }).format(d)
 }
 
@@ -26,6 +27,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Africa/Lubumbashi',
   }).format(d)
 }
 

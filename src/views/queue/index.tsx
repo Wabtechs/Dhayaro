@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -70,8 +70,6 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
-
-const ITEMS_PER_PAGE = 10
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   WAITING: { label: 'En attente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -150,8 +148,14 @@ export default function QueueView() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const queueParams = statusFilter !== 'all' ? `status=${statusFilter}&size=100` : 'size=100'
-  const { data, isLoading } = useQueueData(queueParams)
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(statusFilter !== 'all' ? [`status=${statusFilter}`] : []),
+  ].join('&')
+
+  const { data, isLoading } = useQueueData(searchParams)
 
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
@@ -167,23 +171,9 @@ export default function QueueView() {
 
   const doctorUsers = usersList.filter((u) => DOCTOR_ROLES.includes(String(u.role || '')))
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as QueueItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (!search) return true
-      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      const doctorName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.trim().toLowerCase()
-      return (
-        String(item.ticketNumber || '').toLowerCase().includes(q) ||
-        patientName.includes(q) ||
-        doctorName.includes(q)
-      )
-    })
-  }, [data, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as QueueItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -292,7 +282,7 @@ export default function QueueView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">File d&apos;attente</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} entrée{filtered.length > 1 ? 's' : ''} dans la file
+              {totalCount} entrée{totalCount > 1 ? 's' : ''} dans la file
             </p>
           </div>
         </div>
@@ -448,7 +438,7 @@ export default function QueueView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucune entrée dans la file d&apos;attente</p>
           ) : (
             <div className="overflow-x-auto">
@@ -465,7 +455,7 @@ export default function QueueView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: QueueItem) => {
+                  {items.map((item: QueueItem) => {
                     const status = String(item.status || '').toUpperCase()
                     const priority = String(item.priority || '').toUpperCase()
                     const sConfig = statusConfig[status] || { label: status || '—', color: 'bg-gray-100 text-gray-700' }

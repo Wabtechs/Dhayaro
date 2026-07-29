@@ -5,6 +5,7 @@ import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -161,6 +162,8 @@ export async function POST(request: NextRequest) {
         createdAt: now,
       })
     }
+
+    await logAudit(auth.user, 'CREATE', 'diagnostic', row.id, { description: row.description, diagnosticType: row.diagnosticType })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

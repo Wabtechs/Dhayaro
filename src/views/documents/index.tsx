@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -78,8 +78,6 @@ import { generateMedicalReportPDF } from '@/lib/export-medical'
 import { generateMedicalReportExcel } from '@/lib/export-excel'
 import { generateMedicalReportDOCX } from '@/lib/export-docx'
 
-const ITEMS_PER_PAGE = 10
-
 const typeLabels: Record<string, string> = {
   PRESCRIPTION: 'Prescription',
   CERTIFICATE: 'Certificat',
@@ -142,9 +140,14 @@ export default function DocumentsView() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data, isLoading } = useDocumentsData(
-    typeFilter !== 'all' ? `documentType=${typeFilter}` : ''
-  )
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(typeFilter !== 'all' ? [`documentType=${typeFilter}`] : []),
+  ].join('&')
+
+  const { data, isLoading } = useDocumentsData(searchParams)
 
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
@@ -168,31 +171,9 @@ export default function DocumentsView() {
     return name || (u.name as string) || '—'
   }
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as DocumentItem[]
-    const q = search.toLowerCase()
-    const userItems = (usersData?.items ?? []) as UserItem[]
-    return allItems.filter((item) => {
-      if (!search) return true
-      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      let doctorName = '—'
-      if (item.doctorId) {
-        const u = userItems.find((x) => x.id === item.doctorId)
-        if (u) {
-          const name = `${u.firstname || u.firstName || ''} ${u.lastname || u.lastName || ''}`.trim()
-          doctorName = name || (u.name as string) || '—'
-        }
-      }
-      return (
-        String(item.title || '').toLowerCase().includes(q) ||
-        patientName.includes(q) ||
-        doctorName.toLowerCase().includes(q)
-      )
-    })
-  }, [data, search, usersData])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as DocumentItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -436,7 +417,7 @@ export default function DocumentsView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Documents</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} document{filtered.length > 1 ? 's' : ''}
+              {totalCount} document{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -599,7 +580,7 @@ export default function DocumentsView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucun document disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -616,7 +597,7 @@ export default function DocumentsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: DocumentItem) => {
+                  {items.map((item: DocumentItem) => {
                     const typeKey = String(item.documentType || '').toUpperCase()
                     const typeLabel = typeLabels[typeKey] || String(item.documentType || '—')
                     const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim() || '—'

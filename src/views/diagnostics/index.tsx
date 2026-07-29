@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -76,8 +76,6 @@ import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
-const ITEMS_PER_PAGE = 10
-
 const diagnosticTypeConfig: Record<string, { label: string; color: string }> = {
   PROVISIONAL: { label: 'Provisoire', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
   FINAL: { label: 'Final', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
@@ -150,7 +148,15 @@ export default function DiagnosticsView() {
   const [currentPage, setCurrentPage] = useState(1)
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
-  const { data, isLoading } = useDiagnosticsData()
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(typeFilter !== 'all' ? [`diagnosticType=${typeFilter}`] : []),
+    ...(validatedFilter !== 'all' ? [`validated=${validatedFilter}`] : []),
+  ].join('&')
+
+  const { data, isLoading } = useDiagnosticsData(searchParams)
 
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
@@ -170,28 +176,9 @@ export default function DiagnosticsView() {
     ['doctor', 'specialist'].includes(String(u.role || '').toLowerCase())
   )
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as DiagnosticItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (typeFilter !== 'all' && item.diagnosticType !== typeFilter) return false
-      if (validatedFilter === 'validated' && !item.isValidated) return false
-      if (validatedFilter === 'pending' && item.isValidated) return false
-      if (!search) return true
-      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.toLowerCase()
-      const doctorName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.toLowerCase()
-      const diseaseName = String(item.diseaseName || '').toLowerCase()
-      return (
-        String(item.description || '').toLowerCase().includes(q) ||
-        patientName.includes(q) ||
-        doctorName.includes(q) ||
-        diseaseName.includes(q)
-      )
-    })
-  }, [data, search, typeFilter, validatedFilter])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as DiagnosticItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -316,7 +303,7 @@ export default function DiagnosticsView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Diagnostics</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} diagnostic{filtered.length > 1 ? 's' : ''}
+              {totalCount} diagnostic{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -495,7 +482,7 @@ export default function DiagnosticsView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucun diagnostic disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -513,7 +500,7 @@ export default function DiagnosticsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: DiagnosticItem) => {
+                  {items.map((item: DiagnosticItem) => {
                     const type = String(item.diagnosticType || '').toUpperCase()
                     const typeConfig = diagnosticTypeConfig[type] || { label: type, color: 'bg-gray-100 text-gray-700' }
                     const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim() || '—'

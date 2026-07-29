@@ -4,6 +4,7 @@ import { documents } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const DOC_KEYS = ['patientId', 'consultationId', 'documentType', 'title', 'content', 'filePath', 'isPrinted'] as const
 
@@ -60,6 +61,8 @@ export async function PUT(
       .where(eq(documents.id, id))
       .returning()
 
+    await logAudit(auth.user, 'UPDATE', 'document', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /documents/[id]', e)
@@ -83,6 +86,8 @@ export async function DELETE(
     }
 
     await getDb().delete(documents).where(eq(documents.id, id))
+
+    await logAudit(auth.user, 'DELETE', 'document', id)
 
     return NextResponse.json({ success: true })
   } catch (e) {

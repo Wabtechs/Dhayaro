@@ -181,6 +181,7 @@ export const diagnostics = pgTable('diagnostics', {
   isValidated: boolean('is_validated').default(false),
   validatedBy: uuid('validated_by').references(() => users.id),
   validatedAt: timestamp('validated_at', { withTimezone: true }),
+  isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -284,6 +285,7 @@ export const labExams = pgTable('lab_exams', {
   validatedAt: timestamp('validated_at', { withTimezone: true }),
   requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

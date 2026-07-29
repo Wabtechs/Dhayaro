@@ -42,6 +42,8 @@ import {
   FileCheck,
   BookOpen,
   Lightbulb,
+  Activity,
+  DoorOpen,
 } from 'lucide-react'
 
 interface NavItem {
@@ -60,8 +62,9 @@ const navSections: NavSection[] = [
   {
     label: 'PRINCIPAL',
     items: [
-      { label: 'Tableau de bord', icon: LayoutDashboard, href: '/dashboard' },
+      { label: 'Tableau de bord', icon: LayoutDashboard, href: '/dashboard', permission: 'analytics:read' },
       { label: 'File d\'attente', icon: ListOrdered, href: '/queue', permission: 'queue:list' },
+      { label: 'Triage', icon: Activity, href: '/triage', permission: 'triage:list' },
       { label: 'Patients', icon: UserRound, href: '/patients', permission: 'patients:list' },
     ],
   },
@@ -78,6 +81,8 @@ const navSections: NavSection[] = [
     label: 'TRAITEMENT',
     items: [
       { label: 'Traitements', icon: Pill, href: '/treatments', permission: 'treatments:list' },
+      { label: 'Prescriptions', icon: Pill, href: '/prescriptions', permission: 'treatments:list' },
+      { label: 'Pharmacie', icon: Pill, href: '/pharmacy', permission: 'pharmacy:list' },
       { label: 'Laboratoire', icon: TestTube, href: '/laboratory', permission: 'lab:list' },
       { label: 'Protocoles', icon: FileCheck, href: '/protocols', permission: 'protocols:list' },
     ],
@@ -85,6 +90,7 @@ const navSections: NavSection[] = [
   {
     label: 'ÉPISODES',
     items: [
+      { label: 'Hospitalisation', icon: DoorOpen, href: '/hospitalization', permission: 'episodes:list' },
       { label: 'Épisodes de soins', icon: ClipboardList, href: '/care-episodes', permission: 'episodes:list' },
     ],
   },

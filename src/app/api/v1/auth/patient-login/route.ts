@@ -108,6 +108,13 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: 86400,
     })
+    response.cookies.set('dhayaro_refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 604800,
+    })
 
     return response
   } catch {

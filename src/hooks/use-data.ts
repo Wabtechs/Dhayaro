@@ -221,6 +221,8 @@ export function useDashboardData() {
 export function useRoleDashboardData(userRole?: UserRole) {
   return useQuery({
     queryKey: ['role-dashboard', userRole],
+    staleTime: 30000,
+    refetchInterval: 60000,
     queryFn: async () => {
       try {
         const data = await fetchData<RoleDashboardResponse>('/dashboard/stats');
@@ -233,7 +235,6 @@ export function useRoleDashboardData(userRole?: UserRole) {
         } as RoleDashboardResponse;
       }
     },
-    staleTime: 30 * 1000,
   });
 }
 
@@ -247,10 +248,11 @@ export function useClinicalCasesData(facilityId?: string) {
   });
 }
 
-export function usePatientsData(facilityId?: string) {
+export function usePatientsData(facilityId?: string, params?: string) {
+  const queryParams = params || ''
   return useQuery({
-    queryKey: ['patients', facilityId],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/patients', facilityId),
+    queryKey: ['patients', facilityId, queryParams],
+    queryFn: () => fetchData<{ items: unknown[]; total: number; page: number; size: number }>(`/patients${queryParams ? '?' + queryParams : ''}`, facilityId),
   });
 }
 
@@ -258,13 +260,14 @@ export function useFacilitiesData() {
   return useQuery({
     queryKey: ['facilities'],
     queryFn: () => fetchData<{ items: unknown[]; total: number }>('/facilities'),
+    staleTime: 60000,
   });
 }
 
-export function useUsersData(facilityId?: string) {
+export function useUsersData(facilityId?: string, page = 1, size = 50) {
   return useQuery({
-    queryKey: ['users', facilityId],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/users?size=100', facilityId),
+    queryKey: ['users', facilityId, page, size],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/users?page=${page}&size=${size}`, facilityId),
   });
 }
 
@@ -929,7 +932,10 @@ export function useArchivesData(params?: string) {
 export function useSettings() {
   return useQuery({
     queryKey: ['settings'],
-    queryFn: () => fetchData<{ preferences: Record<string, unknown> }>('/settings'),
+    queryFn: async () => {
+      const token = getToken();
+      return api.get<{ preferences: Record<string, unknown> }>('/settings', token);
+    },
   });
 }
 
@@ -1066,6 +1072,79 @@ export function useUpdateTherapeuticProtocol() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['therapeutic-protocols'] });
       queryClient.invalidateQueries({ queryKey: ['therapeutic-protocol', variables.id] });
+    },
+  });
+}
+
+export function useSubmitTriage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      queueId: string
+      patientId: string
+      priority: string
+      assignedDoctorId: string
+      vitalSigns: Record<string, unknown>
+      motif: string
+      notes?: string
+    }) => {
+      const token = getTokenFromStorage();
+      const results: Record<string, unknown>[] = [];
+
+      const queueUpdate = await api.put<unknown>(`/queue/${data.queueId}`, {
+        priority: data.priority,
+        assignedDoctorId: data.assignedDoctorId,
+        status: 'WITH_DOCTOR',
+        notes: data.notes,
+      }, token);
+      results.push(queueUpdate as Record<string, unknown>);
+
+      const consultation = await api.post<unknown>('/consultations', {
+        patientId: data.patientId,
+        doctorId: data.assignedDoctorId,
+        motif: data.motif,
+        vitalSigns: data.vitalSigns,
+        notes: data.notes,
+      }, token);
+      results.push(consultation as Record<string, unknown>);
+
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['care-episodes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDispenseTreatment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, queueId }: { id: string; queueId?: string }) => {
+      const token = getTokenFromStorage();
+      const results: Record<string, unknown>[] = [];
+
+      const treatmentUpdate = await api.put<unknown>(`/treatments/${id}`, {
+        status: 'IN_PROGRESS',
+      }, token);
+      results.push(treatmentUpdate as Record<string, unknown>);
+
+      if (queueId) {
+        const queueUpdate = await api.put<unknown>(`/queue/${queueId}`, {
+          status: 'COMPLETED',
+        }, token);
+        results.push(queueUpdate as Record<string, unknown>);
+      }
+
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treatments-list'] });
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

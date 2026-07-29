@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -72,8 +72,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 
-const ITEMS_PER_PAGE = 10
-
 const statusConfig: Record<string, { label: string; color: string }> = {
   PRESCRIBED: { label: 'Prescrit', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
   IN_PROGRESS: { label: 'En cours', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -140,9 +138,14 @@ export default function TreatmentsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data, isLoading } = useTreatmentsListData(
-    search ? `search=${search}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}` : (statusFilter !== 'all' ? `status=${statusFilter}` : '')
-  )
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(statusFilter !== 'all' ? [`status=${statusFilter}`] : []),
+  ].join('&')
+
+  const { data, isLoading } = useTreatmentsListData(searchParams)
 
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
@@ -160,23 +163,9 @@ export default function TreatmentsView() {
 
   const doctorsList = usersList.filter((u) => u.role === 'doctor' || u.role === 'specialist')
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as TreatmentItem[]
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      if (!search) return true
-      const pName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim().toLowerCase()
-      const dName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.trim().toLowerCase()
-      return (
-        String(item.description || '').toLowerCase().includes(q) ||
-        pName.includes(q) ||
-        dName.includes(q)
-      )
-    })
-  }, [data, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as TreatmentItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -333,7 +322,7 @@ export default function TreatmentsView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Traitements</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} traitement{filtered.length > 1 ? 's' : ''}
+              {totalCount} traitement{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -525,7 +514,7 @@ export default function TreatmentsView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucun traitement disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -542,7 +531,7 @@ export default function TreatmentsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: TreatmentItem) => {
+                  {items.map((item: TreatmentItem) => {
                     const status = String(item.status || '').toUpperCase()
                     const config = statusConfig[status] || { label: status || '—', color: 'bg-gray-100 text-gray-700' }
                     const pName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim()

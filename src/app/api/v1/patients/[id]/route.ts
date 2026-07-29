@@ -4,6 +4,7 @@ import { patients } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const PATIENT_KEYS = ['firstname', 'lastname', 'email', 'sex', 'dateOfBirth', 'bloodGroup', 'facilityId', 'allergies', 'phone', 'address', 'patientUuid', 'age', 'medicalHistoryJson'] as const
 
@@ -51,6 +52,8 @@ export async function PUT(
       return apiError(404, 'Patient not found')
     }
 
+    await logAudit(auth.user, 'UPDATE', 'patient', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /patients/[id]', e)
@@ -63,7 +66,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN', 'DOCTOR'])
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
@@ -77,6 +80,8 @@ export async function DELETE(
     if (!deleted) {
       return apiError(404, 'Patient not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'patient', id, { firstname: deleted.firstname, lastname: deleted.lastname })
 
     return NextResponse.json({ detail: 'Patient deleted' })
   } catch (e) {

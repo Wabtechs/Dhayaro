@@ -32,13 +32,15 @@
 10. [Installation](#installation)
 11. [Configuration](#configuration)
 12. [Modules Fonctionnels](#modules-fonctionnels)
-13. [Rôles et Permissions](#rôles-et-permissions)
-14. [Sécurité et Confidentialité](#sécurité-et-confidentialité)
-15. [Interopérabilité et Standards](#interopérabilité-et-standards)
-16. [Structure du Projet](#structure-du-projet)
-17. [Déploiement](#déploiement)
-18. [Cadre Légal et Éthique](#cadre-légal-et-éthique)
-19. [Licence](#licence)
+13. [Flux Complet du Parcours Patient](#flux-complet-du-parcours-patient-a-à-z)
+14. [Cycle de Vie de la Maladie et Cas Clinique](#cycle-de-vie-de-la-maladie-et-cas-clinique-a-à-z)
+15. [Rôles et Permissions](#rôles-et-permissions)
+16. [Sécurité et Confidentialité](#sécurité-et-confidentialité)
+17. [Interopérabilité et Standards](#interopérabilité-et-standards)
+18. [Structure du Projet](#structure-du-projet)
+19. [Déploiement](#déploiement)
+20. [Cadre Légal et Éthique](#cadre-légal-et-éthique)
+21. [Licence](#licence)
 
 ---
 
@@ -344,7 +346,7 @@ src/
 │   │   ├── diagnostics/        # Diagnostics
 │   │   ├── diseases/           # Maladies (CIM-10)
 │   │   ├── protocols/          # Protocoles de soins
-│   │   ├── treatments/         # Traitements
+│   │   ├── treatments/         # Traitements + Ordonnances
 │   │   ├── laboratory/         # Laboratoire
 │   │   ├── queue/              # File d'attente
 │   │   ├── documents/          # Documents médicaux
@@ -355,19 +357,30 @@ src/
 │   │   ├── facilities/         # Établissements
 │   │   ├── settings/           # Paramètres
 │   │   ├── audit/              # Journal d'audit
-│   │   └── profile/            # Profil utilisateur
+│   │   ├── profile/            # Profil utilisateur
+│   │   ├── care-episodes/      # Épisodes de soins
+│   │   ├── clinical-cases/     # Cas cliniques
+│   │   ├── clinical-decision/  # Aide à la décision
+│   │   ├── knowledge-base/     # Base de connaissances
+│   │   ├── doctors/            # Listing médecins
+│   │   ├── research/           # Recherche clinique
+│   │   ├── sync-center/        # Centre de synchronisation
+│   │   ├── analytics/          # Analyses avancées
+│   │   └── patient/            # Portail patient (dashboard, rdv, etc.)
 │   ├── (auth)/                 # Pages d'authentification
 │   │   ├── login/
+│   │   ├── patient-login/
 │   │   └── forgot-password/
-│   └── api/v1/                 # API Routes REST
+│   └── api/v1/                 # API Routes REST (50+ endpoints)
 │       ├── auth/               # Authentification JWT
 │       ├── patients/           # CRUD patients
-│       ├── consultations/      # CRUD consultations
-│       ├── diagnostics/        # CRUD diagnostics
-│       ├── diseases/           # CRUD maladies
-│       ├── protocols/          # CRUD protocoles
-│       ├── treatments/         # CRUD traitements
-│       ├── laboratory/         # Examens de labo
+│       ├── consultations/      # CRUD consultations + fiches PDF
+│       ├── diagnostics/        # CRUD diagnostics + fiches PDF
+│       ├── diseases/           # CRUD maladies CIM-10
+│       ├── protocols/          # CRUD protocoles thérapeutiques
+│       ├── treatments/         # CRUD traitements + ordonnances PDF
+│       ├── prescriptions/      # CRUD prescriptions
+│       ├── laboratory/         # Examens + catégories + fiches PDF
 │       ├── queue/              # File d'attente
 │       ├── documents/          # Génération PDF
 │       ├── archives/           # Gestion archives
@@ -375,24 +388,43 @@ src/
 │       ├── users/              # Gestion utilisateurs
 │       ├── facilities/         # Établissements
 │       ├── audit/              # Journal d'audit
-│       ├── sync/               # Synchronisation Edge
-│       └── reports/            # Rapports SNIS
+│       ├── sync/               # Synchronisation Edge (push/pull)
+│       ├── reports/            # Rapports SNIS
+│       ├── settings/           # Préférences utilisateur
+│       ├── dashboard/          # Statistiques dashboard
+│       ├── patient/            # Portail patient
+│       ├── care-episodes/      # Épisodes de soins + archive/restore/fiche
+│       ├── clinical-cases/     # Cas cliniques + stats + fiches PDF
+│       ├── clinical-knowledge-base/  # Base de connaissances
+│       ├── disease-statistics/ # Statistiques maladies
+│       └── therapeutic-protocols/    # Protocoles thérapeutiques
 ├── components/
 │   ├── ui/                     # Composants shadcn/ui
 │   ├── layout/                 # Sidebar, Header, Layout
 │   └── charts/                 # Composants Recharts
 ├── views/                      # Composants pages
 ├── hooks/                      # Custom hooks React
+│   ├── use-data.ts             # Tous les hooks TanStack Query
+│   ├── use-toast.ts            # Notifications toast
+│   ├── use-permissions.ts      # Vérification RBAC
+│   └── use-sync.ts             # Synchronisation
 ├── store/                      # Zustand stores
+│   ├── index.ts                # Store global (sidebar, darkMode, notifs)
+│   └── auth-store.ts           # Store authentification
 ├── services/
-│   ├── api.ts                  # Client API
+│   ├── api.ts                  # Client API avec auto-refresh token
 │   ├── sync-engine.ts          # Moteur de synchronisation
 │   └── offline-storage.ts      # Stockage local (IndexedDB)
 ├── lib/
-│   ├── utils.ts                # Utilitaires
-│   ├── db.ts                   # Schema Drizzle ORM
-│   ├── auth.ts                 # Authentification JWT
-│   └── seed.ts                 # Données de démonstration
+│   ├── utils.ts                # Utilitaires (cn, formatDate, etc.)
+│   ├── db.ts                   # Connexion Neon Drizzle ORM
+│   ├── schema.ts               # 20+ tables Drizzle ORM
+│   ├── auth.ts                 # JWT create/verify, password hash
+│   ├── seed.ts                 # Données de démonstration (1000+ patients)
+│   ├── permissions.ts          # RBAC permissions (11 rôles, 50+ permissions)
+│   ├── validation.ts           # Sanitization UUID, recherche
+│   ├── api-errors.ts           # Gestion erreurs API
+│   └── rate-limit.ts           # Rate limiter IP
 └── types/                      # TypeScript types
 ```
 
@@ -419,12 +451,39 @@ src/
 
 | Technologie | Version | Usage |
 |-------------|---------|-------|
-| Next.js API Routes | 15 | Endpoints REST |
+| Next.js API Routes | 15 | 50+ endpoints REST |
 | Drizzle ORM | 0.44 | ORM PostgreSQL |
 | PostgreSQL (Neon) | 16 | Base de données serverless |
 | jose | 6 | JWT tokens (RFC 7519) |
 | bcryptjs | 3 | Hachage mots de passe |
 | Zod | 3 | Validation des schémas |
+
+### Base de données — 20 tables
+
+| Table | Description |
+|-------|-------------|
+| `facilities` | Établissements de santé (10) |
+| `users` | Utilisateurs (23 comptes) |
+| `patients` | Patients (1003) |
+| `consultations` | Consultations médicales (3000) |
+| `diagnostics` | Diagnostics liés aux maladies CIM-10 |
+| `diseases` | Référentiel CIM-10 (12 maladies) |
+| `medications` | Médicaments (18) |
+| `treatments` | Traitements prescrits (500) |
+| `prescriptions` | Prescriptions détaillées (500) |
+| `lab_categories` | Catégories d'examens (5) |
+| `lab_exams` | Examens de laboratoire (800) |
+| `queue` | File d'attente (100 entrées) |
+| `documents` | Documents médicaux PDF (200) |
+| `notifications` | Notifications (150) |
+| `audit_logs` | Journal d'audit (200) |
+| `archives` | Archives pérennes (100) |
+| `care_episodes` | Épisodes de soins (20) |
+| `clinical_cases` | Cas cliniques (100) |
+| `clinical_knowledge_base` | Base de connaissances (30) |
+| `therapeutic_protocols` | Protocoles thérapeutiques (10) |
+| `disease_statistics` | Statistiques maladies |
+| `sync_queue` | File de synchronisation Edge↔Cloud |
 
 ### Edge Computing (Déploiement Alimbongo)
 
@@ -528,13 +587,28 @@ OFFLINE_STORAGE_PATH=./data/offline
 
 | Rôle | Email | Mot de passe |
 |------|-------|-------------|
-| Super Admin | admin@dhayaro.cd | admin123 |
-| Médecin | dr.kabongo@dhayaro.cd | doctor123 |
-| Infirmier | infirmier@dhayaro.cd | nurse123 |
-| Laborantin | labo@dhayaro.cd | lab123 |
-| Pharmacien | pharmacie@dhayaro.cd | pharm123 |
-| Réceptionniste | reception@dhayaro.cd | recep123 |
-| Comptable | compta@dhayaro.cd | compta123 |
+| Super Admin | superadmin@dhayaro.cd | admin123 |
+| Admin | admin@dhayaro.cd | admin123 |
+| Médecin (Kabongo) | dr.kabongo@dhayaro.cd | doctor123 |
+| Médecin (Clovis) | dr.clovis@dhayaro.cd | doctor123 |
+| Médecin (Sylvain) | dr.sylvain@dhayaro.cd | doctor123 |
+| Médecin (Pierre) | dr.pierre@dhayaro.cd | doctor123 |
+| Médecin (Françoise) | dr.francoise@dhayaro.cd | doctor123 |
+| Médecin (André) | dr.andre@dhayaro.cd | doctor123 |
+| Médecin (David) | dr.david@dhayaro.cd | doctor123 |
+| Spécialiste (Espérance) | dr.esperance@dhayaro.cd | doctor123 |
+| Spécialiste (Grâce) | dr.grace@dhayaro.cd | doctor123 |
+| Spécialiste (Marie) | dr.marie@dhayaro.cd | doctor123 |
+| Infirmier (Mohamed) | nurse.mohamed@dhayaro.cd | nurse123 |
+| Infirmier (Cécile) | nurse.cecile@dhayaro.cd | nurse123 |
+| Laborantin | lab.joseph@dhayaro.cd | dhayaro123 |
+| Pharmacien | pharm.beatrice@dhayaro.cd | dhayaro123 |
+| Réceptionniste | reception@dhayaro.cd | dhayaro123 |
+| Comptable | compta.augustin@dhayaro.cd | dhayaro123 |
+| Archiviste | archive.monique@dhayaro.cd | dhayaro123 |
+| Patient (Marcel) | patient.marcel@dhayaro.cd | patient123 |
+| Patient (Solange) | patient.solange@dhayaro.cd | patient123 |
+| Patient (Prosper) | patient.prosper@dhayaro.cd | patient123 |
 
 ---
 
@@ -688,22 +762,462 @@ Réception → Salle d'attente → Médecin → Laboratoire → Retour médecin 
 - Gestion des conflits (résolution de conflits)
 - Chiffrement pendant la transmission (VPN)
 
+### 16. Épisodes de Soins (Care Episodes)
+**Parcours patient global** : de l'admission à la sortie.
+
+- Cycle de vie complet : ADMITTED → TRIAGE → CONSULTATION → TREATMENT → HOSPITALIZED → DISCHARGED → TRANSFERRED → ARCHIVED
+- Numéro d'épisode unique (ex: `EP-2026-000001`)
+- Regroupement de toutes les entités d'un séjour (consultations, diagnostics, traitements, labos, documents)
+- Issues possibles : GUERISON, AMELIORATION, DECES, TRANSFERT, FUITE
+- Archivage et restauration des épisodes
+
+### 17. Cas Cliniques (Clinical Cases)
+**Suivi de cas médical** : de la création à la résolution.
+
+- Statuts : draft → active → in_review → resolved → archived
+- Priorités : low, medium, high, critical
+- Symptômes, diagnostic provisoire, traitement, durée
+- Tags pour catégorisation (ex: Cardiologie, Urgence, Pédiatrie)
+- Fiche PDF exportable
+
+### 18. Base de Connaissances Cliniques
+**Apprentissage continu** : capitalisation des cas anonymisés.
+
+- Cas cliniques anonymisés avec symptômes, diagnostics, traitements, évolution
+- Recherche de cas similaires par symptômes ou maladie
+- Statistiques des maladies (taux de guérison, mortalité, médicaments courants)
+- Aide à la décision clinique
+
+### 19. Protocoles Thérapeutiques
+**Arbres décisionnels** : guides cliniques par maladie.
+
+- Étapes structurées avec médicaments, dosages, durées
+- Liés aux maladies CIM-10
+- Population cible et contre-indications
+- Taux d'efficacité documenté
+
 ---
 
-## Rôles et Permissions
+## Flux Complet du Parcours Patient (A à Z)
 
-| Rôle | Description | Accès principal |
-|------|-------------|-----------------|
-| **Super Admin** | Contrôle total du système | Tous les modules |
-| **Admin** | Administration de l'établissement | Configuration, utilisateurs, rapports |
-| **Réceptionniste** | Accueil et enregistrement | Patients, file d'attente |
-| **Médecin Généraliste** | Consultations et diagnostics | Patients, consultations, diagnostics, traitements, laboratoire |
-| **Médecin Spécialiste** | Consultations spécialisées | Même que généraliste + spécialités |
-| **Laborantin** | Examens de laboratoire | Laboratoire, résultats |
-| **Pharmacien** | Gestion des médicaments | Traitements, pharmacie |
-| **Infirmier** | Soins et suivi patients | Consultations, signes vitaux, soins |
-| **Comptable** | Facturation et finances | Facturation, rapports financiers |
-| **Archiviste** | Gestion des archives | Archives, recherche |
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                        PARCOURS PATIENT — DHAYARO                                   │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  1. ACCUEIL (Réceptionniste)                                                        │
+│     ┌────────────────────────────────────────────────┐                              │
+│     │ • Enregistrement du patient                    │                              │
+│     │ • Création du dossier (identité, contact,      │                              │
+│     │   assurance, allergies, antécédents)           │                              │
+│     │ • Génération d'un UUID patient unique          │                              │
+│     │ • Création du ticket de file d'attente         │                              │
+│     │ • Ouverture d'un épisode de soins (ADMITTED)   │                              │
+│     └────────────────────────────────────────────────┘                              │
+│                              │                                                      │
+│                              ▼                                                      │
+│  2. TRIAGE (Infirmier)                                                              │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Prise des signes vitaux                    │                                │
+│     │   (température, tension, pouls, poids)       │                                │
+│     │ • Évaluation initiale des symptômes          │                                │
+│     │ • Mise à jour statut épisode → TRIAGE        │                                │
+│     │ • Création optionnelle d'un cas clinique     │                                │
+│     └──────────────────────────────────────────────┘                                │
+│                              │                                                      │
+│                              ▼                                                      │
+│  3. CONSULTATION (Médecin Généraliste / Spécialiste)                                │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Saisie du motif de consultation            │                                │
+│     │ • Examen clinique et symptômes détaillés     │                                │
+│     │ • Diagnostic provisoire                      │                                │
+│     │ • Statut épisode → CONSULTATION              │                                │
+│     └──────────────┬───────────────────────────────┘                                │
+│                    │                                                                │
+│         ┌──────────┼──────────┐                                                     │
+│         ▼          ▼          ▼                                                     │
+│  4a. Labo    4b. Imagerie  4c. Orientation                                          │
+│  (Labo.)     (Labo.)        directe                                                 │
+│  ┌────────┐  ┌────────┐     │                                                       │
+│  │Demande │  │Radio/  │     │                                                       │
+│  │examen  │  │Scanner │     │                                                       │
+│  │Résultat│  │ECG     │     │                                                       │
+│  │Valid.  │  │        │     │                                                       │
+│  └───┬────┘  └───┬────┘     │                                                       │
+│      └─────┬─────┘          │                                                       │
+│            ▼                │                                                       │
+│  5. DIAGNOSTIC (Médecin)    │                                                       │
+│     ┌──────────────────────────────┐                                                │
+│     │ • Diagnostic final (CIM-10)  │                                                │
+│     │ • Type : PROVISIONAL / FINAL │                                                │
+│     │ • Validation par spécialiste │                                                │
+│     └──────────────┬───────────────┘                                                │
+│                    │                                                                │
+│                    ▼                                                                │
+│  6. TRAITEMENT (Médecin → Pharmacien)                                               │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Prescription du traitement                 │                                │
+│     │ • Médicaments avec dosage, fréquence, durée  │                                │
+│     │ • Génération ordonnance PDF                  │                                │
+│     │ • Délivrance par le pharmacien               │                                │
+│     │ • Statut épisode → TREATMENT                 │                                │
+│     └──────────────────────────────────────────────┘                                │
+│                              │                                                      │
+│                              ▼                                                      │
+│  7. HOSPITALISATION / SUIVI (si nécessaire)                                         │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Surveillance continue                      │                                │
+│     │ • Consultations de suivi (isFollowUp=true)   │                                │
+│     │ • Évolution du traitement                    │                                │
+│     │ • Statut épisode → HOSPITALIZED              │                                │
+│     └──────────────────────────────────────────────┘                                │
+│                              │                                                      │
+│                              ▼                                                      │
+│  8. SORTIE (DISCHARGED)                                                             │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Issue : GUERISON / AMELIORATION / DECES /  │                                │
+│     │          TRANSFERT / FUITE                   │                                │
+│     │ • Résumé de sortie avec compteurs            │                                │
+│     │ • Documents finaux (certificat, rapport)     │                                │
+│     │ • Statut épisode → DISCHARGED                │                                │
+│     └──────────────────────────────────────────────┘                                │
+│                              │                                                      │
+│                              ▼                                                      │
+│  9. ARCHIVAGE (Archiviste)                                                          │
+│     ┌──────────────────────────────────────────────┐                                │
+│     │ • Archivage de l'épisode de soins            │                                │
+│     │ • Archivage des entités (consultations,      │                                │
+│     │   diagnostics, traitements, examens)         │                                │
+│     │ • Snapshot JSON immuable                     │                                │
+│     │ • Restauration possible                      │                                │
+│     │ • Synchronisation Edge → Cloud               │                                │
+│     │ • Format PDF/A pour pérennité                │                                │
+│     └──────────────────────────────────────────────┘                                │
+│                                                                                     │
+│  TRANSVERSAL :                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │ • Notifications à chaque étape (nouveau patient, résultat dispo, etc.)      │    │
+│  │ • Documents PDF générés automatiquement                                     │    │
+│  │ • Audit trail de toutes les actions                                         │    │
+│  │ • Synchronisation Offline-First vers le cloud                               │    │
+│  │ • Aide à la décision via protocoles et base de connaissances                │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Cycle de Vie de la Maladie et Cas Clinique (A à Z)
+
+### A. Référentiel Maladies (CIM-10)
+
+```
+diseases (Référentiel CIM-10)
+  │
+  ├── code: "B54"                    # Code CIM-10
+  ├── name: "Paludisme non précisé"  # Nom de la maladie
+  ├── category: "Maladies infectieuses"
+  ├── symptoms: ["Fièvre","Frissons","Sueurs"]
+  ├── complications: ["Paludisme cérébral","Anémie sévère"]
+  ├── treatments: ["Arthéméther-Luméfantrine","Artésunate IV"]
+  ├── isContagious: false
+  └── severity: "MODERATE"
+```
+
+**12 maladies pré-chargées** : Paludisme, Gastro-entérite, Diabète type 2, HTA, Pneumonie, MPOC, Gastrite, Gonarthrose, Infection urinaire, Dépression, VIH/SIDA, Tuberculose.
+
+### B. Diagnostic
+
+```
+Consultation (consultations)
+  │
+  ├── motif: "Fièvre palustre avec frissons"
+  ├── symptoms: ["Fièvre 40°C","Frissons intensifs","Céphalées"]
+  ├── vitalSigns: { temperature: 40, heartRate: 95, bloodPressure: "110/70" }
+  ├── provisionalDiagnosis: "Paludisme sévère"
+  └── status: WAITING → IN_PROGRESS → COMPLETED
+        │
+        ▼
+Diagnostic (diagnostics) ← lié à une maladie CIM-10 (diseaseId)
+  │
+  ├── diagnosticType: PROVISIONAL | FINAL | DIFFERENTIAL
+  ├── description: "Paludisme sévère à Plasmodium falciparum"
+  ├── isValidated: false → true       # Validation par spécialiste
+  ├── validatedBy: UUID du spécialiste
+  └── validatedAt: timestamp
+        │
+        ▼
+Mise à jour des statistiques de la maladie (disease_statistics)
+  │
+  ├── totalCases +1
+  ├── recoveryRate / mortalityRate recalculés
+  ├── commonTreatments enrichis
+  └── commonMedications enrichis
+```
+
+### C. Traitement et Prescription
+
+```
+Diagnostic validé
+        │
+        ▼
+Traitement (treatments)
+  │
+  ├── description: "Artésunate IV 2.4mg/kg J0 puis J24 + Arteméther PO J12"
+  ├── status: PRESCRIBED → IN_PROGRESS → COMPLETED | CANCELLED | SUSPENDED
+  ├── startDate: "2026-07-20"
+  ├── endDate: "2026-08-03"
+  ├── notes: "Surveillance parasitémie J3"
+  └── outcome: "Guérison complète"
+        │
+        ├──→ Prescriptions (prescriptions)
+        │     │
+        │     ├── medicationId → medications (nom, dosage, forme)
+        │     ├── dosage: "1 comprimé 2x/j"
+        │     ├── frequency: "Matin et soir"
+        │     ├── duration: "7 jours"
+        │     ├── instructions: "Prendre avec de la nourriture"
+        │     └── quantity: 14
+        │
+        └──→ Document PDF (documents)
+              │
+              ├── documentType: ORDONNANCE | PRESCRIPTION
+              └── title: "Ordonnance médicale"
+```
+
+**18 médicaments pré-chargés** : Artésunate, Amoxicilline, Paracétamol, Metformine, Amlodipine, Ibuprofène, Omeprazole, Salbutamol, Sertraline, Furosémide, Ciprofloxacine, Cotrimoxazole, Ceftriaxone, Artéméther-Luméfantrine, TDF/3TC/DTG, Cétirizine, Métoclopramide, Kétorolac.
+
+### D. Historique Patient
+
+```
+PATIENT (patients)
+  │
+  ├── medicalHistoryJson: {}          # Données médicales historiques
+  ├── allergies: ["Pénicilline"]       # Allergies documentées
+  ├── antecedents: [{type, description, date}]  # Antécédents médicaux
+  └── isArchived: false
+        │
+        ▼
+  Épisode de soins (care_episodes)  ← Regroupe tout le séjour
+  │
+  ├── episodeNumber: "EP-2026-000001"
+  ├── status: ADMITTED → TRIAGE → CONSULTATION → TREATMENT
+  │          → HOSPITALIZED → DISCHARGED → TRANSFERRED → ARCHIVED
+  ├── admitDate, dischargeDate, admitReason
+  ├── dischargeSummary: {
+  │     consultationsCount, diagnosticsCount, treatmentsCount,
+  │     labExamsCount, documentsCount,
+  │     diagnostics: [{type, description}],
+  │     treatments: [{description, status}]
+  │   }
+  └── dischargeOutcome: GUERISON | AMELIORATION | DECES | TRANSFERT | FUITE
+        │
+        ▼
+  Entités liées (episode_entities)  — Table polymorphique
+  │
+  ├── entityType: CONSULTATION | DIAGNOSIS | TREATMENT | LAB_EXAM | DOCUMENT
+  └── entityId: UUID vers la table source
+        │
+        ▼
+  Consultation possible via:
+  ├── /patients/[id]              → Dossier complet du patient
+  ├── /patient-medical-record     → Dossier médical (portail patient)
+  ├── /treatment-history          → Historique des traitements
+  ├── /patient-consultations      → Toutes les consultations
+  └── /patient-lab-exams          → Tous les examens de laboratoire
+```
+
+### E. Flux d'Archivage (Détaillé)
+
+```
+DÉCLENCHEUR: Action "Archiver" sur un épisode de soins (care-episodes)
+                   (Bouton dans l'interface ou API)
+                              │
+                              ▼
+    POST /api/v1/care-episodes/[id]/archive
+                              │
+         ┌────────────────────┼────────────────────┐
+         ▼                    ▼                    ▼
+  1. Vérification      2. Entités liées      3. Données complètes
+  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐
+  │ • Épisode    │    │ Récupération │    │ SELECT dans:         │
+  │   existe     │    │ de toutes    │    │ • consultations      │
+  │ • Pas déjà   │    │ les entités  │    │ • diagnostics        │
+  │   archivé    │    │ liées via    │    │ • treatments         │
+  └──────────────┘    │ episode_     │    │ • lab_exams          │
+                      │ entities     │    │ • documents          │
+                      └──────────────┘    └──────────────────────┘
+                              │                    │
+                              └────────┬───────────┘
+                                       ▼
+         ┌───────────────────────────────────────────────┐
+         │  4. Résumé de sortie (dischargeSummary)       │
+         │  { episodeNumber, admitDate, dischargeDate,   │
+         │    admitReason, consultationsCount,           │
+         │    diagnosticsCount, treatmentsCount,         │
+         │    labExamsCount, documentsCount,             │
+         │    diagnostics: [...], treatments: [...] }    │
+         └────────────────────────────┬──────────────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         ▼                            ▼                            ▼
+  5. Base de connaissances     6. Statistiques maladie     7. Archive immuable
+  ┌─────────────────────┐     ┌─────────────────────┐    ┌─────────────────────┐
+  │ INSERT INTO         │     │ UPDATE disease_     │    │ INSERT INTO         │
+  │ clinical_knowledge_ │     │ statistics          │    │ archives            │
+  │ base                │     │ SET totalCases +1,  │    │                     │
+  │                     │     │ recoveryRate = ..., │    │ entityType:         │
+  │ Données ANONYMISÉES │     │ lastCalculated = now│    │   'PATIENT_FILE'    │
+  │ (pas de nom         │     └─────────────────────┘    │ data: snapshot JSON │
+  │  patient)           │                                │ title: "Épisode     │
+  │                     │                                │   EP-2026-000001    │
+  │ • ageRange          │                                │   - Archivé"        │
+  │ • symptoms[]        │                                │ archivedBy: user.id │
+  │ • diagnostics[]     │                                └─────────────────────┘
+  │ • treatments[]      │                                         │
+  │ • evolution         │                                         ▼
+  │ • durationDays      │                              8. Mise à jour épisode
+  │ • outcome           │                              ┌─────────────────────┐
+  └─────────────────────┘                              │ careEpisodes SET    │
+                                                       │ status = 'ARCHIVED' │
+                                                       │ isArchived = true   │
+                                                       │ dischargeDate = now │
+                                                       │ dischargeSummary =  │
+                                                       │   {...}             │
+                                                       └─────────────────────┘
+                                                                  │
+                                                                  ▼
+                                                      9. Notification
+                                                      ┌─────────────────────┐
+                                                      │ "L'épisode EP-2026  │
+                                                      │ -000001 a été       │
+                                                      │ archivé avec succès"│
+                                                      └─────────────────────┘
+```
+
+### F. Restauration
+
+```
+PATCH /api/v1/care-episodes/[id]/restore
+  │
+  ├── Vérification: épisode existe et est archivé
+  └── careEpisodes.isArchived = false  ← Les données sont préservées
+```
+
+### G. Cas Clinique (Clinical Case) — Cycle de vie complet
+
+```
+CRÉATION
+  │
+  ├── Titre, description, symptômes, diagnostic provisoire
+  ├── Patient, médecin assigné, établissement
+  ├── Priorité: low | medium | high | critical
+  └── Statut: draft (via OUTCOME_MAP: PENDING → 'active')
+        │
+        ▼
+WORKFLOW D'ÉTAT (transitions possibles)
+  │
+  ┌──────────┐
+  │  draft   │ ──→ "Passer en Actif"
+  └────┬─────┘
+       ▼
+  ┌──────────┐
+  │  active  │ ──→ "Passer en Revu"
+  └────┬─────┘
+       │
+       ▼
+  ┌────────────┐
+  │ in_review  │ ──→ "Marquer Résolu"  ou  "Réactiver"
+  └────┬───────┘
+       │
+       ▼
+  ┌──────────┐
+  │ resolved │ ──→ "Archiver"  ou  "Réactiver"
+  └────┬─────┘
+       │
+       ▼
+  ┌──────────┐
+  │ archived │
+  └──────────┘
+        │
+        ▼
+MAPPING VERS LE BACKEND (outcomeStatus)
+  │
+  ├── draft     → outcomeStatus: 'PENDING'
+  ├── active    → outcomeStatus: 'IN_PROGRESS'
+  ├── in_review → outcomeStatus: 'IN_PROGRESS'
+  ├── resolved  → outcomeStatus: 'SUCCESS'
+  └── archived  → outcomeStatus: 'FAILURE'
+        │
+        ▼
+FONCTIONNALITÉS ASSOCIÉES
+  │
+  ├── Notes textes (auteur, contenu, date)
+  ├── Tags de catégorisation (ex: Cardiologie, Urgence)
+  ├── Fiche PDF (via /clinical-cases/[id]/fiche)
+  └── Suppression (soft-delete via API)
+```
+
+### H. Exemple Concret : Paludisme sévère chez Marcel Tshibola
+
+| Étape | Acteur | Action | Entité créée |
+|-------|--------|--------|-------------|
+| 1 | Réceptionniste | Enregistrement | Patient + Queue |
+| 2 | Infirmier Mohamed | Signes vitaux (T° 40°C) | Épisode ADMITTED → TRIAGE |
+| 3 | Médecin Kabongo | Consultation + diagnostic provisoire | Consultation |
+| 4 | Laborantin Joseph | Goutte épaisse positive | Lab exam → COMPLETED |
+| 5 | Médecin Kabongo | Diagnostic final + validation | Diagnostic lié à B54 |
+| 6 | Médecin Kabongo | Prescription Artésunate IV | Traitement + Prescriptions + Ordonnance PDF |
+| 7 | Pharmacien Béatrice | Délivrance des médicaments | Statut traitement IN_PROGRESS |
+| 8 | — | Guérison | Épisode DISCHARGED (GUERISON) |
+| 9 | Archiviste Monique | Archivage | Archives + Knowledge Base + Statistiques |
+
+---
+
+### Hiérarchie des rôles
+
+| Niveau | Rôle | Description |
+|--------|------|-------------|
+| 100 | **Super Admin** | Contrôle total du système (tous les modules) |
+| 80 | **Admin** | Administration complète de l'établissement |
+| 70 | **Spécialiste** | Consultations spécialisées + validation diagnostics |
+| 60 | **Médecin** | Consultations, diagnostics, prescriptions |
+| 50 | **Pharmacien** | Gestion des médicaments et délivrance |
+| 50 | **Laborantin** | Examens de laboratoire et résultats |
+| 40 | **Infirmier** | Soins, triage, signes vitaux |
+| 35 | **Comptable** | Facturation et rapports financiers |
+| 30 | **Archiviste** | Gestion des archives pérennes |
+| 25 | **Réceptionniste** | Accueil, enregistrement, file d'attente |
+| 10 | **Patient** | Accès à son propre dossier médical |
+
+### Permissions par module
+
+| Module | Actions | Super Admin | Admin | Méd. | Spéc. | Inf. | Labo. | Pharm. | Récep. | Arch. | Comp. |
+|--------|---------|:-----------:|:-----:|:----:|:-----:|:----:|:-----:|:------:|:------:|:-----:|:-----:|
+| **Patients** | list/create/edit/delete/archive | ✓ | ✓ | ✓ | ✓ | ✓ | R | R | ✓ | R | R |
+| **Consultations** | list/create/edit | ✓ | ✓ | ✓ | ✓ | ✓ | R | - | ✓ | R | R |
+| **Diagnostics** | list/create/edit/validate | ✓ | ✓ | ✓ | ✓ | - | - | - | - | R | - |
+| **Maladies** | list/create/edit/delete | ✓ | ✓ | - | - | - | - | R | - | - | - |
+| **Traitements** | list/create/edit/delete | ✓ | ✓ | ✓ | ✓ | R | - | R | - | R | - |
+| **Prescriptions** | list/create/edit | ✓ | ✓ | ✓ | ✓ | - | - | ✓ | - | - | - |
+| **Laboratoire** | list/create/edit/validate | ✓ | ✓ | ✓ | ✓ | R | ✓ | R | - | R | R |
+| **File d'attente** | list/manage/assign | ✓ | ✓ | ✓ | ✓ | ✓ | R | R | ✓ | - | - |
+| **Cas cliniques** | list/create/edit/delete | ✓ | ✓ | ✓ | ✓ | R | - | - | R | R | - |
+| **Épisodes** | list/create/edit/archive | ✓ | ✓ | ✓ | ✓ | ✓ | - | - | ✓ | ✓ | - |
+| **Documents** | list/create/edit/print/export | ✓ | ✓ | ✓ | ✓ | R | ✓ | R | ✓ | ✓ | - |
+| **Archives** | list/manage | ✓ | ✓ | R | R | - | - | - | - | ✓ | - |
+| **Protocoles** | list/create/edit/delete | ✓ | ✓ | ✓ | ✓ | - | - | - | - | - | - |
+| **Connaissances** | list/search | ✓ | ✓ | ✓ | ✓ | - | - | - | - | - | - |
+| **Décision clinique** | read | ✓ | ✓ | ✓ | ✓ | - | - | - | - | - | - |
+| **Notifications** | list/manage | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Rapports** | read/export | ✓ | ✓ | - | - | - | - | - | - | - | ✓ |
+| **Utilisateurs** | list/create/edit/delete | ✓ | ✓ | - | - | - | - | - | - | - | - |
+| **Établissements** | list/create/edit/delete | ✓ | ✓ | - | - | - | - | - | - | - | - |
+| **Paramètres** | read/edit | ✓ | ✓ | R | R | R | R | R | R | R | R |
+| **Audit** | read | ✓ | - | - | - | - | - | - | - | - | - |
+
+_Légende : ✓ = Accès complet, R = Lecture seule, - = Aucun accès_
 
 ---
 
@@ -897,12 +1411,23 @@ Dhayaro/
 ├── drizzle/
 │   ├── 0000_initial.sql
 │   └── ...
+├── .dockerop/
+├── .opencode/
+├── scripts/
+│   ├── migrate-patient-portal.mjs
+│   └── seed-standalone.mjs
 ├── docker-compose.edge.yml
 ├── Dockerfile
-├── .env.example
+├── .env
+├── .env.local
+├── drizzle.config.ts
+├── next.config.ts
 ├── package.json
 ├── tsconfig.json
-├── tailwind.config.ts
+├── postcss.config.mjs
+├── eslint.config.js
+├── vercel.json
+├── AGENTS.md
 └── README.md
 ```
 
@@ -955,18 +1480,18 @@ docker compose logs -f dhayaro
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  Alimbongo (Edge)              Cloud (Vercel/Neon)       │
-│  ┌────────────────┐           ┌────────────────┐        │
-│  │ Serveur local  │ ◄──sync──►│ PostgreSQL     │        │
-│  │ Docker         │           │ Neon           │        │
-│  │ CouchDB        │           │                │        │
-│  │ Nextcloud      │           │                │        │
-│  └────────────────┘           └────────────────┘        │
-│         │                              │                │
-│         │                              │                │
-│  ┌──────▼──────┐              ┌────────▼────────┐       │
-│  │ Tablettes   │              │ Développeurs    │       │
-│  │ (Wi-Fi)     │              │ (Internet)      │       │
-│  └─────────────┘              └─────────────────┘       │
+│  ┌────────────────┐           ┌────────────────┐         │
+│  │ Serveur local  │ ◄──sync──►│ PostgreSQL     │         │
+│  │ Docker         │           │ Neon           │         │
+│  │ CouchDB        │           │                │         │
+│  │ Nextcloud      │           │                │         │
+│  └────────────────┘           └────────────────┘         │
+│         │                              │                 │
+│         │                              │                 │
+│  ┌──────▼──────┐              ┌────────▼────────┐        │
+│  │ Tablettes   │              │ Développeurs    │        │
+│  │ (Wi-Fi)     │              │ (Internet)      │        │
+│  └─────────────┘              └─────────────────┘        │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -1000,36 +1525,48 @@ docker compose logs -f dhayaro
 
 ## Roadmap
 
-### Phase 1 — Fondations (En cours)
+### Phase 1 — Fondations (✓ Terminé)
 - [x] Architecture Offline-First
-- [x] Gestion des patients
-- [x] Consultations et diagnostics
-- [x] Authentification et RBAC
-- [x] Tableau de bord
+- [x] Gestion des patients (CRUD, dossier médical, historique)
+- [x] Consultations (motif, symptômes, signes vitaux)
+- [x] Diagnostics avec classification CIM-10
+- [x] Authentification JWT + RBAC (11 rôles)
+- [x] Tableau de bord avec graphiques Recharts
+- [x] File d'attente temps réel
+- [x] Génération de documents PDF
+- [x] Notifications temps réel
+- [x] Multi-établissements
 
-### Phase 2 — Fonctionnalités Médicales
-- [ ] Protocoles de soins interactifs
-- [ ] Intégration CIM-10 complète
-- [ ] Module laboratoire avancé
-- [ ] Gestion de la pharmacie
+### Phase 2 — Fonctionnalités Médicales (✓ Terminé)
+- [x] Protocoles de soins interactifs (arbres décisionnels)
+- [x] Intégration CIM-10 complète (12 maladies de base)
+- [x] Module laboratoire (examens, catégories, validation)
+- [x] Gestion des traitements et prescriptions
+- [x] Épisodes de soins (parcours patient global)
+- [x] Cas cliniques (suivi de bout en bout)
+- [x] Base de connaissances cliniques anonymisée
+- [x] Recherche de cas similaires
 
-### Phase 3 — Résilience
-- [ ] Synchronisation Edge ↔ Cloud
-- [ ] Mode hors-ligne complet
-- [ ] Archivage PDF/A
-- [ ] Sauvegarde redondante
+### Phase 3 — Résilience (En cours)
+- [x] Synchronisation Edge ↔ Cloud (sync queue)
+- [x] Mode hors-ligne (données locales)
+- [x] Archivage PDF/A
+- [x] Sauvegarde redondante
+- [ ] Tests de résilience en conditions réelles
 
-### Phase 4 — Déploiement
-- [ ] Docker Compose pour Edge
+### Phase 4 — Déploiement (En cours)
+- [x] Docker Compose pour Edge
+- [x] Configuration multi-environnements
 - [ ] Configuration solaire
 - [ ] Formation du personnel
 - [ ] Déploiement à Alimbongo
 
-### Phase 5 — Extension
-- [ ] Multi-établissements
-- [ ] Intégration DHIS2 (SNIS)
-- [ ] Application mobile
+### Phase 5 — Extension (À venir)
+- [ ] Intégration DHIS2 (SNIS) complète
+- [ ] Application mobile native
 - [ ] Télémédecine
+- [ ] Interopérabilité HL7 FHIR
+- [ ] Dashboard patient avancé
 
 ---
 

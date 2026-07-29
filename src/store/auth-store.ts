@@ -2,12 +2,11 @@ import { create } from 'zustand'
 import type { User } from '@/types'
 
 const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000/api/v1' : '/api/v1')
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
 interface AuthState {
   user: User | null
   token: string | null
-  refreshToken: string | null
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   setToken: (token: string) => void
@@ -29,30 +28,27 @@ function mapBackendUser(bu: Record<string, unknown>): User {
   }
 }
 
-function loadSession(): { user: User | null; token: string | null; refreshToken: string | null } {
+function loadSession(): { user: User | null; token: string | null } {
   try {
     const raw = localStorage.getItem('dhayaro_user')
     const token = localStorage.getItem('dhayaro_token')
-    const refreshToken = localStorage.getItem('dhayaro_refresh_token')
     if (raw && token) {
-      return { user: JSON.parse(raw), token, refreshToken }
+      return { user: JSON.parse(raw), token }
     }
   } catch { /* ignore */ }
-  return { user: null, token: null, refreshToken: null }
+  return { user: null, token: null }
 }
 
-function saveSession(user: User, token: string, refreshToken: string) {
+function saveSession(user: User, token: string) {
   localStorage.setItem('dhayaro_user', JSON.stringify(user))
   localStorage.setItem('dhayaro_token', token)
-  localStorage.setItem('dhayaro_refresh_token', refreshToken)
-  document.cookie = `dhayaro_token=${token}; path=/; max-age=86400; SameSite=Lax`
 }
 
 function clearSession() {
   localStorage.removeItem('dhayaro_user')
   localStorage.removeItem('dhayaro_token')
-  localStorage.removeItem('dhayaro_refresh_token')
   document.cookie = 'dhayaro_token=; path=/; max-age=0'
+  document.cookie = 'dhayaro_refresh_token=; path=/; max-age=0'
 }
 
 const saved = loadSession()
@@ -60,7 +56,6 @@ const saved = loadSession()
 export const useAuthStore = create<AuthState>((set) => ({
   user: saved.user,
   token: saved.token,
-  refreshToken: saved.refreshToken,
 
   login: async (email: string, password: string) => {
     try {
@@ -103,8 +98,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       }
 
-      saveSession(user, token, data.refresh_token || '')
-      set({ user, token, refreshToken: data.refresh_token || null })
+      saveSession(user, token)
+      set({ user, token })
       return
     } catch {
       throw new Error('Le serveur est indisponible. Veuillez réessayer.')
@@ -113,7 +108,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     clearSession()
-    set({ user: null, token: null, refreshToken: null })
+    set({ user: null, token: null })
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
     }

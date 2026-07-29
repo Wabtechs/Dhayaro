@@ -4,6 +4,7 @@ import { labExams, patients, users, labCategories } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const EXAM_KEYS = ['labTechnicianId', 'categoryId', 'consultationId', 'examName', 'clinicalIndication', 'status', 'results', 'resultNotes', 'validatedBy', 'validatedAt', 'completedAt'] as const
 
@@ -113,6 +114,8 @@ export async function PUT(
       .where(eq(labExams.id, id))
       .returning()
 
+    await logAudit(auth.user, 'UPDATE', 'lab_exam', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /lab/exams/[id]', e)
@@ -135,7 +138,9 @@ export async function DELETE(
       return apiError(404, 'Lab exam not found')
     }
 
-    await getDb().delete(labExams).where(eq(labExams.id, id))
+    await getDb().update(labExams).set({ isActive: false, updatedAt: new Date() }).where(eq(labExams.id, id))
+
+    await logAudit(auth.user, 'DELETE', 'lab_exam', id)
 
     return NextResponse.json({ success: true })
   } catch (e) {

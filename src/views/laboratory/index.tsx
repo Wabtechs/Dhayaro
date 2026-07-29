@@ -76,8 +76,6 @@ import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
-const ITEMS_PER_PAGE = 10
-
 const statusConfig: Record<string, { label: string; color: string }> = {
   REQUESTED: { label: 'Demandé', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
   IN_PROGRESS: { label: 'En cours', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -150,14 +148,15 @@ export default function LaboratoryView() {
   const [currentPage, setCurrentPage] = useState(1)
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
-  const query = useMemo(() => {
-    const parts: string[] = []
+  const searchParams = useMemo(() => {
+    const parts: string[] = [`page=${currentPage}`, 'size=10']
+    if (search) parts.push(`search=${search}`)
     if (statusFilter !== 'all') parts.push(`status=${statusFilter}`)
     if (categoryFilter !== 'all') parts.push(`categoryId=${categoryFilter}`)
     return parts.join('&')
-  }, [statusFilter, categoryFilter])
+  }, [currentPage, search, statusFilter, categoryFilter])
 
-  const { data, isLoading } = useLabExamsData(query ? `?${query}` : '')
+  const { data, isLoading } = useLabExamsData(searchParams)
 
   const { data: patientsData } = usePatientsData()
   const { data: usersData } = useUsersData()
@@ -175,23 +174,9 @@ export default function LaboratoryView() {
   const labTechnicians = usersList.filter((u) => u.role === 'laboratory')
   const doctorsList = usersList.filter((u) => u.role === 'doctor')
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as LabExamItem[]
-    if (!search) return allItems
-    const q = search.toLowerCase()
-    return allItems.filter((item) => {
-      const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.toLowerCase()
-      const doctorName = `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.toLowerCase()
-      return (
-        String(item.examName || '').toLowerCase().includes(q) ||
-        patientName.includes(q) ||
-        doctorName.includes(q)
-      )
-    })
-  }, [data, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as LabExamItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -321,7 +306,7 @@ export default function LaboratoryView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Laboratoire</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} examen{filtered.length > 1 ? 's' : ''} de laboratoire
+              {totalCount} examen{totalCount > 1 ? 's' : ''} de laboratoire
             </p>
           </div>
         </div>
@@ -488,7 +473,7 @@ export default function LaboratoryView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucun examen de laboratoire disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -505,7 +490,7 @@ export default function LaboratoryView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: LabExamItem) => {
+                  {items.map((item: LabExamItem) => {
                     const status = String(item.status || '').toUpperCase()
                     const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-700' }
                     const patientName = `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim()

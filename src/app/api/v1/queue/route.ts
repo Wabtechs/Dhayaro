@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { queue, patients, users } from '@/lib/schema'
-import { eq, desc, and, count, sql } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -12,11 +12,19 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const { page, size, offset } = parsePagination(searchParams)
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const status = searchParams.get('status')
 
     const conditions = []
+
+    if (search) {
+      conditions.push(or(
+        ilike(queue.ticketNumber, `%${search}%`),
+        ilike(patients.firstname, `%${search}%`),
+        ilike(patients.lastname, `%${search}%`),
+      )!)
+    }
 
     if (status) {
       conditions.push(eq(queue.status, status as 'WAITING' | 'WITH_DOCTOR' | 'WITH_LAB' | 'WITH_PHARMACY' | 'COMPLETED' | 'CANCELLED'))

@@ -67,6 +67,7 @@ interface PatientItem {
   allergies?: string[]
   isActive?: boolean
   createdAt?: string
+  name?: string
   [key: string]: unknown
 }
 
@@ -134,31 +135,33 @@ export default function PatientsPage() {
     allergies: '',
   })
 
-  const { data, isLoading } = usePatientsData()
+  const queryParams = new URLSearchParams()
+  if (search) queryParams.set('search', search)
+  if (genderFilter !== 'all') queryParams.set('gender', genderFilter)
+  if (facilityFilter !== 'all') queryParams.set('facilityId', facilityFilter)
+  queryParams.set('page', String(page))
+  queryParams.set('size', String(ITEMS_PER_PAGE))
+  const paramsStr = queryParams.toString()
+
+  const { data, isLoading } = usePatientsData(undefined, paramsStr)
   const { data: facilitiesData } = useFacilitiesData()
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
+  const allItems = (data?.items ?? []) as PatientItem[]
+  const totalFromApi = data?.total ?? 0
+
   const filtered = useMemo(() => {
-    return ((data?.items ?? []) as PatientItem[]).filter((p) => {
-      const fullName = `${p.firstname || ''} ${p.lastname || ''}`.toLowerCase()
-      const matchesSearch =
-        !search ||
-        fullName.includes(search.toLowerCase()) ||
-        (p.patientUuid || '').toLowerCase().includes(search.toLowerCase()) ||
-        (p.phone || '').includes(search)
+    return allItems.filter((p) => {
       const matchesGender =
         genderFilter === 'all' || (p.sex as string).toUpperCase() === genderFilter.toUpperCase()
       const matchesFacility =
         facilityFilter === 'all' || p.facilityId === facilityFilter
-      return matchesSearch && matchesGender && matchesFacility
+      return matchesGender && matchesFacility
     })
-  }, [data, search, genderFilter, facilityFilter])
+  }, [allItems, genderFilter, facilityFilter])
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
-  const paginated = filtered.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  )
+  const totalPages = Math.max(1, Math.ceil(totalFromApi / ITEMS_PER_PAGE))
+  const paginated = filtered.slice(0, ITEMS_PER_PAGE)
 
   const getFacilityName = (id: string) =>
     facilitiesList.find((f) => f.id === id)?.name ?? '—'
@@ -337,10 +340,9 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -465,7 +467,7 @@ export default function PatientsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Téléphone</label>
                   <Input
-                    placeholder="+213 ..."
+                    placeholder="+243 ..."
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   />
@@ -604,7 +606,8 @@ export default function PatientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map((patient) => (
+              {paginated.map((patient) => {
+                return (
                 <TableRow key={patient.id}>
                   <TableCell>
                     <button
@@ -613,11 +616,10 @@ export default function PatientsPage() {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                          {(patient.firstname || '?')[0]}
-                          {(patient.lastname || '?')[0]}
+                        {(patient.name.split(' ').map((n) => n[0]) || ['??'])}
                         </AvatarFallback>
                       </Avatar>
-                      {patient.firstname || '—'} {patient.lastname || ''}
+                      <span>{(patient.name || '??')}</span>
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
@@ -687,7 +689,7 @@ export default function PatientsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
               {paginated.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">

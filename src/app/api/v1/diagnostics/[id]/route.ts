@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const DIAGNOSTIC_KEYS = ['diseaseId', 'diagnosticType', 'description', 'notes', 'consultationId', 'patientId', 'doctorId', 'facilityId', 'isValidated'] as const
 
@@ -89,6 +90,8 @@ export async function PUT(
       return apiError(404, 'Diagnostic not found')
     }
 
+    await logAudit(auth.user, 'UPDATE', 'diagnostic', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch {
     return apiError(500, 'Internal server error')
@@ -110,7 +113,9 @@ export async function DELETE(
       return apiError(404, 'Diagnostic not found')
     }
 
-    await getDb().delete(diagnostics).where(eq(diagnostics.id, id))
+    await getDb().update(diagnostics).set({ isActive: false, updatedAt: new Date() }).where(eq(diagnostics.id, id))
+
+    await logAudit(auth.user, 'DELETE', 'diagnostic', id)
 
     return NextResponse.json({ success: true })
   } catch (e) {

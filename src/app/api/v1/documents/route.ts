@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { documents, patients, episodeEntities } from '@/lib/schema'
-import { eq, desc, and, count } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,12 +13,19 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const { page, size, offset } = parsePagination(searchParams)
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const patientId = sanitizeUuid(searchParams.get('patientId'))
     const documentType = searchParams.get('documentType')
 
     const conditions = []
+
+    if (search) {
+      conditions.push(or(
+        ilike(documents.title, `%${search}%`),
+        ilike(documents.documentType, `%${search}%`),
+      )!)
+    }
 
     if (patientId) {
       conditions.push(eq(documents.patientId, patientId))
@@ -111,6 +119,8 @@ export async function POST(request: NextRequest) {
         createdAt: now,
       })
     }
+
+    await logAudit(auth.user, 'CREATE', 'document', row.id, { title: row.title, documentType: row.documentType })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

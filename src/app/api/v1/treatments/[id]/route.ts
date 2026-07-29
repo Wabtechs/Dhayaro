@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const TREATMENT_KEYS = ['description', 'status', 'startDate', 'endDate', 'notes', 'outcome', 'consultationId', 'patientId', 'doctorId', 'diagnosisId', 'facilityId'] as const
 
@@ -62,6 +63,8 @@ export async function PUT(
       return apiError(404, 'Treatment not found')
     }
 
+    await logAudit(auth.user, 'UPDATE', 'treatment', id, { ...allowedFields })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /treatments/[id]', e)
@@ -88,6 +91,8 @@ export async function DELETE(
     if (!deleted) {
       return apiError(404, 'Treatment not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'treatment', id, { description: deleted.description })
 
     return NextResponse.json({ detail: 'Treatment cancelled' })
   } catch (e) {

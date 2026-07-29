@@ -5,6 +5,7 @@ import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,11 @@ export async function GET(request: NextRequest) {
         ilike(patients.email, `%${search}%`),
         ilike(patients.patientUuid, `%${search}%`),
       )!)
+    }
+
+    const gender = searchParams.get('gender')
+    if (gender && (gender === 'M' || gender === 'F' || gender === 'OTHER')) {
+      conditions.push(eq(patients.sex, gender))
     }
 
     const facilityFilter = addFacilityFilter(patients.facilityId, auth, searchParams)
@@ -59,6 +65,32 @@ export async function POST(request: NextRequest) {
 
     const patientUuid = body.patientUuid || crypto.randomUUID()
     const { facilityId } = enforceFacilityAccess(body, auth)
+
+    const duplicateConditions = [
+      and(
+        eq(patients.firstname, body.firstname),
+        eq(patients.lastname, body.lastname),
+        eq(patients.isActive, true),
+      ),
+    ]
+    if (body.phone) {
+      duplicateConditions.push(
+        and(eq(patients.phone, body.phone), eq(patients.isActive, true))
+      )
+    }
+    if (body.email) {
+      duplicateConditions.push(
+        and(eq(patients.email, body.email), eq(patients.isActive, true))
+      )
+    }
+    const [existing] = await getDb()
+      .select({ id: patients.id, firstname: patients.firstname, lastname: patients.lastname })
+      .from(patients)
+      .where(or(...duplicateConditions))
+      .limit(1)
+    if (existing) {
+      return apiError(409, `Un patient existe déjà avec les mêmes informations : ${existing.firstname} ${existing.lastname}`)
+    }
 
     if (facilityId) {
       const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
@@ -99,6 +131,8 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    await logAudit(auth.user, 'CREATE', 'patient', row.id, { firstname: row.firstname, lastname: row.lastname })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

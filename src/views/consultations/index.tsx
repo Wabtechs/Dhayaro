@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -70,12 +70,11 @@ import {
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
-
-const ITEMS_PER_PAGE = 10
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   WAITING: { label: 'En attente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -144,12 +143,18 @@ export default function ConsultationsView() {
   const [currentPage, setCurrentPage] = useState(1)
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
 
-  const { data, isLoading } = useConsultationsData(
-    search ? `search=${search}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}` : (statusFilter !== 'all' ? `status=${statusFilter}` : '')
-  )
+  const searchParams = [
+    `page=${currentPage}`,
+    'size=10',
+    ...(search ? [`search=${search}`] : []),
+    ...(statusFilter !== 'all' ? [`status=${statusFilter}`] : []),
+  ].join('&')
+
+  const { data, isLoading } = useConsultationsData(searchParams)
 
   const { data: patientsData } = usePatientsData()
-  const { data: usersData } = useUsersData()
+  const currentFacility = useAuthStore((s) => s.user?.facility)
+  const { data: usersData } = useUsersData(currentFacility || undefined)
   const { data: facilitiesData } = useFacilitiesData()
 
   const updateConsultation = useUpdateConsultation()
@@ -159,26 +164,9 @@ export default function ConsultationsView() {
   const usersList = (usersData?.items ?? []) as UserItem[]
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
-  const filtered = useMemo(() => {
-    const allItems = (data?.items ?? []) as ConsultationItem[]
-    const q = search.toLowerCase()
-    return allItems.map((item) => {
-      const patientName = item.patientName || ((item.patientFirstname || item.patientLastname) ? `${item.patientFirstname || ''} ${item.patientLastname || ''}`.trim() : '')
-      const doctorName = item.doctorName || ((item.doctorFirstname || item.doctorLastname) ? `${item.doctorFirstname || ''} ${item.doctorLastname || ''}`.trim() : '')
-      return { ...item, patientName, doctorName }
-    }).filter((item) => {
-      if (!search) return true
-      return (
-        String(item.patientName || '').toLowerCase().includes(q) ||
-        String(item.doctorName || '').toLowerCase().includes(q) ||
-        String(item.motif || '').toLowerCase().includes(q) ||
-        String(item.consultationNumber || item.id || '').toLowerCase().includes(q)
-      )
-    })
-  }, [data, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as ConsultationItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -296,7 +284,7 @@ export default function ConsultationsView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Consultations</h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} consultation{filtered.length > 1 ? 's' : ''}
+              {totalCount} consultation{totalCount > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -475,7 +463,7 @@ export default function ConsultationsView() {
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
-          ) : paginated.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucune consultation disponible</p>
           ) : (
             <div className="overflow-x-auto">
@@ -492,7 +480,7 @@ export default function ConsultationsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((item: ConsultationItem) => {
+                  {items.map((item: ConsultationItem) => {
                     const status = String(item.status || '').toUpperCase()
                     const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-700' }
                     return (
