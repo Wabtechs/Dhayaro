@@ -14,6 +14,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node --import tsx lib/seed.ts",
+    "audit:scan": "node --import tsx scripts/audit-scanner.ts",
     "db:migrate-patient": "node scripts/migrate-patient-portal.mjs"
   },
   "dependencies": {

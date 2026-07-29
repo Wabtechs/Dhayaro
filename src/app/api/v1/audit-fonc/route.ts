@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
 import { AUDIT_PROMPTS } from '@/lib/audit-prompts'
 
-const AUDIT_DATA = {
+const STATIC_DATA = {
   score: 90,
   previousScore: 62,
   lastUpdated: '2026-07-29',
@@ -152,19 +154,30 @@ const AUDIT_DATA = {
   ],
 }
 
+const GEN_PATH = join(process.cwd(), 'src', 'lib', 'audit-data.generated.json')
+
 export async function GET() {
-  const categoriesWithStats = AUDIT_DATA.categories.map((cat) => {
-    const items = cat.items.map((item) => ({
+  let data = STATIC_DATA
+
+  if (existsSync(GEN_PATH)) {
+    try {
+      const raw = readFileSync(GEN_PATH, 'utf-8')
+      data = JSON.parse(raw)
+    } catch {}
+  }
+
+  const categoriesWithStats = data.categories.map((cat: any) => {
+    const items = (cat.items || []).map((item: any) => ({
       ...item,
       prompt: AUDIT_PROMPTS[item.id] || null,
     }))
-    const completedCount = items.filter((i) => i.status === 'completed').length
-    const inProgressCount = items.filter((i) => i.status === 'in_progress').length
+    const completedCount = items.filter((i: any) => i.status === 'completed').length
+    const inProgressCount = items.filter((i: any) => i.status === 'in_progress').length
     return { ...cat, items, completedCount, inProgressCount, totalCount: items.length }
   })
 
   return NextResponse.json({
-    ...AUDIT_DATA,
+    ...data,
     categories: categoriesWithStats,
   })
 }

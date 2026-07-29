@@ -9,6 +9,8 @@ interface AuditItem {
   status: 'completed' | 'in_progress' | 'pending'
   module?: string
   prompt?: string | null
+  detail?: string | null
+  files?: string[] | null
 }
 
 interface AuditCategory {
@@ -90,6 +92,23 @@ export default function AuditFoncPage() {
   const [promptItem, setPromptItem] = useState<AuditItem | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('dhayaro-dark-mode')
+    const isDark = stored === 'true'
+    setDarkMode(isDark)
+    if (isDark) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }, [])
+
+  const toggleDark = () => {
+    const next = !darkMode
+    setDarkMode(next)
+    localStorage.setItem('dhayaro-dark-mode', String(next))
+    if (next) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+  }
 
   useEffect(() => {
     fetch('/api/v1/audit-fonc')
@@ -121,6 +140,19 @@ export default function AuditFoncPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <button
+              onClick={toggleDark}
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+              title={darkMode ? 'Mode clair' : 'Mode sombre'}
+            >
+              {darkMode ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+            </button>
+          </div>
           <h1 className="text-3xl font-bold text-foreground">Audit Fonctionnel</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Suivi de l&apos;évolution de l&apos;application Dhayaro
@@ -144,10 +176,8 @@ export default function AuditFoncPage() {
             const pct = cat.totalCount > 0 ? Math.round((cat.completedCount / cat.totalCount) * 100) : 0
             return (
               <div key={cat.id} className={`rounded-xl border bg-card text-card-foreground shadow-sm ${getCategoryColor(cat.color)}`}>
-                <button
-                  onClick={() => setExpanded(isExpanded ? null : cat.id)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left"
-                >
+                <button onClick={() => setExpanded(isExpanded ? null : cat.id)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left">
                   <div className="flex items-center gap-3">
                     <span className={`text-sm font-semibold px-2 py-0.5 rounded ${
                       cat.color === 'destructive' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
@@ -178,8 +208,17 @@ export default function AuditFoncPage() {
                             {item.module && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{item.module}</span>
                             )}
+                            {item.files && item.files.length > 0 && (
+                              <span className="text-[10px] text-muted-foreground">({item.files.length} fichier{item.files.length > 1 ? 's' : ''})</span>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                          {item.detail && item.status !== 'completed' && (
+                            <details className="mt-1">
+                              <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">Détails</summary>
+                              <pre className="text-[10px] text-muted-foreground mt-1 whitespace-pre-wrap font-mono">{item.detail}</pre>
+                            </details>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
                           {item.prompt && (
@@ -260,7 +299,6 @@ export default function AuditFoncPage() {
           </div>
         </div>
       )}
-    </div>
     </div>
   )
 }

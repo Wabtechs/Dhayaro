@@ -40,3 +40,6 @@ wab.md
 Memoire/
 test-db.mjs
 .dockerop/
+
+# Generated audit data
+src/lib/audit-data.generated.json
