@@ -74,6 +74,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -472,7 +473,26 @@ export default function LaboratoryView() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {Array.from({ length: 7 }).map((_, i) => (
+                      <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucun examen de laboratoire disponible</p>
           ) : (

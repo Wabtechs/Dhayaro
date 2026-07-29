@@ -19,6 +19,7 @@ import { useQueueData, useUsersData, useSubmitTriage } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
   LOW: { label: 'Faible', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
@@ -208,11 +209,15 @@ export default function TriageView() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Chargement...
-                  </TableCell>
-                </TableRow>
+                <>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">

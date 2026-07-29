@@ -4,6 +4,7 @@ import { careEpisodes, patients, users } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -118,6 +119,8 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    await logAudit(auth.user, 'CREATE', 'care_episode', row.id, { episodeNumber: row.episodeNumber, patientId: row.patientId })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

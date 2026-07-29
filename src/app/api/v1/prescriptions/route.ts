@@ -4,6 +4,7 @@ import { prescriptions, treatments, medications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addDoctorFilter, addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -112,6 +113,8 @@ export async function POST(request: NextRequest) {
       quantity: body.quantity ?? null,
       createdAt: new Date(),
     }).returning()
+
+    await logAudit(auth.user, 'CREATE', 'prescription', row.id, { medicationId: row.medicationId, dosage: row.dosage })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

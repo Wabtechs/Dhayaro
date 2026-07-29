@@ -8,6 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Pill, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PrescriptionItem {
@@ -54,7 +55,26 @@ export default function PrescriptionsView() {
       <Card>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">Chargement...</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 6 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">Aucune prescription trouvée</p>
           ) : (

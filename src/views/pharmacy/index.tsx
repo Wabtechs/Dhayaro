@@ -16,6 +16,7 @@ import { useTreatmentsListData, useQueueData, useDispenseTreatment } from '@/hoo
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   PRESCRIBED: { label: 'Prescrit', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -148,9 +149,15 @@ export default function PharmacyView() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement...</TableCell>
-                </TableRow>
+                <>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
               ) : allItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">

@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { queue, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 const QUEUE_KEYS = ['status', 'priority', 'assignedDoctorId', 'queuePosition', 'estimatedWaitMinutes', 'notes', 'startedAt', 'completedAt'] as const
@@ -94,6 +95,8 @@ export async function PUT(
       .where(eq(queue.id, id))
       .returning()
 
+    await logAudit(auth.user, 'UPDATE', 'queue', id, { status: updated.status })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /queue/[id]', e)
@@ -120,6 +123,8 @@ export async function DELETE(
     if (!updated) {
       return apiError(404, 'Queue entry not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'queue', id, { status: 'CANCELLED' })
 
     return NextResponse.json({ detail: 'Queue entry cancelled' })
   } catch (e) {

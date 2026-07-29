@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
 import { requireAuth, requireRole } from '@/lib/auth'
 
@@ -78,6 +79,8 @@ export async function PUT(
       return apiError(404, 'Clinical case not found')
     }
 
+    await logAudit(auth.user, 'UPDATE', 'clinical_case', id, { title: updated.title })
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /clinical-cases/[id]', e)
@@ -103,6 +106,8 @@ export async function DELETE(
     if (!deleted) {
       return apiError(404, 'Clinical case not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'clinical_case', id, { title: deleted.title })
 
     return NextResponse.json({ detail: 'Clinical case deleted' })
   } catch (e) {

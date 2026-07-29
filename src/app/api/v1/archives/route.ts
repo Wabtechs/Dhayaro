@@ -4,6 +4,7 @@ import { archives, patients } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -101,6 +102,8 @@ export async function POST(request: NextRequest) {
       data: body.data || {},
       createdAt: now,
     }).returning()
+
+    await logAudit(auth.user, 'CREATE', 'archive', row.id, { entityType: row.entityType, entityId: row.entityId })
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

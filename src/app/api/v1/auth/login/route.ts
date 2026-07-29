@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 import { checkRateLimit, getRateLimitKey, cleanupRateLimit } from '@/lib/rate-limit'
 
 const LOGIN_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
@@ -56,6 +57,8 @@ export async function POST(request: NextRequest) {
       role: user.role,
       facilityId: user.facilityId || null,
     })
+
+    await logAudit({ sub: user.id, email: user.email, role: user.role, facilityId: user.facilityId || null }, 'LOGIN', 'auth', user.id, { email: user.email })
 
     const response = NextResponse.json({
       access_token: token,

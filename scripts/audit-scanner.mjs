@@ -40,7 +40,7 @@ function analyzeViews() {
   for (const file of viewFiles) {
     const content = readFile(file)
     const rel = relPath(file)
-    const hasServer = /page=\$\{?currentPage\}?/.test(content) && /size=\d+/.test(content)
+    const hasServer = (/\bpage=\$\{/.test(content) || /URLSearchParams.*page/.test(content)) && /\bsize=\d+/.test(content)
     const hasClient = /ITEMS_PER_PAGE/.test(content) && (/\.slice\(/.test(content) || /useMemo/.test(content))
 
     if (hasServer) { serverPag++; serverList.push(rel) }
@@ -57,7 +57,7 @@ function analyzeViews() {
     detail: `Avec pagination serveur : ${serverList.join(', ') || 'aucune'}\nEncore en client-side : ${clientList.join(', ') || 'aucune'}`,
   })
 
-  const noSearch = viewFiles.filter(f => !readFile(f).includes(/search=\$\{?search\}?/.source))
+  const noSearch = viewFiles.filter(f => !(/\bsearch=\$\{/.test(readFile(f)) || /URLSearchParams.*search/.test(readFile(f))))
   findings.push({
     id: 'M-03', title: 'Recherche API',
     description: `${viewCount - noSearch.length}/${viewCount} vues transmettent la recherche à l'API`,
@@ -126,7 +126,7 @@ function analyzeAPIRoutes() {
     status: soft.length + cancelled.length > 0 ? 'completed' : 'pending',
   })
 
-  const withAudit = apiFiles.filter(f => /createAuditEntry/.test(readFile(f)))
+  const withAudit = apiFiles.filter(f => /logAudit/.test(readFile(f)))
   findings.push({
     id: 'C-08', title: 'Audit trail',
     description: `${withAudit.length} fichiers API avec audit`,

@@ -4,6 +4,7 @@ import { clinicalCases, patients, users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -121,6 +122,8 @@ export async function POST(request: NextRequest) {
       VALUES (${id}, ${patientId}, ${doctorId}, ${facilityId}, ${body.title || null}, ${body.description || null}, ${symptomsStr}::jsonb, ${body.provisionalDiagnosis || null}, ${body.treatment || null}, ${body.treatmentDuration || null}, ${outcomeVal}, ${body.outcomeNotes || null}, ${body.priority || 'medium'}, ${tagsStr}::jsonb, false, ${now}, ${now})
       RETURNING id, facility_id, patient_id, doctor_id, title, description, symptoms_json, provisional_diagnosis, treatment, treatment_duration, outcome_status, outcome_notes, priority, tags_json, is_synced, created_at, updated_at
     `
+
+    await logAudit(auth.user, 'CREATE', 'clinical_case', id, { title: body.title, patientId })
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {

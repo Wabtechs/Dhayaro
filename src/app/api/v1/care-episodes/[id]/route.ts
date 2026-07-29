@@ -4,6 +4,7 @@ import { careEpisodes, patients, episodeEntities, consultations, diagnostics, tr
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { logAudit } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
 
 const ALLOWED_UPDATE_KEYS = ['status', 'dischargeDate', 'dischargeSummary', 'dischargeOutcome', 'isArchived', 'metadata', 'admitReason'] as const
@@ -111,6 +112,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const fields = pickAllowedKeys(body, ALLOWED_UPDATE_KEYS)
 
     const [row] = await db.update(careEpisodes).set(fields).where(eq(careEpisodes.id, episodeId)).returning()
+    await logAudit(auth.user, 'UPDATE', 'care_episode', episodeId, { status: row.status })
+
     return NextResponse.json(row)
   } catch (e) {
     logError('PUT /care-episodes/[id]', e)
@@ -142,6 +145,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (existing.isArchived) return apiError(400, 'Episode is already archived')
 
     await db.update(careEpisodes).set({ isArchived: true, updatedAt: new Date() }).where(eq(careEpisodes.id, episodeId))
+    await logAudit(auth.user, 'DELETE', 'care_episode', episodeId, { isArchived: true })
+
     return NextResponse.json({ detail: 'Episode archived' })
   } catch (e) {
     logError('DELETE /care-episodes/[id]', e)

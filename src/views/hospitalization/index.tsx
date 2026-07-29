@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useCareEpisodesData, usePatientsData, useCreateCareEpisode, useUpdateCareEpisode } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/utils'
 
 const episodeStatusConfig: Record<string, { label: string; color: string }> = {
@@ -197,9 +198,15 @@ export default function HospitalizationView() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={tab === 'discharged' ? 7 : 6} className="text-center py-8 text-muted-foreground">Chargement...</TableCell>
-                </TableRow>
+                <>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: tab === 'discharged' ? 7 : 6 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
               ) : allItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={tab === 'discharged' ? 7 : 6} className="text-center py-8 text-muted-foreground">

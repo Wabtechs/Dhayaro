@@ -49,6 +49,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { cn, formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { sanitizeUuid } from '@/lib/validation'
 
 const ITEMS_PER_PAGE = 10
@@ -260,8 +261,40 @@ export default function PatientsPage() {
   return (
     <div className="space-y-6">
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-muted-foreground">Chargement des patients...</p>
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-10 w-44" />
+          </div>
+          <Separator />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-56" />
+          </div>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 10 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : (
       <>

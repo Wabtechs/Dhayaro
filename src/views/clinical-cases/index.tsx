@@ -72,6 +72,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
 import { sanitizeUuid } from '@/lib/validation'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { CaseStatus, CasePriority } from '@/types'
 
 interface CaseItem {
@@ -299,8 +300,51 @@ export default function ClinicalCasesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <p className="text-sm text-muted-foreground">Chargement des cas cliniques...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-44" />
+        </div>
+        {viewMode === 'grid' ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     )
   }
