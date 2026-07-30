@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         patientId: diagnostics.patientId,
         doctorId: diagnostics.doctorId,
         diseaseId: diagnostics.diseaseId,
+        episodeId: diagnostics.episodeId,
         diagnosticType: diagnostics.diagnosticType,
         description: diagnostics.description,
         notes: diagnostics.notes,

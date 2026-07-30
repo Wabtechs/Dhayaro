@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
           labTechnicianId: labExams.labTechnicianId,
           categoryId: labExams.categoryId,
           consultationId: labExams.consultationId,
+          episodeId: labExams.episodeId,
           examName: labExams.examName,
           clinicalIndication: labExams.clinicalIndication,
           status: labExams.status,

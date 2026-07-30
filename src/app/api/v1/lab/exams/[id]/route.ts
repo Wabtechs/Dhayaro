@@ -30,6 +30,7 @@ export async function GET(
         labTechnicianId: labExams.labTechnicianId,
         categoryId: labExams.categoryId,
         consultationId: labExams.consultationId,
+        episodeId: labExams.episodeId,
         examName: labExams.examName,
         clinicalIndication: labExams.clinicalIndication,
         status: labExams.status,

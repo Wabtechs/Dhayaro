@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
         endDate: treatments.endDate,
         notes: treatments.notes,
         outcome: treatments.outcome,
+        episodeId: treatments.episodeId,
         createdAt: treatments.createdAt,
         updatedAt: treatments.updatedAt,
         patientFirstname: patients.firstname,

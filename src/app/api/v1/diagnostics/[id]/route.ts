@@ -28,6 +28,7 @@ export async function GET(
       patientId: diagnostics.patientId,
       doctorId: diagnostics.doctorId,
       diseaseId: diagnostics.diseaseId,
+      episodeId: diagnostics.episodeId,
       diagnosticType: diagnostics.diagnosticType,
       description: diagnostics.description,
       notes: diagnostics.notes,
