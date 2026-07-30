@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { diagnostics, consultations, patients, users, diseases, episodeEntities } from '@/lib/schema'
-import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { diagnostics, consultations, patients, users, diseases, episodeEntities, careEpisodes } from '@/lib/schema'
+import { eq, ne, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -153,14 +153,45 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     }).returning()
 
-    if (episodeId) {
-      await db.insert(episodeEntities).values({
-        id: crypto.randomUUID(),
-        episodeId,
-        entityType: 'DIAGNOSIS',
-        entityId: row.id,
-        createdAt: now,
-      })
+    let targetEpisodeId = episodeId
+
+    if (!targetEpisodeId) {
+      const activeEpisodes = await db.select({ id: careEpisodes.id }).from(careEpisodes).where(
+        and(
+          eq(careEpisodes.patientId, patientId),
+          eq(careEpisodes.isArchived, false),
+          ne(careEpisodes.status, 'DISCHARGED'),
+          ne(careEpisodes.status, 'ARCHIVED'),
+        )
+      ).limit(1)
+
+      if (activeEpisodes.length > 0) {
+        targetEpisodeId = activeEpisodes[0].id
+      } else {
+        const episodeNumber = 'EP-' + Date.now() + '-' + crypto.randomUUID().slice(0, 6)
+        const [newEpisode] = await db.insert(careEpisodes).values({
+          facilityId: facilityId || null,
+          patientId,
+          episodeNumber,
+          status: 'CONSULTATION',
+          isArchived: false,
+          createdAt: now,
+          updatedAt: now,
+        }).returning()
+        targetEpisodeId = newEpisode.id
+      }
+    }
+
+    await db.insert(episodeEntities).values({
+      id: crypto.randomUUID(),
+      episodeId: targetEpisodeId,
+      entityType: 'DIAGNOSIS',
+      entityId: row.id,
+      createdAt: now,
+    })
+
+    if (!episodeId) {
+      await db.update(diagnostics).set({ episodeId: targetEpisodeId }).where(eq(diagnostics.id, row.id))
     }
 
     await logAudit(auth.user, 'CREATE', 'diagnostic', row.id, { description: row.description, diagnosticType: row.diagnosticType })
