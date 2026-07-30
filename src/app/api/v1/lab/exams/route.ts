@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
 
     if (!episodeId) {
       await db.update(labExams).set({ episodeId: targetEpisodeId }).where(eq(labExams.id, row.id))
+      row.episodeId = targetEpisodeId
     }
 
     await logAudit(auth.user, 'CREATE', 'lab_exam', row.id, { examName: row.examName })

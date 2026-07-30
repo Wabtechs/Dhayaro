@@ -193,6 +193,7 @@ export async function POST(request: NextRequest) {
 
     if (!episodeId) {
       await db.update(diagnostics).set({ episodeId: targetEpisodeId }).where(eq(diagnostics.id, row.id))
+      row.episodeId = targetEpisodeId
     }
 
     await logAudit(auth.user, 'CREATE', 'diagnostic', row.id, { description: row.description, diagnosticType: row.diagnosticType })
