@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { queue, patients, users } from '@/lib/schema'
-import { eq, desc, and, or, ilike, count, sql } from 'drizzle-orm'
+import { queue, patients, users, careEpisodes } from '@/lib/schema'
+import { eq, desc, and, or, ilike, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
@@ -138,6 +138,41 @@ export async function POST(request: NextRequest) {
     }).returning()
 
     await logAudit(auth.user, 'CREATE', 'queue', row.id, { patientId: row.patientId, ticketNumber: row.ticketNumber })
+
+    // Cascade: auto-create care_episode if patient has no active episode
+    const [activeEpisode] = await getDb()
+      .select({ id: careEpisodes.id })
+      .from(careEpisodes)
+      .where(and(
+        eq(careEpisodes.patientId, patientId),
+        eq(careEpisodes.isArchived, false),
+        sql`${careEpisodes.status} NOT IN ('DISCHARGED', 'ARCHIVED')`,
+      ))
+      .limit(1)
+
+    if (!activeEpisode) {
+      const now2 = new Date()
+      const year = now2.getFullYear()
+      const yearPrefix = `EP-${year}-`
+      const [{ value: maxNum }] = await getDb().select({
+        value: sql<number>`coalesce(max(cast(right(${careEpisodes.episodeNumber}, 6) as integer)), 0)`
+      }).from(careEpisodes).where(ilike(careEpisodes.episodeNumber, `${yearPrefix}%`))
+      const episodeNumber = `EP-${year}-${String((maxNum ?? 0) + 1).padStart(6, '0')}`
+
+      await getDb().insert(careEpisodes).values({
+        id: crypto.randomUUID(),
+        facilityId: row.facilityId,
+        patientId,
+        episodeNumber,
+        status: 'TRIAGE',
+        admitDate: now2,
+        admitReason: 'File d\'attente - admission automatique',
+        isArchived: false,
+        metadata: {},
+        createdAt: now2,
+        updatedAt: now2,
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
