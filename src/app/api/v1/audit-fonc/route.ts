@@ -200,8 +200,6 @@ export async function GET() {
         changelog = [...gen.changelog, ...changelog]
       }
 
-      if (typeof gen.score === 'number') score = gen.score
-      if (typeof gen.previousScore === 'number') previousScore = gen.previousScore
       if (gen.lastUpdated) lastUpdated = gen.lastUpdated
     } catch {}
   }
