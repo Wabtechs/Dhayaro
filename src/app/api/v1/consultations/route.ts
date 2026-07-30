@@ -159,12 +159,10 @@ export async function POST(request: NextRequest) {
       } else {
         const episodeNumber = 'EP-' + Date.now() + '-' + crypto.randomUUID().slice(0, 6)
         const [newEpisode] = await db.insert(careEpisodes).values({
-          id: crypto.randomUUID(),
           facilityId: facilityId || null,
           patientId,
           episodeNumber,
           status: 'CONSULTATION',
-          isActive: true,
           isArchived: false,
           createdAt: now,
           updatedAt: now,
