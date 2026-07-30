@@ -57,8 +57,8 @@ export async function sendNotification(params: {
       metadata: params.metadata || {},
       createdAt: new Date(),
     })
-  } catch {
-    // Notification failures should never break the main operation
+  } catch (e) {
+    console.error('sendNotification error:', e instanceof Error ? e.message : e)
   }
 }
 
