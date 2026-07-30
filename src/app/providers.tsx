@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth-store'
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 5 * 60 * 1000, retry: 1 },
+      queries: { staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000, retry: 1 },
     },
   }))
 

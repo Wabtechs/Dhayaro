@@ -230,6 +230,7 @@ export function useRoleDashboardData(userRole?: UserRole) {
   return useQuery({
     queryKey: ['role-dashboard', userRole],
     staleTime: 30000,
+    gcTime: 60000,
     refetchInterval: 60000,
     queryFn: async () => {
       try {
@@ -269,6 +270,7 @@ export function useFacilitiesData(params?: string) {
     queryKey: ['facilities', params],
     queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/facilities${params ? '?' + params : ''}`),
     staleTime: 60000,
+    gcTime: 120000,
   });
 }
 
@@ -300,6 +302,7 @@ export function useNotificationsData(page = 1, size = 20) {
     queryKey: ['notifications', page, size],
     queryFn: () => fetchData<{ items: unknown[]; total: number; unreadCount: number }>(`/notifications?page=${page}&size=${size}`),
     staleTime: 30 * 1000,
+    gcTime: 120 * 1000,
     refetchInterval: 60 * 1000,
   });
 }

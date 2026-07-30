@@ -71,3 +71,22 @@ export function pickAllowedKeys(body: Record<string, unknown>, allowedKeys: read
   fields.updatedAt = new Date()
   return fields
 }
+
+const MAX_JSON_BYTES = 512 * 1024
+
+export async function validateJsonBody<T>(request: Request): Promise<{ body: T } | { ok: false }> {
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && parseInt(contentLength, 10) > MAX_JSON_BYTES) {
+    return { ok: false }
+  }
+
+  try {
+    const text = await request.text()
+    if (text.length > MAX_JSON_BYTES) {
+      return { ok: false }
+    }
+    return { body: JSON.parse(text) as T }
+  } catch {
+    return { ok: false }
+  }
+}

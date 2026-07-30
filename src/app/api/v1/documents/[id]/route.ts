@@ -55,10 +55,10 @@ export async function PUT(
 
     const allowedFields = pickAllowedKeys(body, DOC_KEYS)
 
-    if (body.patientId) {
+    if (body.patientId && sanitizeUuid(body.patientId)) {
       allowedFields.patientId = body.patientId
     }
-    if (body.consultationId) {
+    if (body.consultationId && sanitizeUuid(body.consultationId)) {
       allowedFields.consultationId = body.consultationId
     }
 
