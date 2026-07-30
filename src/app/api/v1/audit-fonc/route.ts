@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { AUDIT_PROMPTS } from '@/lib/audit-prompts'
+import { getDb } from '@/lib/db'
+import { auditHistory } from '@/lib/schema'
+import { requireRole } from '@/lib/auth'
+import { eq, desc, sql } from 'drizzle-orm'
 
 const STATIC_DATA = {
   score: 94,
@@ -173,18 +177,69 @@ const STATIC_DATA = {
 
 const GEN_PATH = join(process.cwd(), 'src', 'lib', 'audit-data.generated.json')
 
+function getAllItemsFromStatic() {
+  const items: { id: string; categoryId: string; status: string }[] = []
+  for (const cat of STATIC_DATA.categories) {
+    for (const item of cat.items) {
+      items.push({ id: item.id, categoryId: cat.id, status: item.status })
+    }
+  }
+  return items
+}
+
+function applyOverrides(allItems: { id: string; categoryId: string; status: string }[], overrides: Map<string, string>) {
+  for (const item of allItems) {
+    const override = overrides.get(item.id)
+    if (override) item.status = override
+  }
+}
+
+function buildCategoryMap() {
+  const map = new Map<string, { id: string; status: string }>()
+  for (const cat of STATIC_DATA.categories) {
+    for (const item of cat.items) {
+      map.set(item.id, { id: item.id, status: item.status })
+    }
+  }
+  return map
+}
+
 export async function GET() {
-  let categories = [...STATIC_DATA.categories]
+  const db = getDb()
+  const staticMap = buildCategoryMap()
+
+  const overrides = new Map<string, string>()
+  try {
+    const rows = await db
+      .select({
+        itemId: auditHistory.itemId,
+        newStatus: auditHistory.newStatus,
+      })
+      .from(auditHistory)
+      .where(
+        sql.raw(`id IN (SELECT DISTINCT ON (item_id) id FROM audit_history ORDER BY item_id, created_at DESC)`)
+      )
+    for (const row of rows) {
+      if (['completed', 'in_progress', 'pending'].includes(row.newStatus)) {
+        overrides.set(row.itemId, row.newStatus)
+      }
+    }
+  } catch {}
+
+  let categories = STATIC_DATA.categories.map(cat => ({
+    ...cat,
+    items: cat.items.map(item => ({
+      ...item,
+      status: overrides.get(item.id) || item.status,
+    })),
+  }))
+
   let changelog = [...STATIC_DATA.changelog]
-  let score = STATIC_DATA.score
-  let previousScore = STATIC_DATA.previousScore
-  let lastUpdated = STATIC_DATA.lastUpdated
 
   if (existsSync(GEN_PATH)) {
     try {
       const raw = readFileSync(GEN_PATH, 'utf-8')
       const gen: any = JSON.parse(raw)
-
       if (Array.isArray(gen.categories)) {
         for (const genCat of gen.categories) {
           const idx = categories.findIndex((c: any) => c.id === genCat.id)
@@ -195,12 +250,10 @@ export async function GET() {
           }
         }
       }
-
       if (Array.isArray(gen.changelog)) {
         changelog = [...gen.changelog, ...changelog]
       }
-
-      if (gen.lastUpdated) lastUpdated = gen.lastUpdated
+      if (gen.lastUpdated) { /* don't override */ }
     } catch {}
   }
 
@@ -218,13 +271,123 @@ export async function GET() {
   const totalCompleted = allItems.filter((i: any) => i.status === 'completed').length
   const totalInProgress = allItems.filter((i: any) => i.status === 'in_progress').length
   const totalPending = allItems.filter((i: any) => i.status === 'pending').length
+  const total = allItems.length
+  const score = total > 0 ? Math.round((totalCompleted / total) * 100) : 0
+
+  let historyEntries: any[] = []
+  try {
+    const rows = await db
+      .select({
+        id: auditHistory.id,
+        itemId: auditHistory.itemId,
+        previousStatus: auditHistory.previousStatus,
+        newStatus: auditHistory.newStatus,
+        note: auditHistory.note,
+        createdAt: auditHistory.createdAt,
+      })
+      .from(auditHistory)
+      .orderBy(desc(auditHistory.createdAt))
+      .limit(200)
+    historyEntries = rows.map(r => ({
+      ...r,
+      createdAt: r.createdAt?.toISOString?.() || r.createdAt,
+    }))
+  } catch {}
 
   return NextResponse.json({
     score,
-    previousScore,
-    lastUpdated,
-    summary: { total: allItems.length, completed: totalCompleted, inProgress: totalInProgress, pending: totalPending },
+    previousScore: STATIC_DATA.previousScore,
+    lastUpdated: new Date().toISOString().split('T')[0],
+    summary: { total, completed: totalCompleted, inProgress: totalInProgress, pending: totalPending },
     categories: categoriesWithStats,
     changelog,
+    history: historyEntries,
   })
+}
+
+export async function PUT(request: NextRequest) {
+  const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
+  if ('error' in auth) return auth.error
+
+  let body: { item_id?: string; status?: string; note?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ detail: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { item_id, status, note } = body
+  if (!item_id || !status) {
+    return NextResponse.json({ detail: 'item_id and status are required' }, { status: 400 })
+  }
+  if (!['completed', 'in_progress', 'pending'].includes(status)) {
+    return NextResponse.json({ detail: 'Invalid status' }, { status: 400 })
+  }
+
+  const staticMap = buildCategoryMap()
+  const staticItem = staticMap.get(item_id)
+  if (!staticItem) {
+    return NextResponse.json({ detail: `Unknown item_id: ${item_id}` }, { status: 400 })
+  }
+
+  try {
+    const db = getDb()
+
+    const lastOverride = await db
+      .select({ newStatus: auditHistory.newStatus })
+      .from(auditHistory)
+      .where(eq(auditHistory.itemId, item_id))
+      .orderBy(desc(auditHistory.createdAt))
+      .limit(1)
+
+    const currentStatus = lastOverride.length > 0 ? lastOverride[0].newStatus : staticItem.status
+
+    await db.insert(auditHistory).values({
+      itemId: item_id,
+      previousStatus: currentStatus,
+      newStatus: status,
+      note: note || null,
+      changedBy: auth.user.sub,
+    })
+  } catch (err) {
+    console.error('audit-fonc PUT error:', err)
+    return NextResponse.json({ detail: 'Database error' }, { status: 500 })
+  }
+
+  const response = await GET()
+  const data = await response.json()
+  return NextResponse.json(data)
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
+  if ('error' in auth) return auth.error
+
+  let body: { note?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ detail: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { note } = body
+  if (!note || !note.trim()) {
+    return NextResponse.json({ detail: 'note is required' }, { status: 400 })
+  }
+
+  try {
+    const db = getDb()
+    await db.insert(auditHistory).values({
+      itemId: 'JOURNAL',
+      previousStatus: null,
+      newStatus: 'note',
+      note: note.trim(),
+      changedBy: auth.user.sub,
+    })
+  } catch (err) {
+    console.error('audit-fonc POST error:', err)
+    return NextResponse.json({ detail: 'Database error' }, { status: 500 })
+  }
+
+  return NextResponse.json({ detail: 'Journal entry added' })
 }

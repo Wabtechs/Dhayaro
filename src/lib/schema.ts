@@ -575,3 +575,18 @@ export const helpImages = pgTable('help_images', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   updatedBy: uuid('updated_by').references(() => users.id),
 })
+
+// AUDIT HISTORY (overrides + dev journal for /audit-fonc page)
+
+export const auditHistory = pgTable('audit_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  itemId: text('item_id').notNull(),
+  previousStatus: text('previous_status'),
+  newStatus: text('new_status').notNull(),
+  note: text('note'),
+  changedBy: uuid('changed_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_audit_history_item').on(t.itemId),
+  index('idx_audit_history_created').on(t.createdAt),
+])
