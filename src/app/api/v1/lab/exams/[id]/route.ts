@@ -4,7 +4,7 @@ import { labExams, patients, users, labCategories } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
-import { logAudit } from '@/lib/audit'
+import { logAudit, sendNotification } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
 
 const EXAM_KEYS = ['labTechnicianId', 'categoryId', 'consultationId', 'examName', 'clinicalIndication', 'status', 'results', 'resultNotes', 'validatedBy', 'validatedAt', 'completedAt'] as const
@@ -79,7 +79,12 @@ export async function PUT(
 
     const body = await request.json()
 
-    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, validId)).limit(1)
+    const existing = await getDb().select({
+      id: labExams.id,
+      doctorId: labExams.doctorId,
+      examName: labExams.examName,
+      status: labExams.status,
+    }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Lab exam not found')
     }
@@ -121,6 +126,18 @@ export async function PUT(
       .returning()
 
     await logAudit(auth.user, 'UPDATE', 'lab_exam', validId, { ...allowedFields })
+
+    if (body.status === 'COMPLETED' && existing[0].status !== 'COMPLETED') {
+      await sendNotification({
+        userId: existing[0].doctorId,
+        facilityId: updated.facilityId,
+        title: 'Résultat de laboratoire disponible',
+        message: `Les résultats pour "${existing[0].examName}" sont disponibles.`,
+        type: 'SUCCESS',
+        link: `/laboratory/${validId}`,
+        metadata: { labExamId: validId, examName: existing[0].examName },
+      })
+    }
 
     return NextResponse.json(updated)
   } catch (e) {

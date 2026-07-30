@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { auditLogs } from './schema'
+import { auditLogs, notifications } from './schema'
 import type { AuthUser } from './auth'
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'VIEW'
@@ -32,6 +32,33 @@ export async function logAudit(
     })
   } catch {
     // Audit failures should never break the main operation
+  }
+}
+
+export async function sendNotification(params: {
+  userId: string
+  facilityId?: string | null
+  title: string
+  message: string
+  type?: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
+  link?: string
+  metadata?: Record<string, unknown>
+}) {
+  try {
+    await getDb().insert(notifications).values({
+      id: crypto.randomUUID(),
+      userId: params.userId,
+      facilityId: params.facilityId || undefined,
+      title: params.title,
+      message: params.message,
+      type: params.type || 'INFO',
+      isRead: false,
+      link: params.link || null,
+      metadata: params.metadata || {},
+      createdAt: new Date(),
+    })
+  } catch {
+    // Notification failures should never break the main operation
   }
 }
 

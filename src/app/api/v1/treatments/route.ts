@@ -5,7 +5,7 @@ import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
-import { logAudit } from '@/lib/audit'
+import { logAudit, sendNotification } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -155,6 +155,25 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit(auth.user, 'CREATE', 'treatment', row.id, { description: row.description, status: row.status })
+
+    if (row.status === 'PRESCRIBED') {
+      const pharmUsers = await getDb()
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.role, 'PHARMACIST'), eq(users.isActive, true)))
+
+      for (const pharmUser of pharmUsers) {
+        await sendNotification({
+          userId: pharmUser.id,
+          facilityId: row.facilityId,
+          title: 'Nouveau traitement prescrit',
+          message: `Traitement "${row.description}" prescrit et nécessite une dispensation.`,
+          type: 'INFO',
+          link: `/treatments/${row.id}`,
+          metadata: { treatmentId: row.id, patientId, description: row.description },
+        })
+      }
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

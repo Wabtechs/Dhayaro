@@ -5,7 +5,7 @@ import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
-import { logAudit } from '@/lib/audit'
+import { logAudit, sendNotification } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -165,6 +165,27 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit(auth.user, 'CREATE', 'lab_exam', row.id, { examName: row.examName })
+
+    // Notify LABORATORY users
+    const labUsers = await getDb()
+      .select({ id: users.id })
+      .from(users)
+      .where(and(
+        eq(users.role, 'LABORATORY'),
+        eq(users.isActive, true),
+      ))
+
+    for (const labUser of labUsers) {
+      await sendNotification({
+        userId: labUser.id,
+        facilityId: row.facilityId,
+        title: 'Nouvel examen de laboratoire',
+        message: `Examen "${row.examName}" demandé pour le patient.`,
+        type: 'INFO',
+        link: `/laboratory/${row.id}`,
+        metadata: { labExamId: row.id, patientId, examName: row.examName },
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

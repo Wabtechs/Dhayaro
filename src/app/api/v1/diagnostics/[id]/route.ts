@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
-import { logAudit } from '@/lib/audit'
+import { logAudit, sendNotification } from '@/lib/audit'
 
 const DIAGNOSTIC_KEYS = ['diseaseId', 'diagnosticType', 'description', 'notes', 'consultationId', 'patientId', 'doctorId', 'facilityId', 'isValidated'] as const
 
@@ -74,6 +74,14 @@ export async function PUT(
 
     const body = await request.json()
 
+    const existing = await getDb().select({
+      id: diagnostics.id,
+      doctorId: diagnostics.doctorId,
+      patientId: diagnostics.patientId,
+      isValidated: diagnostics.isValidated,
+    }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
+    if (existing.length === 0) return apiError(404, 'Diagnostic not found')
+
     if (body.diseaseId) {
       const diseaseId = sanitizeUuid(body.diseaseId)
       if (!diseaseId) return apiError(400, 'Invalid diseaseId')
@@ -97,6 +105,18 @@ export async function PUT(
     }
 
     await logAudit(auth.user, 'UPDATE', 'diagnostic', validId, { ...allowedFields })
+
+    if (body.isValidated === true && !existing[0].isValidated) {
+      await sendNotification({
+        userId: existing[0].doctorId,
+        facilityId: updated.facilityId,
+        title: 'Diagnostic validé',
+        message: 'Un diagnostic a été validé.',
+        type: 'SUCCESS',
+        link: `/diagnostics/${validId}`,
+        metadata: { diagnosticId: validId, patientId: existing[0].patientId },
+      })
+    }
 
     return NextResponse.json(updated)
   } catch {
