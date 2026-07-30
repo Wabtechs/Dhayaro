@@ -4,6 +4,7 @@ import { consultations, patients, users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
@@ -14,11 +15,13 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [consultation] = await getDb()
       .select()
       .from(consultations)
-      .where(eq(consultations.id, id))
+      .where(eq(consultations.id, validId))
       .limit(1)
 
     if (!consultation) {

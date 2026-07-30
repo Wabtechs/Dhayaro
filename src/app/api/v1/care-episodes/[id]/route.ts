@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 const ALLOWED_UPDATE_KEYS = ['status', 'dischargeDate', 'dischargeSummary', 'dischargeOutcome', 'isArchived', 'metadata', 'admitReason'] as const
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'NURSE'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
@@ -123,7 +123,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
     const { id } = await params

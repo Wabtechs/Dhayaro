@@ -8,6 +8,7 @@ import { eq, and, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 function computeAgeRange(dateOfBirth: string | Date): string {
   const birth = new Date(dateOfBirth)
@@ -145,6 +146,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         createdAt: now,
       })
     }
+
+    await logAudit(auth.user, 'UPDATE', 'care_episode', episodeId, {
+      action: 'ARCHIVE',
+      episodeNumber: episode.episodeNumber,
+    })
 
     return NextResponse.json({ detail: 'Episode archived successfully', episodeId })
   } catch (e) {

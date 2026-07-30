@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   RefreshCw,
   Wifi,
@@ -8,6 +8,8 @@ import {
   XCircle,
   AlertTriangle,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,14 +137,33 @@ function SyncTable({ logs, onRetry }: { logs: SyncLog[]; onRetry: (id: string) =
   )
 }
 
+const SIZE = 10
+
 export default function SyncCenterPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isOnline, setIsOnline] = useState(() => navigator.onLine)
   const [autoSync, setAutoSync] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
-  const { data: syncData, isLoading } = useSyncData()
-  const [logs, setLogs] = useState<SyncLog[]>((syncData?.items as SyncLog[]) || [])
+  const [tab, setTab] = useState('all')
+  const [page, setPage] = useState(1)
+  const statusParam = tab === 'all' ? '' : tab
+  const { data: syncData, isLoading } = useSyncData(page, SIZE, statusParam)
+
+  const syncItems = (syncData?.items as SyncLog[]) || []
+  const total = syncData?.total ?? 0
+  const pendingCount = syncData?.pendingCount ?? 0
+  const syncedCount = syncData?.syncedCount ?? 0
+  const failedCount = syncData?.failedCount ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / SIZE))
+
+  const lastSyncItem = syncItems.length > 0
+    ? syncItems.reduce((latest, l) => new Date(l.timestamp) > new Date(latest.timestamp) ? l : latest, syncItems[0])
+    : null
+
+  const syncProgress = (pendingCount + syncedCount + failedCount) > 0
+    ? Math.round((syncedCount / (pendingCount + syncedCount + failedCount)) * 100)
+    : 0
 
   useEffect(() => {
     const goOnline = () => setIsOnline(true)
@@ -155,21 +176,10 @@ export default function SyncCenterPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (syncData?.items) {
-      setLogs(syncData.items as SyncLog[])
-    }
-  }, [syncData])
-
-  const lastSync = logs.length > 0
-    ? logs.reduce((latest, l) => new Date(l.timestamp) > new Date(latest.timestamp) ? l : latest, logs[0])
-    : null
-
-  const pendingCount = logs.filter((l) => l.status === 'pending').length
-  const syncedCount = logs.filter((l) => l.status === 'synced').length
-  const failedCount = logs.filter((l) => l.status === 'failed').length
-  const total = logs.length
-  const syncProgress = total > 0 ? Math.round((syncedCount / total) * 100) : 0
+  const handleTabChange = useCallback((value: string) => {
+    setTab(value)
+    setPage(1)
+  }, [])
 
   const doSync = async (ids: string[]) => {
     setIsSyncing(true)
@@ -186,7 +196,7 @@ export default function SyncCenterPage() {
   }
 
   const handleSyncNow = () => {
-    const pendingIds = logs.filter((l) => l.status === 'pending').map((l) => l.id)
+    const pendingIds = syncItems.filter((l) => l.status === 'pending').map((l) => l.id)
     if (pendingIds.length === 0) {
       toast({ title: 'Rien à synchroniser', description: 'Toutes les données sont à jour.' })
       return
@@ -195,12 +205,12 @@ export default function SyncCenterPage() {
   }
 
   const handleSyncAll = () => {
-    const pendingIds = logs.filter((l) => l.status === 'pending').map((l) => l.id)
-    if (pendingIds.length === 0) {
+    const allPending = pendingCount
+    if (allPending === 0) {
       toast({ title: 'Rien à synchroniser', description: 'Toutes les données sont à jour.' })
       return
     }
-    doSync(pendingIds)
+    doSync(syncItems.filter((l) => l.status === 'pending').map((l) => l.id))
   }
 
   const handleRetry = async (id: string) => {
@@ -262,7 +272,7 @@ export default function SyncCenterPage() {
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-16" />
               </div>
-              {[1, 2, 3].map((i) => (
+              {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="flex gap-4">
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-5 w-20 rounded-full" />
@@ -304,9 +314,9 @@ export default function SyncCenterPage() {
                   {isOnline ? 'En ligne' : 'Hors ligne'}
                 </h3>
               </div>
-              {lastSync && (
+              {lastSyncItem && (
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  Dernière sync : {formatDateTime(lastSync.timestamp)}
+                  Dernière sync : {formatDateTime(lastSyncItem.timestamp)}
                 </p>
               )}
             </div>
@@ -344,7 +354,7 @@ export default function SyncCenterPage() {
             <RefreshCw className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-xl font-bold text-foreground">{total}</p>
+              <p className="text-xl font-bold text-foreground">{pendingCount + syncedCount + failedCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -379,26 +389,36 @@ export default function SyncCenterPage() {
 
       <Separator />
 
-      <Tabs defaultValue="all">
+      <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList>
-          <TabsTrigger value="all">Tous ({total})</TabsTrigger>
+          <TabsTrigger value="all">Tous ({pendingCount + syncedCount + failedCount})</TabsTrigger>
           <TabsTrigger value="pending">En attente ({pendingCount})</TabsTrigger>
           <TabsTrigger value="synced">Réussies ({syncedCount})</TabsTrigger>
           <TabsTrigger value="failed">Échouées ({failedCount})</TabsTrigger>
         </TabsList>
-        <TabsContent value="all">
-          <SyncTable logs={logs} onRetry={handleRetry} />
-        </TabsContent>
-        <TabsContent value="pending">
-          <SyncTable logs={logs.filter((l) => l.status === 'pending')} onRetry={handleRetry} />
-        </TabsContent>
-        <TabsContent value="synced">
-          <SyncTable logs={logs.filter((l) => l.status === 'synced')} onRetry={handleRetry} />
-        </TabsContent>
-        <TabsContent value="failed">
-          <SyncTable logs={logs.filter((l) => l.status === 'failed')} onRetry={handleRetry} />
+        <TabsContent value={tab}>
+          <SyncTable logs={syncItems} onRetry={handleRetry} />
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {page} sur {totalPages} ({total} éléments)
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

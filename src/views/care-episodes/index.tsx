@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Calendar, User, Eye, FileText, Pencil, MoreHorizontal, Archive, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,8 +53,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/utils'
 
-const ITEMS_PER_PAGE = 10
-
 interface EpisodeItem {
   id: string
   patientId: string
@@ -104,24 +102,22 @@ export default function CareEpisodesPage() {
   const [editForm, setEditForm] = useState({ status: '', admitReason: '', admitDate: '', dischargeDate: '' })
   const [archivingId, setArchivingId] = useState<string | null>(null)
 
-  const params = useMemo(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    if (statusFilter && statusFilter !== 'all') p.set('status', statusFilter)
-    p.set('page', String(page))
-    p.set('size', String(ITEMS_PER_PAGE))
-    return p.toString()
-  }, [search, statusFilter, page])
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+  params.set('page', String(page))
+  params.set('size', '10')
+  const paramsStr = params.toString()
 
-  const { data, isLoading } = useCareEpisodesData(params)
+  const { data, isLoading } = useCareEpisodesData(paramsStr)
   const { data: patientsData } = usePatientsData()
   const createEpisode = useCreateCareEpisode()
   const updateEpisode = useUpdateCareEpisode()
   const archiveEpisode = useArchiveCareEpisode()
   const restoreEpisode = useRestoreCareEpisode()
 
-  const episodes = (data as { items?: EpisodeItem[]; total?: number })?.items || []
-  const total = (data as { total?: number })?.total || 0
+  const episodes = (data as { items?: EpisodeItem[]; total?: number })?.items ?? []
+  const total = (data as { total?: number })?.total ?? 0
   const patients = ((patientsData as { items?: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> })?.items || [])
 
   const [newEpisode, setNewEpisode] = useState({ patientId: '', admitReason: '' })
@@ -192,7 +188,7 @@ export default function CareEpisodesPage() {
     }
   }
 
-  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(total / 10)
 
   const statusKeys = Object.keys(statusLabels).filter(k => k !== 'ARCHIVED')
 

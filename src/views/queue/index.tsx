@@ -127,6 +127,8 @@ interface UserItem {
   id: string
   name?: string
   role?: string
+  firstName?: string
+  lastName?: string
   firstname?: string
   lastname?: string
   [key: string]: unknown
@@ -345,7 +347,7 @@ export default function QueueView() {
                   <SelectContent>
                     {doctorUsers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
-                        {u.name}
+                        {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -601,11 +603,11 @@ export default function QueueView() {
                   <SelectValue placeholder="Sélectionner un médecin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {doctorUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name || `${u.firstname || ''} ${u.lastname || ''}`.trim() || u.id}
-                    </SelectItem>
-                  ))}
+                    {doctorUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

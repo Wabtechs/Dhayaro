@@ -4,6 +4,8 @@ import { diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
+import { sanitizeUuid } from '@/lib/validation'
 
 const DISEASE_KEYS = ['code', 'name', 'category', 'description', 'symptoms', 'complications', 'treatments', 'isContagious', 'severity'] as const
 
@@ -16,7 +18,10 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
-    const [row] = await getDb().select().from(diseases).where(eq(diseases.id, id)).limit(1)
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
+    const [row] = await getDb().select().from(diseases).where(eq(diseases.id, validId)).limit(1)
 
     if (!row) {
       return apiError(404, 'Disease not found')
@@ -38,18 +43,23 @@ export async function PUT(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, DISEASE_KEYS)
 
     const [updated] = await getDb()
       .update(diseases)
       .set(allowedFields)
-      .where(eq(diseases.id, id))
+      .where(eq(diseases.id, validId))
       .returning()
 
     if (!updated) {
       return apiError(404, 'Disease not found')
     }
+
+    await logAudit(auth.user, 'UPDATE', 'disease', validId, { ...allowedFields })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -67,16 +77,20 @@ export async function DELETE(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [deleted] = await getDb()
       .update(diseases)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(diseases.id, id))
+      .where(eq(diseases.id, validId))
       .returning()
 
     if (!deleted) {
       return apiError(404, 'Disease not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'disease', validId, { isActive: false })
 
     return NextResponse.json({ detail: 'Disease deleted' })
   } catch (e) {

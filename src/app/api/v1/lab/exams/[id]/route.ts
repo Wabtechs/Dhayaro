@@ -3,8 +3,9 @@ import { getDb } from '@/lib/db'
 import { labExams, patients, users, labCategories } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { sanitizeUuid } from '@/lib/validation'
 
 const EXAM_KEYS = ['labTechnicianId', 'categoryId', 'consultationId', 'examName', 'clinicalIndication', 'status', 'results', 'resultNotes', 'validatedBy', 'validatedAt', 'completedAt'] as const
 
@@ -17,6 +18,8 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [row] = await getDb()
       .select({
@@ -48,7 +51,7 @@ export async function GET(
       .leftJoin(patients, eq(labExams.patientId, patients.id))
       .leftJoin(users, eq(labExams.doctorId, users.id))
       .leftJoin(labCategories, eq(labExams.categoryId, labCategories.id))
-      .where(eq(labExams.id, id))
+      .where(eq(labExams.id, validId))
       .limit(1)
 
     if (!row) {
@@ -67,13 +70,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
 
-    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, id)).limit(1)
+    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Lab exam not found')
     }
@@ -111,10 +117,10 @@ export async function PUT(
     const [updated] = await getDb()
       .update(labExams)
       .set(allowedFields)
-      .where(eq(labExams.id, id))
+      .where(eq(labExams.id, validId))
       .returning()
 
-    await logAudit(auth.user, 'UPDATE', 'lab_exam', id, { ...allowedFields })
+    await logAudit(auth.user, 'UPDATE', 'lab_exam', validId, { ...allowedFields })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -128,19 +134,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
-    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, id)).limit(1)
+    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Lab exam not found')
     }
 
-    await getDb().update(labExams).set({ isActive: false, updatedAt: new Date() }).where(eq(labExams.id, id))
+    await getDb().update(labExams).set({ isActive: false, updatedAt: new Date() }).where(eq(labExams.id, validId))
 
-    await logAudit(auth.user, 'DELETE', 'lab_exam', id)
+    await logAudit(auth.user, 'DELETE', 'lab_exam', validId)
 
     return NextResponse.json({ success: true })
   } catch (e) {

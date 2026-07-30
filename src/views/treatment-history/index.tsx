@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Search, Download, Calendar, Filter, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Download, Calendar, Filter, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import type { CaseStatus } from '@/types'
-
-const ITEMS_PER_PAGE = 10
 
 const statusLabels: Record<CaseStatus, string> = {
   draft: 'Brouillon',
@@ -60,14 +58,16 @@ function buildEntries(
 export default function TreatmentHistoryPage() {
   const { toast } = useToast()
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [facilityFilter, setFacilityFilter] = useState<string>('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-
   const casesParams = new URLSearchParams()
   if (search) casesParams.set('search', search)
+  if (statusFilter !== 'all') casesParams.set('status', statusFilter)
+  casesParams.set('page', String(currentPage))
+  casesParams.set('size', '10')
   const casesParamsStr = casesParams.toString()
 
   const { data: casesData, isLoading: casesLoading } = useClinicalCasesData(casesParamsStr || undefined)
@@ -77,38 +77,17 @@ export default function TreatmentHistoryPage() {
 
   const facilities = ((facilitiesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
 
-  const entries = useMemo(() => buildEntries(
+  const entries = buildEntries(
     ((casesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>,
     ((patientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>,
     ((usersData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Array<Record<string, unknown>>
-  ), [casesData, patientsData, usersData])
+  )
 
-  const filtered = useMemo(() => {
-    return entries.filter((e) => {
-      const q = search.toLowerCase()
-      const matchesSearch =
-        !search ||
-        e.patientName.toLowerCase().includes(q) ||
-        e.caseTitle.toLowerCase().includes(q) ||
-        e.diagnosis.toLowerCase().includes(q)
-      const matchesStatus = statusFilter === 'all' || e.status === statusFilter
-      const matchesFacility = facilityFilter === 'all' || e.facilityId === facilityFilter
-
-      const entryDate = new Date(e.date)
-      const matchesFrom = !dateFrom || entryDate >= new Date(dateFrom)
-      const matchesTo = !dateTo || entryDate <= new Date(dateTo + 'T23:59:59')
-
-      return matchesSearch && matchesStatus && matchesFacility && matchesFrom && matchesTo
-    })
-  }, [entries, search, statusFilter, facilityFilter, dateFrom, dateTo])
-
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-
-  const totalCount = filtered.length
-  const activeCount = filtered.filter((e) => e.status === 'active').length
-  const resolvedCount = filtered.filter((e) => e.status === 'resolved').length
-  const archivedCount = filtered.filter((e) => e.status === 'archived').length
+  const totalCount = (casesData as unknown as { total?: number })?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
+  const activeCount = entries.filter((e) => e.status === 'active').length
+  const resolvedCount = entries.filter((e) => e.status === 'resolved').length
+  const archivedCount = entries.filter((e) => e.status === 'archived').length
 
   const stats = [
     { label: 'Total', value: totalCount, color: 'text-foreground' },
@@ -248,7 +227,7 @@ export default function TreatmentHistoryPage() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <ClipboardList className="mb-4 h-12 w-12 text-muted-foreground/50" />
           <h3 className="text-lg font-medium text-foreground">Aucun traitement trouvé</h3>
@@ -272,7 +251,7 @@ export default function TreatmentHistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.map((entry) => (
+                {entries.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       <div className="flex items-center gap-1.5">
@@ -310,16 +289,14 @@ export default function TreatmentHistoryPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {currentPage} sur {totalPages} — {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
+                Page {currentPage} sur {totalPages} — {totalCount} résultat{totalCount !== 1 ? 's' : ''}
               </p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-                  <ChevronLeft className="h-4 w-4" />
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
                   Précédent
                 </Button>
-                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
                   Suivant
-                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

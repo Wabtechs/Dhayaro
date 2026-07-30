@@ -4,7 +4,8 @@ import { queue, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 const QUEUE_KEYS = ['status', 'priority', 'assignedDoctorId', 'queuePosition', 'estimatedWaitMinutes', 'notes', 'startedAt', 'completedAt'] as const
 
@@ -17,6 +18,8 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [row] = await getDb()
       .select({
@@ -45,7 +48,7 @@ export async function GET(
       .from(queue)
       .leftJoin(patients, eq(queue.patientId, patients.id))
       .leftJoin(users, eq(queue.assignedDoctorId, users.id))
-      .where(eq(queue.id, id))
+      .where(eq(queue.id, validId))
       .limit(1)
 
     if (!row) {
@@ -64,13 +67,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
 
-    const existing = await getDb().select({ id: queue.id }).from(queue).where(eq(queue.id, id)).limit(1)
+    const existing = await getDb().select({ id: queue.id }).from(queue).where(eq(queue.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Queue entry not found')
     }
@@ -92,10 +98,10 @@ export async function PUT(
     const [updated] = await getDb()
       .update(queue)
       .set(allowedFields)
-      .where(eq(queue.id, id))
+      .where(eq(queue.id, validId))
       .returning()
 
-    await logAudit(auth.user, 'UPDATE', 'queue', id, { status: updated.status })
+    await logAudit(auth.user, 'UPDATE', 'queue', validId, { status: updated.status })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -109,22 +115,24 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [updated] = await getDb()
       .update(queue)
       .set({ status: 'CANCELLED', updatedAt: new Date() })
-      .where(eq(queue.id, id))
+      .where(eq(queue.id, validId))
       .returning()
 
     if (!updated) {
       return apiError(404, 'Queue entry not found')
     }
 
-    await logAudit(auth.user, 'DELETE', 'queue', id, { status: 'CANCELLED' })
+    await logAudit(auth.user, 'DELETE', 'queue', validId, { status: 'CANCELLED' })
 
     return NextResponse.json({ detail: 'Queue entry cancelled' })
   } catch (e) {

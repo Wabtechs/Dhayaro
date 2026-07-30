@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 import { apiError, logError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()

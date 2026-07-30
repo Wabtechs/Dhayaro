@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, UserRound, Calendar, Phone, MapPin, Pencil, Trash2 } from 'lucide-react'
@@ -51,8 +51,6 @@ import { api } from '@/services/api'
 import { cn, formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { sanitizeUuid } from '@/lib/validation'
-
-const ITEMS_PER_PAGE = 10
 
 interface PatientItem {
   id: string
@@ -145,28 +143,16 @@ export default function PatientsPage() {
   if (genderFilter !== 'all') queryParams.set('gender', genderFilter)
   if (facilityFilter !== 'all') queryParams.set('facilityId', facilityFilter)
   queryParams.set('page', String(page))
-  queryParams.set('size', String(ITEMS_PER_PAGE))
+  queryParams.set('size', '10')
   const paramsStr = queryParams.toString()
 
   const { data, isLoading } = usePatientsData(undefined, paramsStr)
   const { data: facilitiesData } = useFacilitiesData()
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
-  const allItems = (data?.items ?? []) as PatientItem[]
-  const totalFromApi = data?.total ?? 0
-
-  const filtered = useMemo(() => {
-    return allItems.filter((p) => {
-      const matchesGender =
-        genderFilter === 'all' || (p.sex as string).toUpperCase() === genderFilter.toUpperCase()
-      const matchesFacility =
-        facilityFilter === 'all' || p.facilityId === facilityFilter
-      return matchesGender && matchesFacility
-    })
-  }, [allItems, genderFilter, facilityFilter])
-
-  const totalPages = Math.max(1, Math.ceil(totalFromApi / ITEMS_PER_PAGE))
-  const paginated = filtered.slice(0, ITEMS_PER_PAGE)
+  const items = (data?.items ?? []) as PatientItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const getFacilityName = (id: string) =>
     facilitiesList.find((f) => f.id === id)?.name ?? '—'
@@ -306,7 +292,7 @@ export default function PatientsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Gestion des Patients</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} patient{filtered.length > 1 ? 's' : ''} trouvé{filtered.length > 1 ? 's' : ''}
+            {totalCount} patient{totalCount > 1 ? 's' : ''} trouvé{totalCount > 1 ? 's' : ''}
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -643,7 +629,7 @@ export default function PatientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map((patient) => {
+              {items.map((patient) => {
                 return (
                 <TableRow key={patient.id}>
                   <TableCell>
@@ -727,7 +713,7 @@ export default function PatientsPage() {
                   </TableCell>
                 </TableRow>
               )})}
-              {paginated.length === 0 && (
+              {items.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     Aucun patient trouvé.
@@ -740,7 +726,7 @@ export default function PatientsPage() {
       </Card>
 
       <div className="space-y-3 md:hidden">
-        {paginated.map((patient) => (
+        {items.map((patient) => (
             <Card key={patient.id}>
             <CardContent className="p-4">
               <button
@@ -804,7 +790,7 @@ export default function PatientsPage() {
             </CardContent>
           </Card>
         ))}
-        {paginated.length === 0 && (
+        {items.length === 0 && (
           <Card>
             <CardContent className="flex h-24 items-center justify-center text-muted-foreground">
               Aucun patient trouvé.

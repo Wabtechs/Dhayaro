@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePatientAuthStore } from '@/store/patient-auth-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { Activity, Eye, EyeOff } from 'lucide-react'
 
@@ -15,8 +16,14 @@ export default function PatientLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const login = usePatientAuthStore((s) => s.login)
   const router = useRouter()
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsPageLoading(false), 200)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +37,31 @@ export default function PatientLoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isPageLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-teal-50 p-4 dark:from-blue-950 dark:to-teal-950">
+        <Card className="w-full max-w-md shadow-xl">
+          <CardHeader className="space-y-2 text-center">
+            <Skeleton className="mx-auto h-14 w-14 rounded-full" />
+            <Skeleton className="mx-auto h-7 w-48" />
+            <Skeleton className="mx-auto h-4 w-64" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

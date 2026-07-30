@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -53,8 +53,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
 
 const MULTI_FACILITY_ROLES = new Set(['super_admin', 'admin'])
-
-const PAGE_SIZE = 10
 
 interface UserItem {
   id: string
@@ -131,7 +129,7 @@ export default function Users() {
   const [page, setPage] = useState(1)
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
-  const { data: usersData, isLoading } = useUsersData(undefined, 1, 1000, search)
+  const { data: usersData, isLoading } = useUsersData(undefined, page, 10, search)
   const { data: facilitiesData } = useFacilitiesData()
   const updateUser = useUpdateUser()
   const deleteUser = useDeleteUser()
@@ -153,10 +151,7 @@ export default function Users() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const facilityMap = useMemo(
-    () => Object.fromEntries(facilitiesList.map((f) => [f.id, f.name])),
-    [facilitiesList]
-  )
+  const facilityMap = Object.fromEntries(facilitiesList.map((f) => [f.id, f.name]))
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -168,59 +163,53 @@ export default function Users() {
     setPage(1)
   }
 
-  const allUsers = useMemo(() => {
-    return ((usersData?.items ?? []) as UserItem[]).map((u) => ({
-      ...u,
-      role: (u.role || '').toLowerCase(),
-    }))
-  }, [usersData])
+  const allUsers = ((usersData?.items ?? []) as UserItem[]).map((u) => ({
+    ...u,
+    role: (u.role || '').toLowerCase(),
+  }))
 
-  const filtered = useMemo(() => {
-    const result = allUsers.filter((u) => {
-      const matchesRole = roleFilter === 'all' || u.role === roleFilter
-      return matchesRole
-    })
+  const items = allUsers.filter((u) => {
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter
+    return matchesRole
+  })
 
-    result.sort((a, b) => {
-      let aVal = ''
-      let bVal = ''
+  items.sort((a, b) => {
+    let aVal = ''
+    let bVal = ''
 
-      switch (sortField) {
-        case 'name':
-          aVal = a.name
-          bVal = b.name
-          break
-        case 'email':
-          aVal = a.email
-          bVal = b.email
-          break
-        case 'role':
-          aVal = a.role
-          bVal = b.role
-          break
-        case 'facility':
-          aVal = facilityMap[a.facilityId || ''] || ''
-          bVal = facilityMap[b.facilityId || ''] || ''
-          break
-        case 'lastLogin':
-          aVal = a.lastLogin || ''
-          bVal = b.lastLogin || ''
-          break
-        case 'isActive':
-          aVal = a.isActive ? '1' : '0'
-          bVal = b.isActive ? '1' : '0'
-          break
-      }
+    switch (sortField) {
+      case 'name':
+        aVal = a.name
+        bVal = b.name
+        break
+      case 'email':
+        aVal = a.email
+        bVal = b.email
+        break
+      case 'role':
+        aVal = a.role
+        bVal = b.role
+        break
+      case 'facility':
+        aVal = facilityMap[a.facilityId || ''] || ''
+        bVal = facilityMap[b.facilityId || ''] || ''
+        break
+      case 'lastLogin':
+        aVal = a.lastLogin || ''
+        bVal = b.lastLogin || ''
+        break
+      case 'isActive':
+        aVal = a.isActive ? '1' : '0'
+        bVal = b.isActive ? '1' : '0'
+        break
+    }
 
-      const cmp = aVal.localeCompare(bVal)
-      return sortDir === 'asc' ? cmp : -cmp
-    })
+    const cmp = aVal.localeCompare(bVal)
+    return sortDir === 'asc' ? cmp : -cmp
+  })
 
-    return result
-  }, [allUsers, roleFilter, sortField, sortDir, facilityMap])
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalCount = usersData?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const ROLE_MAP: Record<User['role'], string> = {
     super_admin: 'SUPER_ADMIN',
@@ -640,7 +629,7 @@ export default function Users() {
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
           <Search className="h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-semibold">Aucun résultat</h3>
@@ -708,7 +697,7 @@ export default function Users() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.map((user) => (
+                {items.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -786,7 +775,7 @@ export default function Users() {
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {filtered.length} utilisateur{filtered.length > 1 ? 's' : ''} au
+              {totalCount} utilisateur{totalCount > 1 ? 's' : ''} au
               total
             </p>
             <div className="flex items-center gap-2">

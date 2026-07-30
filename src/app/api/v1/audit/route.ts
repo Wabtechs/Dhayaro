@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { auditLogs, users } from '@/lib/schema'
-import { eq, desc, and, count } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { requireRole } from '@/lib/auth'
-import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
+import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,11 +11,15 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const size = Math.min(100, parseInt(searchParams.get('size') || '20', 10))
-    const offset = (page - 1) * size
+    const { page, size, search, offset } = parsePagination(searchParams)
 
     const conditions = []
+    if (search) {
+      conditions.push(or(
+        ilike(auditLogs.action, `%${search}%`),
+        ilike(auditLogs.resource, `%${search}%`),
+      )!)
+    }
     const facilityFilter = addFacilityFilter(auditLogs.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)
 

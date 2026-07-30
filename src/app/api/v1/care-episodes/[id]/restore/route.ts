@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -33,6 +34,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       isArchived: false,
       updatedAt: new Date(),
     }).where(eq(careEpisodes.id, episodeId)).returning()
+
+    await logAudit(auth.user, 'UPDATE', 'care_episode', episodeId, {
+      action: 'RESTORE',
+      wasArchived: true,
+    })
 
     return NextResponse.json(row)
   } catch (e) {

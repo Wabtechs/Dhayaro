@@ -4,7 +4,7 @@ import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
         ilike(patients.firstname, `%${search}%`),
         ilike(patients.lastname, `%${search}%`),
         ilike(patients.email, `%${search}%`),
+        ilike(patients.phone, `%${search}%`),
         ilike(patients.patientUuid, `%${search}%`),
       )!)
     }
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()

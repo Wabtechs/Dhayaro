@@ -337,6 +337,7 @@ export const documents = pgTable('documents', {
   title: text('title').notNull(),
   content: jsonb('content').$type<Record<string, unknown>>().default({}),
   filePath: text('file_path'),
+  isActive: boolean('is_active').notNull().default(true),
   isPrinted: boolean('is_printed').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

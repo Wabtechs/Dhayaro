@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import {
   Search,
@@ -69,8 +69,6 @@ interface UserItem {
 }
 
 type ActionCategory = 'consultation' | 'creation' | 'modification' | 'suppression' | 'connexion'
-
-const PAGE_SIZE = 15
 
 const ACTION_FILTER_OPTIONS = [
   { value: 'all', label: 'Toutes' },
@@ -156,56 +154,37 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table')
 
-  const searchParams = useMemo(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    return p.toString()
-  }, [search])
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  params.set('page', String(page))
+  params.set('size', '10')
+  const searchParams = params.toString()
   const { data, isLoading } = useAuditData(searchParams)
   const { data: usersData } = useUsersData()
   const auditEntries = ((data?.items ?? []) as AuditItem[])
   const users = ((usersData as unknown as { items?: UserItem[] })?.items ?? [])
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]))
 
-  const filtered = useMemo(() => {
-    return auditEntries.filter((entry) => {
-      const category = getActionCategory(entry.action)
-      const matchesAction =
-        actionFilter === 'all' || category === actionFilter
+  const filteredEntries = auditEntries.filter((entry) => {
+    const category = getActionCategory(entry.action)
+    return (
+      (actionFilter === 'all' || category === actionFilter) &&
+      (userFilter === 'all' || entry.userId === userFilter) &&
+      (!dateFrom || new Date(entry.timestamp) >= new Date(dateFrom)) &&
+      (!dateTo || new Date(entry.timestamp) <= new Date(dateTo + 'T23:59:59Z'))
+    )
+  })
 
-      const matchesUser =
-        userFilter === 'all' || entry.userId === userFilter
-
-      const entryDate = new Date(entry.timestamp)
-      const matchesFrom = !dateFrom || entryDate >= new Date(dateFrom)
-      const matchesTo =
-        !dateTo || entryDate <= new Date(dateTo + 'T23:59:59Z')
-
-      return matchesAction && matchesUser && matchesFrom && matchesTo
-    })
-  }, [auditEntries, actionFilter, userFilter, dateFrom, dateTo, userMap])
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  )
-
-  const uniqueUsers = useMemo(
-    () => new Set(filtered.map((e) => e.userId)).size,
-    [filtered]
-  )
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const todayStr = new Date().toISOString().slice(0, 10)
-  const actionsToday = useMemo(
-    () =>
-      filtered.filter((e) => e.timestamp.startsWith(todayStr)).length,
-    [filtered, todayStr]
-  )
+  const uniqueUsers = new Set(filteredEntries.map((e) => e.userId)).size
+  const actionsToday = filteredEntries.filter((e) => e.timestamp.startsWith(todayStr)).length
 
-  const groupedByDate = useMemo(() => {
+  const groupedByDate = () => {
     const groups: Record<string, AuditEntry[]> = {}
-    for (const entry of filtered) {
+    for (const entry of filteredEntries) {
       const key = getDateString(entry.timestamp)
       if (!groups[key]) groups[key] = []
       groups[key].push(entry)
@@ -213,7 +192,54 @@ export default function AuditLogPage() {
     return Object.entries(groups).sort(
       ([a], [b]) => new Date(b).getTime() - new Date(a).getTime()
     )
-  }, [filtered])
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-4 p-4">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <TableHead key={j}><Skeleton className="h-4 w-20" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -254,354 +280,304 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="flex items-center gap-4 p-4">
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-full sm:w-[180px]" />
-            <Skeleton className="h-10 w-full sm:w-[200px]" />
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-10 w-[150px]" />
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-10 w-[150px]" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-5 w-5 text-primary" />
             </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Total Entrées
+              </p>
+              <p className="text-xl font-bold">{filteredEntries.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Utilisateurs Uniques
+              </p>
+              <p className="text-xl font-bold">{uniqueUsers}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Actions Aujourd'hui
+              </p>
+              <p className="text-xl font-bold">{actionsToday}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher dans le journal..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            className="pl-10"
+          />
+        </div>
+        <Select
+          value={actionFilter}
+          onValueChange={(v) => {
+            setActionFilter(v)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Action" />
+          </SelectTrigger>
+          <SelectContent>
+            {ACTION_FILTER_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={userFilter}
+          onValueChange={(v) => {
+            setUserFilter(v)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Utilisateur" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les utilisateurs</SelectItem>
+            {users.map((u) => (
+              <SelectItem key={u.id as string} value={u.id as string}>
+                {(u.name as string) || `${u.firstname} ${u.lastname}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value)
+                setPage(1)
+              }}
+              className="w-[150px]"
+              placeholder="Du"
+            />
           </div>
+          <span className="text-sm text-muted-foreground">à</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => {
+              setDateTo(e.target.value)
+              setPage(1)
+            }}
+            className="w-[150px]"
+            placeholder="Au"
+          />
+        </div>
+      </div>
+
+      {filteredEntries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+          <Search className="h-12 w-12 text-muted-foreground/50" />
+          <h3 className="mt-4 text-lg font-semibold">Aucun résultat</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Aucune entrée ne correspond à vos critères de recherche.
+          </p>
+        </div>
+      ) : viewMode === 'table' ? (
+        <>
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <TableHead key={j}><Skeleton className="h-4 w-20" /></TableHead>
-                  ))}
+                  <TableHead>Horodatage</TableHead>
+                  <TableHead>Utilisateur</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Entité</TableHead>
+                  <TableHead>ID Entité</TableHead>
+                  <TableHead className="min-w-[200px]">Détails</TableHead>
+                  <TableHead>Adresse IP</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))}
+                {filteredEntries.map((entry) => {
+                  const category = getActionCategory(entry.action)
+                  const config = actionConfig[category]
+                  const Icon = config.icon
+                  const user = userMap[entry.userId]
+
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {formatDateTime(entry.timestamp)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={user?.avatar} />
+                            <AvatarFallback className="text-[10px]">
+                              {user ? getInitials(user.name) : '??'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="whitespace-nowrap text-sm font-medium">
+                            {user?.name ?? 'Inconnu'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${config.bg} ${config.color}`}
+                        >
+                          <Icon className="h-3 w-3" />
+                          {entry.action}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{entry.entity || '—'}</TableCell>
+                      <TableCell>
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                          {entry.entityId || '—'}
+                        </code>
+                      </TableCell>
+                      <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
+                        {entry.details || '—'}
+                      </TableCell>
+                      <TableCell>
+                        <code className="text-xs text-muted-foreground">
+                          {entry.ipAddress || '—'}
+                        </code>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {totalCount} entrée{totalCount > 1 ? 's' : ''} au total
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Précédent
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Suivant
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </>
       ) : (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Shield className="h-5 w-5 text-primary" />
+        <div className="space-y-8">
+          {groupedByDate().map(([date, entries]) => (
+            <div key={date}>
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <Calendar className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Total Entrées
-                  </p>
-                  <p className="text-xl font-bold">{filtered.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Utilisateurs Uniques
-                  </p>
-                  <p className="text-xl font-bold">{uniqueUsers}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                  <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Actions Aujourd'hui
-                  </p>
-                  <p className="text-xl font-bold">{actionsToday}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher dans le journal..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value)
-                  setPage(1)
-                }}
-                className="pl-10"
-              />
-            </div>
-            <Select
-              value={actionFilter}
-              onValueChange={(v) => {
-                setActionFilter(v)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Action" />
-              </SelectTrigger>
-              <SelectContent>
-                {ACTION_FILTER_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={userFilter}
-              onValueChange={(v) => {
-                setUserFilter(v)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Utilisateur" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id as string} value={u.id as string}>
-                    {(u.name as string) || `${u.firstname} ${u.lastname}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => {
-                    setDateFrom(e.target.value)
-                    setPage(1)
-                  }}
-                  className="w-[150px]"
-                  placeholder="Du"
-                />
+                <h3 className="text-sm font-semibold">{date}</h3>
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">
+                  {entries.length} action{entries.length > 1 ? 's' : ''}
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">à</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value)
-                  setPage(1)
-                }}
-                className="w-[150px]"
-                placeholder="Au"
-              />
-            </div>
-          </div>
+              <div className="relative ml-4 border-l-2 border-muted pl-6">
+                {entries.map((entry) => {
+                  const category = getActionCategory(entry.action)
+                  const config = actionConfig[category]
+                  const Icon = config.icon
+                  const user = userMap[entry.userId]
 
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-              <Search className="h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-semibold">Aucun résultat</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Aucune entrée ne correspond à vos critères de recherche.
-              </p>
-            </div>
-          ) : viewMode === 'table' ? (
-            <>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Horodatage</TableHead>
-                      <TableHead>Utilisateur</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Entité</TableHead>
-                      <TableHead>ID Entité</TableHead>
-                      <TableHead className="min-w-[200px]">Détails</TableHead>
-                      <TableHead>Adresse IP</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginated.map((entry) => {
-                      const category = getActionCategory(entry.action)
-                      const config = actionConfig[category]
-                      const Icon = config.icon
-                      const user = userMap[entry.userId]
-
-                      return (
-                        <TableRow key={entry.id}>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {formatDateTime(entry.timestamp)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-7 w-7">
-                                <AvatarImage src={user?.avatar} />
-                                <AvatarFallback className="text-[10px]">
-                                  {user ? getInitials(user.name) : '??'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="whitespace-nowrap text-sm font-medium">
-                                {user?.name ?? 'Inconnu'}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div
-                              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${config.bg} ${config.color}`}
+                  return (
+                    <div key={entry.id} className="relative mb-6 last:mb-0">
+                      <div
+                        className={`absolute -left-[31px] top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ${config.bg}`}
+                      >
+                        <Icon className={`h-3 w-3 ${config.color}`} />
+                      </div>
+                      <div className="rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={user?.avatar} />
+                              <AvatarFallback className="text-[9px]">
+                                {user ? getInitials(user.name) : '??'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">
+                              {user?.name ?? 'Inconnu'}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.color}`}
                             >
-                              <Icon className="h-3 w-3" />
-                              {entry.action}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">{entry.entity || '—'}</TableCell>
-                          <TableCell>
-                            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                              <Icon className="h-2.5 w-2.5" />
+                              {config.label}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDateTime(entry.timestamp)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {entry.details || '—'}
+                        </p>
+                        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>
+                            {entry.entity || '—'}{' '}
+                            <code className="rounded bg-muted px-1 py-0.5">
                               {entry.entityId || '—'}
                             </code>
-                          </TableCell>
-                          <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
-                            {entry.details || '—'}
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-xs text-muted-foreground">
-                              {entry.ipAddress || '—'}
-                            </code>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {filtered.length} entrée{filtered.length > 1 ? 's' : ''} au total
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Précédent
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Suivant
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="space-y-8">
-              {groupedByDate.map(([date, entries]) => (
-                <div key={date}>
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <Calendar className="h-4 w-4 text-primary" />
-                    </div>
-                    <h3 className="text-sm font-semibold">{date}</h3>
-                    <Separator className="flex-1" />
-                    <span className="text-xs text-muted-foreground">
-                      {entries.length} action{entries.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="relative ml-4 border-l-2 border-muted pl-6">
-                    {entries.map((entry) => {
-                      const category = getActionCategory(entry.action)
-                      const config = actionConfig[category]
-                      const Icon = config.icon
-                      const user = userMap[entry.userId]
-
-                      return (
-                        <div key={entry.id} className="relative mb-6 last:mb-0">
-                          <div
-                            className={`absolute -left-[31px] top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ${config.bg}`}
-                          >
-                            <Icon className={`h-3 w-3 ${config.color}`} />
-                          </div>
-                          <div className="rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={user?.avatar} />
-                                  <AvatarFallback className="text-[9px]">
-                                    {user ? getInitials(user.name) : '??'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium">
-                                  {user?.name ?? 'Inconnu'}
-                                </span>
-                                <span
-                                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.color}`}
-                                >
-                                  <Icon className="h-2.5 w-2.5" />
-                                  {config.label}
-                                </span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {formatDateTime(entry.timestamp)}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              {entry.details || '—'}
-                            </p>
-                            <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                              <span>
-                                {entry.entity || '—'}{' '}
-                                <code className="rounded bg-muted px-1 py-0.5">
-                                  {entry.entityId || '—'}
-                                </code>
-                              </span>
-                              <span>•</span>
-                              <code>{entry.ipAddress}</code>
-                            </div>
-                          </div>
+                          </span>
+                          <span>•</span>
+                          <code>{entry.ipAddress}</code>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </div>
   )

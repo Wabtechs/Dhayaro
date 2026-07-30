@@ -4,7 +4,7 @@ import { diagnostics, patients, users, diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
 const DIAGNOSTIC_KEYS = ['diseaseId', 'diagnosticType', 'description', 'notes', 'consultationId', 'patientId', 'doctorId', 'facilityId', 'isValidated'] as const
@@ -18,6 +18,9 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const [row] = await getDb().select({
       id: diagnostics.id,
       facilityId: diagnostics.facilityId,
@@ -44,7 +47,7 @@ export async function GET(
     .leftJoin(patients, eq(diagnostics.patientId, patients.id))
     .leftJoin(users, eq(diagnostics.doctorId, users.id))
     .leftJoin(diseases, eq(diagnostics.diseaseId, diseases.id))
-    .where(eq(diagnostics.id, id))
+    .where(eq(diagnostics.id, validId))
     .limit(1)
 
     if (!row) {
@@ -62,10 +65,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
 
     if (body.diseaseId) {
@@ -83,14 +89,14 @@ export async function PUT(
     const [updated] = await getDb()
       .update(diagnostics)
       .set(allowedFields)
-      .where(eq(diagnostics.id, id))
+      .where(eq(diagnostics.id, validId))
       .returning()
 
     if (!updated) {
       return apiError(404, 'Diagnostic not found')
     }
 
-    await logAudit(auth.user, 'UPDATE', 'diagnostic', id, { ...allowedFields })
+    await logAudit(auth.user, 'UPDATE', 'diagnostic', validId, { ...allowedFields })
 
     return NextResponse.json(updated)
   } catch {
@@ -103,19 +109,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
-    const existing = await getDb().select({ id: diagnostics.id }).from(diagnostics).where(eq(diagnostics.id, id)).limit(1)
+    const existing = await getDb().select({ id: diagnostics.id }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Diagnostic not found')
     }
 
-    await getDb().update(diagnostics).set({ isActive: false, updatedAt: new Date() }).where(eq(diagnostics.id, id))
+    await getDb().update(diagnostics).set({ isActive: false, updatedAt: new Date() }).where(eq(diagnostics.id, validId))
 
-    await logAudit(auth.user, 'DELETE', 'diagnostic', id)
+    await logAudit(auth.user, 'DELETE', 'diagnostic', validId)
 
     return NextResponse.json({ success: true })
   } catch (e) {

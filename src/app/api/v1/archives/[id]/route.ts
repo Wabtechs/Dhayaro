@@ -4,6 +4,8 @@ import { archives, patients } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
+import { sanitizeUuid } from '@/lib/validation'
 
 const ARCHIVE_KEYS = ['title', 'summary', 'data'] as const
 
@@ -16,6 +18,9 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const [row] = await getDb()
       .select({
         id: archives.id,
@@ -33,7 +38,7 @@ export async function GET(
       })
       .from(archives)
       .leftJoin(patients, eq(archives.patientId, patients.id))
-      .where(eq(archives.id, id))
+      .where(eq(archives.id, validId))
       .limit(1)
 
     if (!row) {
@@ -56,9 +61,12 @@ export async function PUT(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
 
-    const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, id)).limit(1)
+    const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Archive not found')
     }
@@ -68,8 +76,10 @@ export async function PUT(
     const [updated] = await getDb()
       .update(archives)
       .set(allowedFields)
-      .where(eq(archives.id, id))
+      .where(eq(archives.id, validId))
       .returning()
+
+    await logAudit(auth.user, 'UPDATE', 'archive', validId, { ...allowedFields })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -87,13 +97,17 @@ export async function DELETE(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
-    const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, id)).limit(1)
+    const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Archive not found')
     }
 
-    await getDb().delete(archives).where(eq(archives.id, id))
+    await getDb().delete(archives).where(eq(archives.id, validId))
+
+    await logAudit(auth.user, 'DELETE', 'archive', validId)
 
     return NextResponse.json({ success: true })
   } catch (e) {

@@ -62,7 +62,7 @@ const navSections: NavSection[] = [
   {
     label: 'PRINCIPAL',
     items: [
-      { label: 'Tableau de bord', icon: LayoutDashboard, href: '/dashboard', permission: 'analytics:read' },
+      { label: 'Tableau de bord', icon: LayoutDashboard, href: '/dashboard', permission: 'DASHBOARD_VIEW' },
       { label: 'File d\'attente', icon: ListOrdered, href: '/queue', permission: 'queue:list' },
       { label: 'Triage', icon: Activity, href: '/triage', permission: 'triage:list' },
       { label: 'Patients', icon: UserRound, href: '/patients', permission: 'patients:list' },

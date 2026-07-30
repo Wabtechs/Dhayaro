@@ -4,6 +4,8 @@ import { facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
+import { sanitizeUuid } from '@/lib/validation'
 
 const FACILITY_KEYS = ['name', 'code', 'facilityType', 'address', 'city', 'phone', 'email', 'bedCount', 'departmentCount', 'staffCount'] as const
 
@@ -16,7 +18,10 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
-    const [row] = await getDb().select().from(facilities).where(eq(facilities.id, id)).limit(1)
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
+    const [row] = await getDb().select().from(facilities).where(eq(facilities.id, validId)).limit(1)
 
     if (!row) {
       return apiError(404, 'Facility not found')
@@ -38,6 +43,9 @@ export async function PUT(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, FACILITY_KEYS)
     allowedFields.updatedAt = new Date()
@@ -45,12 +53,14 @@ export async function PUT(
     const [updated] = await getDb()
       .update(facilities)
       .set(allowedFields)
-      .where(eq(facilities.id, id))
+      .where(eq(facilities.id, validId))
       .returning()
 
     if (!updated) {
       return apiError(404, 'Facility not found')
     }
+
+    await logAudit(auth.user, 'UPDATE', 'facility', validId, { ...allowedFields })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -68,16 +78,20 @@ export async function DELETE(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [deleted] = await getDb()
       .update(facilities)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(facilities.id, id))
+      .where(eq(facilities.id, validId))
       .returning()
 
     if (!deleted) {
       return apiError(404, 'Facility not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'facility', validId, { isActive: false })
 
     return NextResponse.json({ detail: 'Facility deleted' })
   } catch (e) {

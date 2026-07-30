@@ -5,7 +5,7 @@ import { eq, desc, and, or, ilike, count, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'NURSE'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       ticketNumber,
       priority: body.priority || 'NORMAL',
       status: 'WAITING',
-      assignedDoctorId: null,
+      assignedDoctorId: sanitizeUuid(body.assignedDoctorId) || null,
       queuePosition: nextPosition,
       estimatedWaitMinutes: body.estimatedWaitMinutes || null,
       arrivedAt: now,

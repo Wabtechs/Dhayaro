@@ -18,7 +18,10 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
-    const [row] = await getDb().select().from(clinicalCases).where(eq(clinicalCases.id, id)).limit(1)
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
+    const [row] = await getDb().select().from(clinicalCases).where(eq(clinicalCases.id, validId)).limit(1)
 
     if (!row) {
       return apiError(404, 'Clinical case not found')
@@ -36,10 +39,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
     const allowedFields = pickAllowedKeys(body, CLINICAL_CASE_KEYS)
 
@@ -72,14 +78,14 @@ export async function PUT(
     const [updated] = await db
       .update(clinicalCases)
       .set(allowedFields)
-      .where(eq(clinicalCases.id, id))
+      .where(eq(clinicalCases.id, validId))
       .returning()
 
     if (!updated) {
       return apiError(404, 'Clinical case not found')
     }
 
-    await logAudit(auth.user, 'UPDATE', 'clinical_case', id, { title: updated.title })
+    await logAudit(auth.user, 'UPDATE', 'clinical_case', validId, { title: updated.title })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -93,21 +99,23 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['ADMIN', 'DOCTOR'])
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [deleted] = await getDb()
       .delete(clinicalCases)
-      .where(eq(clinicalCases.id, id))
+      .where(eq(clinicalCases.id, validId))
       .returning()
 
     if (!deleted) {
       return apiError(404, 'Clinical case not found')
     }
 
-    await logAudit(auth.user, 'DELETE', 'clinical_case', id, { title: deleted.title })
+    await logAudit(auth.user, 'DELETE', 'clinical_case', validId, { title: deleted.title })
 
     return NextResponse.json({ detail: 'Clinical case deleted' })
   } catch (e) {

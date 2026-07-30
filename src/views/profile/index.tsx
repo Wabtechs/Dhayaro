@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,6 +53,12 @@ export default function ProfilePage() {
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [department, setDepartment] = useState(user?.department ?? "");
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsPageLoading(false), 250);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [prefLanguage, setPrefLanguage] = useState("fr");
   const [prefTimezone, setPrefTimezone] = useState("Africa/Kinshasa");
@@ -91,6 +98,46 @@ export default function ProfilePage() {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  if (isPageLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-1 h-4 w-64" />
+        </div>
+        <Separator />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 sm:flex-row">
+              <Skeleton className="h-20 w-20 rounded-full" />
+              <div className="space-y-2 text-center sm:text-left">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-56" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                  <Skeleton className="h-5 w-28 rounded-full" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Skeleton className="h-10 w-full max-w-md" />
+        <Card>
+          <CardContent className="space-y-4 py-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Search, BookOpen, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,8 +25,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useClinicalKnowledgeBaseData, useDiseasesData } from '@/hooks/use-data'
 import { formatDate } from '@/lib/utils'
 
-const ITEMS_PER_PAGE = 10
-
 interface KnowledgeEntry {
   id: string
   ageRange?: string
@@ -49,24 +47,22 @@ export default function KnowledgeBasePage() {
   const [sexFilter, setSexFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
 
-  const params = useMemo(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    if (diseaseFilter && diseaseFilter !== 'all') p.set('diseaseId', diseaseFilter)
-    if (sexFilter && sexFilter !== 'all') p.set('sex', sexFilter)
-    p.set('page', String(page))
-    p.set('size', String(ITEMS_PER_PAGE))
-    return p.toString()
-  }, [search, diseaseFilter, sexFilter, page])
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (diseaseFilter && diseaseFilter !== 'all') params.set('diseaseId', diseaseFilter)
+  if (sexFilter && sexFilter !== 'all') params.set('sex', sexFilter)
+  params.set('page', String(page))
+  params.set('size', '10')
+  const paramsStr = params.toString()
 
-  const { data, isLoading } = useClinicalKnowledgeBaseData(params)
+  const { data, isLoading } = useClinicalKnowledgeBaseData(paramsStr)
   const { data: diseasesData } = useDiseasesData()
 
-  const entries = (data as { items?: KnowledgeEntry[]; total?: number })?.items || []
-  const total = (data as { total?: number })?.total || 0
+  const entries = (data as { items?: KnowledgeEntry[]; total?: number })?.items ?? []
+  const total = (data as { total?: number })?.total ?? 0
   const diseases = ((diseasesData as { items?: Array<{ id: string; name: string; code: string }> })?.items || [])
 
-  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(total / 10)
 
   return (
     <div className="space-y-6">

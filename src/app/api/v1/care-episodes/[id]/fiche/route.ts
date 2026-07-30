@@ -4,6 +4,7 @@ import { careEpisodes, patients, users, facilities, episodeEntities, consultatio
 import { eq, and } from 'drizzle-orm'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
@@ -14,11 +15,13 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [episode] = await getDb()
       .select()
       .from(careEpisodes)
-      .where(eq(careEpisodes.id, id))
+      .where(eq(careEpisodes.id, validId))
       .limit(1)
 
     if (!episode) {
@@ -38,7 +41,7 @@ export async function GET(
     const entities = await getDb()
       .select()
       .from(episodeEntities)
-      .where(eq(episodeEntities.episodeId, id))
+      .where(eq(episodeEntities.episodeId, validId))
 
     const consultationsList = await getDb()
       .select({
@@ -53,7 +56,7 @@ export async function GET(
       })
       .from(consultations)
       .leftJoin(users, eq(consultations.doctorId, users.id))
-      .where(eq(consultations.episodeId, id))
+      .where(eq(consultations.episodeId, validId))
 
     const diagnosticsList = await getDb()
       .select({
@@ -64,7 +67,7 @@ export async function GET(
         createdAt: diagnostics.createdAt,
       })
       .from(diagnostics)
-      .where(eq(diagnostics.episodeId, id))
+      .where(eq(diagnostics.episodeId, validId))
 
     const examsList = await getDb()
       .select({
@@ -76,7 +79,7 @@ export async function GET(
         createdAt: labExams.createdAt,
       })
       .from(labExams)
-      .where(eq(labExams.episodeId, id))
+      .where(eq(labExams.episodeId, validId))
 
     const treatmentsList = await getDb()
       .select({

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Logo } from '@/components/ui/logo'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -129,12 +130,29 @@ export default function LandingPage() {
   const { toast } = useToast()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    const timer = setTimeout(() => setIsLoading(false), 300)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      clearTimeout(timer)
+    }
   }, [])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="space-y-4 text-center">
+          <Skeleton className="mx-auto h-16 w-16 rounded-full" />
+          <Skeleton className="mx-auto h-8 w-64" />
+          <Skeleton className="mx-auto h-4 w-48" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">

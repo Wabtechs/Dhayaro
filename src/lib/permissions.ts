@@ -1,6 +1,7 @@
 import type { UserRole } from '@/types'
 
 export type Permission =
+  | 'DASHBOARD_VIEW'
   | 'users:list' | 'users:create' | 'users:edit' | 'users:delete'
   | 'facilities:list' | 'facilities:create' | 'facilities:edit' | 'facilities:delete'
   | 'patients:list' | 'patients:create' | 'patients:edit' | 'patients:delete' | 'patients:archive'
@@ -28,6 +29,7 @@ export type Permission =
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
+    'DASHBOARD_VIEW',
     'users:list', 'users:create', 'users:edit', 'users:delete',
     'facilities:list', 'facilities:create', 'facilities:edit', 'facilities:delete',
     'patients:list', 'patients:create', 'patients:edit', 'patients:delete', 'patients:archive',
@@ -53,6 +55,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'pharmacy:list', 'pharmacy:dispense',
   ],
   admin: [
+    'DASHBOARD_VIEW',
     'users:list', 'users:create', 'users:edit', 'users:delete',
     'facilities:list', 'facilities:create', 'facilities:edit', 'facilities:delete',
     'patients:list', 'patients:create', 'patients:edit', 'patients:delete', 'patients:archive',
@@ -77,8 +80,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'triage:list', 'triage:manage',
   ],
   receptionist: [
+    'DASHBOARD_VIEW',
     'patients:list', 'patients:create', 'patients:edit',
-    'consultations:list', 'consultations:create',
+    'consultations:list',
     'clinical-cases:list',
     'queue:list', 'queue:manage',
     'documents:list', 'documents:create',
@@ -87,6 +91,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'episodes:list', 'episodes:create', 'episodes:edit',
   ],
   doctor: [
+    'DASHBOARD_VIEW',
     'triage:list', 'triage:manage',
     'pharmacy:list',
     'patients:list', 'patients:create', 'patients:edit',
@@ -108,6 +113,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'clinical-decision:read',
   ],
   specialist: [
+    'DASHBOARD_VIEW',
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create', 'consultations:edit',
     'clinical-cases:list', 'clinical-cases:create', 'clinical-cases:edit',
@@ -128,6 +134,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'triage:list', 'triage:manage',
   ],
   laboratory: [
+    'DASHBOARD_VIEW',
     'patients:list',
     'consultations:list',
     'lab:list', 'lab:create', 'lab:edit', 'lab:validate',
@@ -137,6 +144,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'settings:read',
   ],
   pharmacist: [
+    'DASHBOARD_VIEW',
     'patients:list',
     'treatments:list',
     'prescriptions:list', 'prescriptions:edit',
@@ -149,6 +157,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'pharmacy:list', 'pharmacy:dispense',
   ],
   nurse: [
+    'DASHBOARD_VIEW',
     'patients:list', 'patients:create', 'patients:edit',
     'consultations:list', 'consultations:create',
     'clinical-cases:list',
@@ -162,6 +171,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'triage:list', 'triage:manage',
   ],
   accountant: [
+    'DASHBOARD_VIEW',
     'patients:list',
     'consultations:list',
     'lab:list',
@@ -171,6 +181,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'settings:read',
   ],
   archivist: [
+    'DASHBOARD_VIEW',
     'patients:list',
     'archives:list', 'archives:manage',
     'documents:list', 'documents:export',
@@ -184,6 +195,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'episodes:list', 'episodes:archive',
   ],
   patient: [
+    'DASHBOARD_VIEW',
     'notifications:list',
     'documents:list', 'documents:export',
   ],

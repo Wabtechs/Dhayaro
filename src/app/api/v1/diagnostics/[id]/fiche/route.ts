@@ -4,6 +4,7 @@ import { diagnostics, patients, users, facilities, diseases } from '@/lib/schema
 import { eq } from 'drizzle-orm'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
@@ -14,11 +15,13 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [diagnostic] = await getDb()
       .select()
       .from(diagnostics)
-      .where(eq(diagnostics.id, id))
+      .where(eq(diagnostics.id, validId))
       .limit(1)
 
     if (!diagnostic) {

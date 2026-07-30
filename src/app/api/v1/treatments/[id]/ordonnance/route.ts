@@ -4,6 +4,7 @@ import { treatments, prescriptions, medications, patients, users, facilities } f
 import { eq } from 'drizzle-orm'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { sanitizeUuid } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
@@ -14,11 +15,13 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
 
     const [treatment] = await getDb()
       .select()
       .from(treatments)
-      .where(eq(treatments.id, id))
+      .where(eq(treatments.id, validId))
       .limit(1)
 
     if (!treatment) {
@@ -40,7 +43,7 @@ export async function GET(
       })
       .from(prescriptions)
       .leftJoin(medications, eq(prescriptions.medicationId, medications.id))
-      .where(eq(prescriptions.treatmentId, id))
+      .where(eq(prescriptions.treatmentId, validId))
 
     const [patient] = await getDb()
       .select()

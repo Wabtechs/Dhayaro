@@ -5,7 +5,7 @@ import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addDoctorFilter, addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()

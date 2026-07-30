@@ -4,7 +4,7 @@ import { labExams, patients, users, labCategories, episodeEntities } from '@/lib
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'LABORATORY'])
     if ('error' in auth) return auth.error
 
     const body = await request.json()

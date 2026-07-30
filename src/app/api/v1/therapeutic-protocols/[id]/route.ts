@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 const ALLOWED_UPDATE_KEYS = ['name', 'description', 'steps', 'targetPopulation', 'contraindications', 'efficacyRate', 'isActive', 'diseaseId'] as const
 
@@ -46,6 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.diseaseId) fields.diseaseId = sanitizeUuid(body.diseaseId) || null
 
     const [row] = await db.update(therapeuticProtocols).set(fields).where(eq(therapeuticProtocols.id, protocolId)).returning()
+    await logAudit(auth.user, 'UPDATE', 'therapeutic_protocol', protocolId, { name: row.name })
     return NextResponse.json(row)
   } catch (e) {
     logError('PUT /therapeutic-protocols/[id]', e)
@@ -67,6 +69,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!existing) return apiError(404, 'Protocol not found')
 
     await db.update(therapeuticProtocols).set({ isActive: false, updatedAt: new Date() }).where(eq(therapeuticProtocols.id, protocolId))
+    await logAudit(auth.user, 'DELETE', 'therapeutic_protocol', protocolId, { isActive: false })
     return NextResponse.json({ detail: 'Protocol deactivated' })
   } catch (e) {
     logError('DELETE /therapeutic-protocols/[id]', e)

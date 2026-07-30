@@ -6,6 +6,7 @@ import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(
   request: NextRequest,
@@ -16,6 +17,9 @@ export async function GET(
     if ('error' in auth) return auth.error
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const [row] = await getDb()
       .select({
         id: users.id,
@@ -38,7 +42,7 @@ export async function GET(
       })
       .from(users)
       .leftJoin(facilities, eq(users.facilityId, facilities.id))
-      .where(eq(users.id, id))
+      .where(eq(users.id, validId))
       .limit(1)
 
     if (!row) {
@@ -65,6 +69,9 @@ export async function PUT(
     }
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const body = await request.json()
 
     if (body.role !== undefined) {
@@ -101,7 +108,7 @@ export async function PUT(
     const [updated] = await getDb()
       .update(users)
       .set(set)
-      .where(eq(users.id, id))
+      .where(eq(users.id, validId))
       .returning({
         id: users.id,
         facilityId: users.facilityId,
@@ -117,6 +124,8 @@ export async function PUT(
     if (!updated) {
       return apiError(404, 'User not found')
     }
+
+    await logAudit(auth.user, 'UPDATE', 'user', validId, { role: updated.role })
 
     return NextResponse.json(updated)
   } catch (e) {
@@ -138,15 +147,20 @@ export async function DELETE(
     }
 
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiError(400, 'ID invalide')
+
     const [result] = await getDb()
       .update(users)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(users.id, id))
+      .where(eq(users.id, validId))
       .returning({ id: users.id })
 
     if (!result) {
       return apiError(404, 'User not found')
     }
+
+    await logAudit(auth.user, 'DELETE', 'user', validId)
 
     return NextResponse.json({ success: true, id: result.id })
   } catch (e) {

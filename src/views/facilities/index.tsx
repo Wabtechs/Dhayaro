@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   Building2,
@@ -74,11 +74,8 @@ const facilityTypeLabels: Record<Facility['type'], string> = {
 
 export default function Facilities() {
   const [search, setSearch] = useState('')
-  const params = useMemo(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    return p.toString()
-  }, [search])
+  const [page, setPage] = useState(1)
+  const params = [`page=${page}`, 'size=10', ...(search ? [`search=${search}`] : [])].join('&')
   const { data, isLoading } = useFacilitiesData(params)
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -91,7 +88,10 @@ export default function Facilities() {
   const [saving, setSaving] = useState(false)
   const updateFacility = useUpdateFacility()
   const deleteFacility = useDeleteFacility()
-  const facilities = (data?.items ?? []) as FacilityItem[]
+  const items = (data?.items ?? []) as FacilityItem[]
+  const totalCount = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
+  const displayItems = items.filter((f) => typeFilter === 'all' || f.type === typeFilter)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [newName, setNewName] = useState('')
@@ -109,11 +109,6 @@ export default function Facilities() {
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editBedCount, setEditBedCount] = useState('')
-
-  const filtered = facilities.filter((f) => {
-    const matchesType = typeFilter === 'all' || f.type === typeFilter
-    return matchesType
-  })
 
   const TYPE_MAP: Record<Facility['type'], string> = {
     hospital: 'HOSPITAL',
@@ -473,7 +468,10 @@ export default function Facilities() {
           <Input
             placeholder="Rechercher par nom ou ville..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             className="pl-10"
           />
         </div>
@@ -491,7 +489,7 @@ export default function Facilities() {
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      {displayItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
           <Building2 className="h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-semibold">Aucun résultat</h3>
@@ -501,7 +499,7 @@ export default function Facilities() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((facility) => (
+          {displayItems.map((facility) => (
             <Card key={facility.id} className="transition-shadow hover:shadow-md">
               <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -594,6 +592,31 @@ export default function Facilities() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {page} sur {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant
+            </Button>
+          </div>
         </div>
       )}
       <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>

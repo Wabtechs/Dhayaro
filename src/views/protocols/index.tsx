@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Search, Plus, FileCheck, Trash2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,8 +35,6 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 
-const ITEMS_PER_PAGE = 10
-
 interface ProtocolItem {
   id: string
   name: string
@@ -59,21 +57,19 @@ export default function ProtocolsPage() {
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
 
-  const params = useMemo(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    p.set('page', String(page))
-    p.set('size', String(ITEMS_PER_PAGE))
-    return p.toString()
-  }, [search, page])
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  params.set('page', String(page))
+  params.set('size', '10')
+  const paramsStr = params.toString()
 
-  const { data, isLoading } = useTherapeuticProtocolsData(params)
+  const { data, isLoading } = useTherapeuticProtocolsData(paramsStr)
   const { data: diseasesData } = useDiseasesData()
   const createProtocol = useCreateTherapeuticProtocol()
   const deleteProtocol = useDeleteTherapeuticProtocol()
 
-  const protocols = (data as { items?: ProtocolItem[]; total?: number })?.items || []
-  const total = (data as { total?: number })?.total || 0
+  const protocols = (data as { items?: ProtocolItem[]; total?: number })?.items ?? []
+  const total = (data as { total?: number })?.total ?? 0
   const diseases = ((diseasesData as { items?: Array<{ id: string; name: string; code: string }> })?.items || [])
 
   const [newProtocol, setNewProtocol] = useState({
@@ -115,7 +111,7 @@ export default function ProtocolsPage() {
     }
   }
 
-  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(total / 10)
 
   return (
     <div className="space-y-6">

@@ -90,6 +90,14 @@ function transformKeys(obj: unknown): unknown {
       result.name = `${result.firstName} ${result.lastName}`;
     }
 
+    if (result.patientFirstname && result.patientLastname && !result.patientName) {
+      result.patientName = `${result.patientFirstname} ${result.patientLastname}`;
+    }
+
+    if (result.doctorFirstname && result.doctorLastname && !result.doctorName) {
+      result.doctorName = `${result.doctorFirstname} ${result.doctorLastname}`;
+    }
+
     if (result.details && typeof result.details === 'object' && !Array.isArray(result.details)) {
       const d = result.details as Record<string, unknown>;
       result.details = Object.entries(d).map(([k, v]) => `${k}: ${v}`).join(', ');
@@ -279,10 +287,11 @@ export function useAuditData(params?: string) {
   });
 }
 
-export function useSyncData() {
+export function useSyncData(page = 1, size = 10, status = '') {
+  const params = [`page=${page}`, `size=${size}`, ...(status ? [`status=${status}`] : [])].join('&')
   return useQuery({
-    queryKey: ['sync'],
-    queryFn: () => fetchData<{ items: unknown[]; total: number }>('/sync/pull'),
+    queryKey: ['sync', page, size, status],
+    queryFn: () => fetchData<{ items: unknown[]; total: number; pendingCount: number; syncedCount: number; failedCount: number }>(`/sync/pull?${params}`),
   });
 }
 
