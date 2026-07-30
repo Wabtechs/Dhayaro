@@ -174,16 +174,39 @@ const STATIC_DATA = {
 const GEN_PATH = join(process.cwd(), 'src', 'lib', 'audit-data.generated.json')
 
 export async function GET() {
-  let data = STATIC_DATA
+  let categories = [...STATIC_DATA.categories]
+  let changelog = [...STATIC_DATA.changelog]
+  let score = STATIC_DATA.score
+  let previousScore = STATIC_DATA.previousScore
+  let lastUpdated = STATIC_DATA.lastUpdated
 
   if (existsSync(GEN_PATH)) {
     try {
       const raw = readFileSync(GEN_PATH, 'utf-8')
-      data = JSON.parse(raw)
+      const gen: any = JSON.parse(raw)
+
+      if (Array.isArray(gen.categories)) {
+        for (const genCat of gen.categories) {
+          const idx = categories.findIndex((c: any) => c.id === genCat.id)
+          if (idx >= 0) {
+            categories[idx] = genCat
+          } else {
+            categories.push(genCat)
+          }
+        }
+      }
+
+      if (Array.isArray(gen.changelog)) {
+        changelog = [...gen.changelog, ...changelog]
+      }
+
+      if (typeof gen.score === 'number') score = gen.score
+      if (typeof gen.previousScore === 'number') previousScore = gen.previousScore
+      if (gen.lastUpdated) lastUpdated = gen.lastUpdated
     } catch {}
   }
 
-  const categoriesWithStats = data.categories.map((cat: any) => {
+  const categoriesWithStats = categories.map((cat: any) => {
     const items = (cat.items || []).map((item: any) => ({
       ...item,
       prompt: AUDIT_PROMPTS[item.id] || null,
@@ -193,8 +216,17 @@ export async function GET() {
     return { ...cat, items, completedCount, inProgressCount, totalCount: items.length }
   })
 
+  const allItems = categoriesWithStats.flatMap((c: any) => c.items || [])
+  const totalCompleted = allItems.filter((i: any) => i.status === 'completed').length
+  const totalInProgress = allItems.filter((i: any) => i.status === 'in_progress').length
+  const totalPending = allItems.filter((i: any) => i.status === 'pending').length
+
   return NextResponse.json({
-    ...data,
+    score,
+    previousScore,
+    lastUpdated,
+    summary: { total: allItems.length, completed: totalCompleted, inProgress: totalInProgress, pending: totalPending },
     categories: categoriesWithStats,
+    changelog,
   })
 }
