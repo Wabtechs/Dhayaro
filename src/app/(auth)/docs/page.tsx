@@ -1,22 +1,25 @@
+'use client'
+
 import Link from 'next/link'
+import { HelpImageUpload } from '@/components/help/help-image-upload'
 
 const sections = [
   {
     id: 'a-propos',
     title: 'À propos',
+    docKey: 'docs-a-propos',
     content: (
-      <>
-        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-          Dhayaro est une application PWA (Progressive Web App) médicale conçue pour la gestion des dossiers cliniques
-          dans les hôpitaux de la République Démocratique du Congo. Elle fonctionne en mode <strong>offline-first</strong>,
-          permettant une utilisation continue même en l&apos;absence de connexion internet.
-        </p>
-      </>
+      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+        Dhayaro est une application PWA (Progressive Web App) médicale conçue pour la gestion des dossiers cliniques
+        dans les hôpitaux de la République Démocratique du Congo. Elle fonctionne en mode <strong>offline-first</strong>,
+        permettant une utilisation continue même en l&apos;absence de connexion internet.
+      </p>
     ),
   },
   {
     id: 'architecture',
     title: 'Architecture',
+    docKey: 'docs-architecture',
     content: (
       <div className="space-y-4">
         <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -50,6 +53,7 @@ const sections = [
   {
     id: 'structure',
     title: 'Structure du projet',
+    docKey: 'docs-structure',
     content: (
       <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-sm overflow-x-auto leading-relaxed">
 {`src/
@@ -72,6 +76,7 @@ const sections = [
   {
     id: 'roles',
     title: 'Rôles utilisateur',
+    docKey: 'docs-roles',
     content: (
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -83,7 +88,7 @@ const sections = [
             </tr>
           </thead>
           <tbody className="text-gray-600 dark:text-gray-400">
-            {[
+            {([
               ['super_admin', '100', 'Super Administrateur — accès complet multi-établissement'],
               ['admin', '80', 'Administrateur — gestion utilisateurs, établissements, audit'],
               ['specialist', '70', 'Médecin Spécialiste — valide diagnostics, examens labo'],
@@ -95,7 +100,7 @@ const sections = [
               ['archivist', '30', 'Archiviste — gestion des archives'],
               ['receptionist', '25', 'Réceptionniste — accueil, file d\'attente'],
               ['patient', '10', 'Patient — accès à son propre dossier'],
-            ].map(([role, level, desc]) => (
+            ] as const).map(([role, level, desc]) => (
               <tr key={role} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="py-2 pr-4 font-mono text-gray-900 dark:text-gray-100">{role}</td>
                 <td className="py-2 pr-4">{level}</td>
@@ -110,6 +115,7 @@ const sections = [
   {
     id: 'api',
     title: 'Endpoints API',
+    docKey: 'docs-api',
     content: (
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -121,7 +127,7 @@ const sections = [
             </tr>
           </thead>
           <tbody className="text-gray-600 dark:text-gray-400">
-            {[
+            {([
               ['POST', '/api/v1/auth/login', 'Connexion utilisateur'],
               ['POST', '/api/v1/auth/refresh', 'Rafraîchir token JWT'],
               ['GET', '/api/v1/auth/me', 'Profil utilisateur connecté'],
@@ -152,14 +158,13 @@ const sections = [
               ['GET', '/api/v1/notifications', 'Liste des notifications'],
               ['GET', '/api/v1/care-episodes', 'Épisodes de soins'],
               ['GET', '/api/v1/settings', 'Paramètres'],
-              ['GET/PUT', '/api/v1/audit-fonc', 'Audit fonctionnel'],
               ['GET/POST', '/api/v1/sync/pull', 'Sync descente'],
               ['GET/POST', '/api/v1/sync/push', 'Sync montée'],
-            ].map(([method, endpoint, desc]) => (
+            ] as const).map(([method, endpoint, desc]) => (
               <tr key={endpoint} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="py-2 pr-4">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold ${
-                    method === 'GET' || method === 'GET/PUT' || method === 'GET/PUT/DELETE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    ['GET', 'GET/PUT', 'GET/PUT/DELETE', 'GET/POST'].includes(method) ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                     method === 'POST' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                   }`}>{method}</span>
@@ -176,6 +181,7 @@ const sections = [
   {
     id: 'db',
     title: 'Base de données',
+    docKey: 'docs-db',
     content: (
       <div className="space-y-4">
         <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -183,14 +189,14 @@ const sections = [
           timestamps <code className="text-indigo-600 dark:text-indigo-400">created_at</code> / <code className="text-indigo-600 dark:text-indigo-400">updated_at</code> sur chaque table.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[
+          {([
             'users', 'patients', 'consultations', 'diagnostics',
             'treatments', 'prescriptions', 'lab_exams',
             'lab_categories', 'care_episodes', 'episode_entities',
             'clinical_cases', 'diseases', 'therapeutic_protocols',
             'documents', 'notifications', 'facilities',
-            'queue_entries',
-          ].map(table => (
+            'queue_entries', 'help_images',
+          ] as const).map(table => (
             <div key={table} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700 text-sm font-mono text-gray-700 dark:text-gray-300">
               {table}
             </div>
@@ -202,6 +208,7 @@ const sections = [
   {
     id: 'installation',
     title: 'Installation & développement',
+    docKey: 'docs-installation',
     content: (
       <div className="space-y-4">
         <div>
@@ -238,6 +245,7 @@ npm run typecheck  → TypeScript strict`}
   {
     id: 'test-accounts',
     title: 'Comptes de test',
+    docKey: 'docs-test-accounts',
     content: (
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -249,7 +257,7 @@ npm run typecheck  → TypeScript strict`}
             </tr>
           </thead>
           <tbody className="text-gray-600 dark:text-gray-400">
-            {[
+            {([
               ['Admin', 'admin@dhayaro.cd', 'admin123'],
               ['Super Admin', 'superadmin@dhayaro.cd', 'admin123'],
               ['Réceptionniste', 'reception@dhayaro.cd', 'dhayaro123'],
@@ -257,7 +265,7 @@ npm run typecheck  → TypeScript strict`}
               ['Infirmier (Mohamed)', 'nurse.mohamed@dhayaro.cd', 'nurse123'],
               ['Laborantin', 'lab.joseph@dhayaro.cd', 'dhayaro123'],
               ['Pharmacien', 'pharm.beatrice@dhayaro.cd', 'dhayaro123'],
-            ].map(([role, email, password]) => (
+            ] as const).map(([role, email, password]) => (
               <tr key={email} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="py-2 pr-4 text-gray-900 dark:text-gray-100">{role}</td>
                 <td className="py-2 pr-4 font-mono">{email}</td>
@@ -275,6 +283,7 @@ npm run typecheck  → TypeScript strict`}
   {
     id: 'deploiement',
     title: 'Déploiement',
+    docKey: 'docs-deploiement',
     content: (
       <div className="space-y-4">
         <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -295,9 +304,10 @@ NEXT_PUBLIC_APP_URL=https://...`}
   {
     id: 'conventions',
     title: 'Conventions de code',
+    docKey: 'docs-conventions',
     content: (
       <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-        {[
+        {([
           'TypeScript strict — pas de ignoreBuildErrors',
           'API snake_case → frontend camelCase via transformKeys()',
           'Fichiers en kebab-case, composants en PascalCase',
@@ -306,7 +316,7 @@ NEXT_PUBLIC_APP_URL=https://...`}
           'Token JWT stocké dans dhayaro_token (localStorage + cookie)',
           'UI en français, code et commentaires en anglais',
           'UUID comme clés primaires, soft-delete via is_active',
-        ].map((item, i) => (
+        ] as const).map((item, i) => (
           <li key={i} className="flex items-start gap-2">
             <span className="text-indigo-500 mt-0.5">•</span>
             <span>{item}</span>
@@ -374,6 +384,7 @@ export default function DocsPage() {
                 {s.title}
               </h3>
               {s.content}
+              <HelpImageUpload location={s.docKey} altText={`Illustration : ${s.title}`} />
             </section>
           ))}
         </div>

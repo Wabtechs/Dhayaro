@@ -6,6 +6,7 @@ import { HELP_GUIDES, type HelpGuide } from '@/data/help-guides'
 import { ROLE_LABELS } from '@/lib/permissions'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { HelpImageUpload } from '@/components/help/help-image-upload'
 import {
   LayoutDashboard,
   ListOrdered,
@@ -18,6 +19,18 @@ import {
   ChevronDown,
   ChevronRight,
   Search,
+  Pill,
+  Activity,
+  Brain,
+  FileSpreadsheet,
+  FlaskConical,
+  Users,
+  Building2,
+  Settings,
+  Shield,
+  BarChart3,
+  BedDouble,
+  FolderOpen,
 } from 'lucide-react'
 import type { UserRole } from '@/types'
 
@@ -30,6 +43,25 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   ClipboardList,
   Bell,
   BookOpen,
+  Pill,
+  Activity,
+  Brain,
+  FileSpreadsheet,
+  FlaskConical,
+  Users,
+  Building2,
+  Settings,
+  Shield,
+  BarChart3,
+  BedDouble,
+  FolderOpen,
+}
+
+function toSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 function StepCard({ step, index }: { step: { title: string; description: string }; index: number }) {
@@ -48,9 +80,10 @@ function StepCard({ step, index }: { step: { title: string; description: string 
   )
 }
 
-function SectionCard({ section }: { section: { title: string; icon: string; steps: { title: string; description: string }[] } }) {
+function SectionCard({ section, guideRole }: { section: { title: string; icon: string; steps: { title: string; description: string }[] }; guideRole: string }) {
   const [expanded, setExpanded] = useState(true)
   const Icon = ICON_MAP[section.icon] || BookOpen
+  const imageLocation = `guide-${guideRole}-${toSlug(section.title)}`
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -73,6 +106,7 @@ function SectionCard({ section }: { section: { title: string; icon: string; step
           {section.steps.map((step, i) => (
             <StepCard key={i} step={step} index={i} />
           ))}
+          <HelpImageUpload location={imageLocation} altText={`Illustration : ${section.title}`} />
         </div>
       )}
     </div>
@@ -88,7 +122,7 @@ function RoleGuide({ guide }: { guide: HelpGuide }) {
       </div>
       <div className="space-y-4">
         {guide.sections.map((section, i) => (
-          <SectionCard key={i} section={section} />
+          <SectionCard key={i} section={section} guideRole={guide.role} />
         ))}
       </div>
     </div>

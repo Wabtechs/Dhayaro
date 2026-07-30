@@ -1,6 +1,6 @@
 ﻿import {
   pgTable, text, uuid, boolean, timestamp, jsonb, integer, index,
-  pgEnum, date
+  pgEnum, date, uniqueIndex
 } from 'drizzle-orm/pg-core'
 
 // ENUMS
@@ -564,3 +564,14 @@ export const clinicalCases = pgTable('clinical_cases', {
   index('idx_cases_doctor').on(t.doctorId),
   index('idx_cases_status').on(t.outcomeStatus),
 ])
+
+// HELP IMAGES (for /docs and /help guide sections)
+
+export const helpImages = pgTable('help_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  location: text('location').notNull().unique(),
+  imageData: text('image_data'),
+  altText: text('alt_text'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+})

@@ -4,14 +4,14 @@ import { join } from 'path'
 import { AUDIT_PROMPTS } from '@/lib/audit-prompts'
 
 const STATIC_DATA = {
-  score: 90,
-  previousScore: 62,
-  lastUpdated: '2026-07-29',
+  score: 94,
+  previousScore: 90,
+  lastUpdated: '2026-07-30',
   summary: {
-    total: 64,
-    completed: 38,
+    total: 78,
+    completed: 51,
     inProgress: 2,
-    pending: 24,
+    pending: 25,
   },
   categories: [
     {
@@ -40,6 +40,7 @@ const STATIC_DATA = {
         { id: 'C-06', title: 'Soft-delete labExams', description: 'is_active au lieu de suppression physique', status: 'completed', module: 'Laboratoire' },
         { id: 'C-07', title: 'DELETE consultation cohérent', description: 'Statut CANCELLED cohérent avec soft-delete', status: 'completed', module: 'Consultations' },
         { id: 'C-08', title: 'Audit trail automatique', description: 'Helper + 10 fichiers API avec logging', status: 'completed', module: 'Global' },
+        { id: 'C-09', title: 'GET episodeId manquant', description: 'episodeId ajouté dans 5 SELECT manquants', status: 'completed', module: 'API' },
       ],
     },
     {
@@ -55,6 +56,21 @@ const STATIC_DATA = {
         { id: 'M-05', title: 'Settings transformKeys', description: 'JSONB préservé pour les préférences', status: 'completed', module: 'Settings' },
         { id: 'M-06', title: 'Filtre médecins consultation', description: 'Médecins filtrés par établissement', status: 'completed', module: 'Consultations' },
         { id: 'M-07', title: 'Prescriptions standalone', description: 'Vue dédiée + page route + sidebar', status: 'completed', module: 'Prescriptions' },
+        { id: 'M-08', title: 'Cascade épisode auto consultations', description: 'POST consultation crée épisode auto si pas d\'episodeId', status: 'completed', module: 'Consultations' },
+        { id: 'M-09', title: 'Cascade annulation → enfants', description: 'Annulation consultation cascade diagnostics/traitements/labExams', status: 'completed', module: 'Consultations' },
+        { id: 'M-10', title: 'Cascade POST auto épisode', description: 'Diagnostics, traitements, lab/exams créent épisode auto', status: 'completed', module: 'API' },
+      ],
+    },
+    {
+      id: 'D',
+      name: 'Documentation',
+      color: 'info',
+      icon: 'docs',
+      items: [
+        { id: 'D-01', title: 'Guides utilisateur par rôle', description: '6 guides (Réceptionniste, Médecin, Admin, Infirmier, Laborantin, Pharmacien)', status: 'completed', module: 'Help' },
+        { id: 'D-02', title: 'Page /docs publique', description: 'Documentation projet accessible sans auth (architecture, API, DB, rôles, installation)', status: 'completed', module: 'Docs' },
+        { id: 'D-03', title: 'Système d\'images aide/docs', description: 'Table help_images + API + upload SUPER_ADMIN + placeholders sur /docs et /help', status: 'completed', module: 'Help' },
+        { id: 'D-04', title: 'Lien Documentation login', description: 'Lien vers /docs depuis la page de connexion', status: 'completed', module: 'Docs' },
       ],
     },
     {
@@ -148,6 +164,7 @@ const STATIC_DATA = {
     },
   ],
   changelog: [
+    { date: '2026-07-30', version: 'Sprint 5', items: ['C-09', 'M-08', 'M-09', 'M-10', 'D-01', 'D-02', 'D-03', 'D-04'] },
     { date: '2026-07-29', version: 'Sprint 3', items: ['B-04', 'C-01', 'C-03', 'C-08', 'M-05', 'M-06', 'M-07', 'A-03', 'A-05', 'A-09', 'A-10', 'S-01', 'P-01'] },
     { date: '2026-07-28', version: 'Sprint 2', items: ['C-02', 'C-04', 'C-05', 'C-06', 'C-07', 'M-01', 'M-02', 'M-03', 'M-04', 'A-01'] },
     { date: '2026-07-27', version: 'Sprint 1', items: ['B-01', 'B-02', 'B-03'] },
