@@ -184,12 +184,19 @@ export default function Login() {
             </CardContent>
           </Card>
 
-          <div className="text-center">
+          <div className="flex items-center justify-center gap-4">
             <Link
               href="/test-accounts"
               className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors"
             >
               Comptes de test
+            </Link>
+            <span className="text-xs text-muted-foreground">|</span>
+            <Link
+              href="/docs"
+              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors"
+            >
+              Documentation
             </Link>
           </div>
         </div>
