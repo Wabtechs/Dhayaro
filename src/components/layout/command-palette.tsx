@@ -18,6 +18,7 @@ import {
   Plus,
   FileText,
   Search,
+  BookMarked,
 } from "lucide-react";
 
 interface CommandItem {
@@ -65,6 +66,7 @@ const navigationItems: CommandItem[] = [
     href: "/research",
   },
   { icon: Settings, label: "Paramètres", href: "/settings" },
+  { icon: BookMarked, label: "Guide d'utilisation", href: "/help" },
 ];
 
 const actionItems: CommandItem[] = [

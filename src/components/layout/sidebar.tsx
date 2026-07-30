@@ -44,6 +44,7 @@ import {
   Lightbulb,
   Activity,
   DoorOpen,
+  BookMarked,
 } from 'lucide-react'
 
 interface NavItem {
@@ -122,6 +123,12 @@ const navSections: NavSection[] = [
       { label: 'Établissements', icon: Building2, href: '/facilities', permission: 'facilities:list' },
       { label: 'Paramètres', icon: Settings, href: '/settings', permission: 'settings:read' },
       { label: 'Journal d\'audit', icon: Shield, href: '/audit', permission: 'audit:read' },
+    ],
+  },
+  {
+    label: 'AIDE',
+    items: [
+      { label: 'Guide d\'utilisation', icon: BookMarked, href: '/help' },
     ],
   },
 ]
