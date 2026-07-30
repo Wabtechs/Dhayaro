@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { consultations, patients, users, episodeEntities } from '@/lib/schema'
+import { consultations, patients, users, episodeEntities, careEpisodes } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
@@ -142,14 +142,46 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     }).returning()
 
-    if (episodeId) {
-      await db.insert(episodeEntities).values({
-        id: crypto.randomUUID(),
-        episodeId,
-        entityType: 'CONSULTATION',
-        entityId: row.id,
-        createdAt: now,
-      })
+    let targetEpisodeId = episodeId
+
+    if (!targetEpisodeId) {
+      const activeEpisodes = await db.select({ id: careEpisodes.id }).from(careEpisodes).where(
+        and(
+          eq(careEpisodes.patientId, patientId),
+          eq(careEpisodes.isActive, true),
+          eq(careEpisodes.isArchived, false),
+        )
+      ).limit(1)
+
+      if (activeEpisodes.length > 0) {
+        targetEpisodeId = activeEpisodes[0].id
+      } else {
+        const episodeNumber = 'EP-' + Date.now() + '-' + crypto.randomUUID().slice(0, 6)
+        const [newEpisode] = await db.insert(careEpisodes).values({
+          id: crypto.randomUUID(),
+          facilityId: facilityId || null,
+          patientId,
+          episodeNumber,
+          status: 'CONSULTATION',
+          isActive: true,
+          isArchived: false,
+          createdAt: now,
+          updatedAt: now,
+        }).returning()
+        targetEpisodeId = newEpisode.id
+      }
+    }
+
+    await db.insert(episodeEntities).values({
+      id: crypto.randomUUID(),
+      episodeId: targetEpisodeId,
+      entityType: 'CONSULTATION',
+      entityId: row.id,
+      createdAt: now,
+    })
+
+    if (!episodeId) {
+      await db.update(consultations).set({ episodeId: targetEpisodeId }).where(eq(consultations.id, row.id))
     }
 
     await logAudit(auth.user, 'CREATE', 'consultation', row.id, { consultationNumber: row.consultationNumber, patientId: row.patientId, motif: row.motif })

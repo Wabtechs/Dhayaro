@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
-import { logAudit } from '@/lib/audit'
+import { logAudit, sendNotification } from '@/lib/audit'
 
 const CONSULTATION_KEYS = ['motif', 'symptoms', 'vitalSigns', 'notes', 'provisionalDiagnosis', 'status', 'isFollowUp', 'previousConsultationId', 'facilityId', 'patientId', 'doctorId'] as const
 
@@ -141,6 +141,24 @@ export async function PUT(
 
     await logAudit(auth.user, 'UPDATE', 'consultation', validId, { ...allowedFields })
 
+    if (allowedFields.status === 'CANCELLED') {
+      const now = new Date()
+      await Promise.all([
+        getDb().update(diagnostics).set({ isValidated: false, updatedAt: now }).where(eq(diagnostics.consultationId, validId)),
+        getDb().update(treatments).set({ status: 'CANCELLED', updatedAt: now }).where(eq(treatments.consultationId, validId)),
+        getDb().update(labExams).set({ status: 'CANCELLED', updatedAt: now }).where(eq(labExams.consultationId, validId)),
+      ])
+      await sendNotification({
+        userId: updated.doctorId,
+        facilityId: updated.facilityId,
+        title: 'Consultation annulée',
+        message: `La consultation #${updated.consultationNumber} a été annulée.`,
+        type: 'WARNING',
+        link: `/consultations/${validId}`,
+        metadata: { consultationId: validId, consultationNumber: updated.consultationNumber },
+      })
+    }
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /consultations/[id]', e)
@@ -171,6 +189,23 @@ export async function DELETE(
     }
 
     await logAudit(auth.user, 'DELETE', 'consultation', validId, { consultationNumber: deleted.consultationNumber })
+
+    const now = new Date()
+    await Promise.all([
+      getDb().update(diagnostics).set({ isValidated: false, updatedAt: now }).where(eq(diagnostics.consultationId, validId)),
+      getDb().update(treatments).set({ status: 'CANCELLED', updatedAt: now }).where(eq(treatments.consultationId, validId)),
+      getDb().update(labExams).set({ status: 'CANCELLED', updatedAt: now }).where(eq(labExams.consultationId, validId)),
+    ])
+
+    await sendNotification({
+      userId: deleted.doctorId,
+      facilityId: deleted.facilityId,
+      title: 'Consultation annulée',
+      message: `La consultation #${deleted.consultationNumber} a été annulée.`,
+      type: 'WARNING',
+      link: `/consultations/${validId}`,
+      metadata: { consultationId: validId, consultationNumber: deleted.consultationNumber },
+    })
 
     return NextResponse.json({ detail: 'Consultation cancelled' })
   } catch (e) {
