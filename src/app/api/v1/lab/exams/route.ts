@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { labExams, patients, users, labCategories, episodeEntities } from '@/lib/schema'
+import { labExams, patients, users, labCategories, episodeEntities, queue } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
@@ -185,6 +185,20 @@ export async function POST(request: NextRequest) {
         link: `/laboratory/${row.id}`,
         metadata: { labExamId: row.id, patientId, examName: row.examName },
       })
+    }
+
+    // Cascade: update queue status to WITH_LAB
+    const [queueTicket] = await getDb()
+      .select({ id: queue.id })
+      .from(queue)
+      .where(and(eq(queue.patientId, patientId), eq(queue.status, 'WITH_DOCTOR')))
+      .limit(1)
+
+    if (queueTicket) {
+      await getDb()
+        .update(queue)
+        .set({ status: 'WITH_LAB', updatedAt: new Date() })
+        .where(eq(queue.id, queueTicket.id))
     }
 
     return NextResponse.json(row, { status: 201 })

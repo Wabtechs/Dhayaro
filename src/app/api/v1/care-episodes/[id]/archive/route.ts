@@ -4,7 +4,7 @@ import {
   careEpisodes, episodeEntities, consultations, diagnostics, treatments,
   labExams, documents, clinicalKnowledgeBase, diseaseStatistics, archives, notifications
 } from '@/lib/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -131,6 +131,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       dischargeSummary: dischargeSummary as Record<string, unknown>,
       updatedAt: now,
     }).where(eq(careEpisodes.id, episodeId))
+
+    // Cascade: finaliser les entités enfants de l'épisode
+    if (consultIds.length > 0) {
+      await db.update(consultations)
+        .set({ status: 'COMPLETED', updatedAt: now })
+        .where(and(inArray(consultations.id, consultIds), inArray(consultations.status, ['WAITING', 'IN_PROGRESS'])))
+    }
+    if (treatIds.length > 0) {
+      await db.update(treatments)
+        .set({ status: 'CANCELLED', updatedAt: now })
+        .where(and(inArray(treatments.id, treatIds), inArray(treatments.status, ['PRESCRIBED', 'IN_PROGRESS'])))
+    }
+    if (labIds.length > 0) {
+      await db.update(labExams)
+        .set({ status: 'CANCELLED', updatedAt: now })
+        .where(and(inArray(labExams.id, labIds), inArray(labExams.status, ['REQUESTED', 'IN_PROGRESS'])))
+    }
 
     if (episode.patientId) {
       await db.insert(notifications).values({
