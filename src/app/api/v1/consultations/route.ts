@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
         vitalSigns: consultations.vitalSigns,
         notes: consultations.notes,
         provisionalDiagnosis: consultations.provisionalDiagnosis,
+        episodeId: consultations.episodeId,
         status: consultations.status,
         isFollowUp: consultations.isFollowUp,
         previousConsultationId: consultations.previousConsultationId,
