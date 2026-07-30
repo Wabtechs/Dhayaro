@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { consultations, patients, users, episodeEntities, careEpisodes } from '@/lib/schema'
-import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
+import { eq, ne, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -148,8 +148,9 @@ export async function POST(request: NextRequest) {
       const activeEpisodes = await db.select({ id: careEpisodes.id }).from(careEpisodes).where(
         and(
           eq(careEpisodes.patientId, patientId),
-          eq(careEpisodes.isActive, true),
           eq(careEpisodes.isArchived, false),
+          ne(careEpisodes.status, 'DISCHARGED'),
+          ne(careEpisodes.status, 'ARCHIVED'),
         )
       ).limit(1)
 
