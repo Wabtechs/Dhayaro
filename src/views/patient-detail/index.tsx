@@ -240,7 +240,7 @@ export default function PatientDetailPage() {
   const facilityName = facilityMap[facilityId] || '—'
 
   const userMap = (usersData as { items?: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> })?.items
-    ? Object.fromEntries((usersData as { items: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> }).items.map((u) => [u.id, u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.name || '—']))
+    ? Object.fromEntries((usersData as { items: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> }).items.map((u) => [u.id, u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '—']))
     : {}
 
   const allCases = ((casesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]

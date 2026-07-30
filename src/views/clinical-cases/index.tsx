@@ -201,7 +201,7 @@ export default function ClinicalCasesPage() {
 
   const getDoctorName = (doctorId: string) => {
     const doctor = usersList.find((u) => u.id === doctorId)
-    return doctor ? doctor.name : 'Inconnu'
+    return doctor ? `${doctor.firstName || doctor.firstname || ''} ${doctor.lastName || doctor.lastname || ''}`.trim() || 'Inconnu' : 'Inconnu'
   }
 
   const handleCreateCase = async () => {
@@ -466,16 +466,16 @@ export default function ClinicalCasesPage() {
                         .filter((u) => u.role === 'doctor')
                         .map((u) => (
                           <SelectItem key={u.id} value={u.id}>
-                            {u.name}
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Priorité
-                  </label>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Priorité
+                    </label>
                   <Select
                     value={newCase.priority}
                     onValueChange={(v) =>
@@ -636,16 +636,16 @@ export default function ClinicalCasesPage() {
                         .filter((u) => u.role === 'doctor')
                         .map((u) => (
                           <SelectItem key={u.id} value={u.id}>
-                            {u.name}
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Priorité
-                  </label>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Priorité
+                    </label>
                   <Select
                     value={editCase.priority}
                     onValueChange={(v) =>

@@ -182,7 +182,7 @@ export default function DoctorDetailPage() {
   }
 
   const doctorId = d.id || id
-  const fullName = d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim() || d.email
+  const fullName = d.firstName || d.lastName ? `${d.firstName || ''} ${d.lastName || ''}`.trim() : d.email
   const isActive = d.isActive !== false
   const roleColor = roleBadgeColors[d.role] || 'bg-gray-100 text-gray-800'
   const roleLabel = roleLabels[d.role] || d.role

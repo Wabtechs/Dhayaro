@@ -195,10 +195,10 @@ export default function QueueDetailPage() {
   const facility = facilityItems.find((f) => f.id === facilityId)
 
   const patientName = patient
-    ? `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || (patient.name as string) || 'Inconnu'
+    ? `${patient.firstName || patient.firstname || ''} ${patient.lastName || patient.lastname || ''}`.trim() || 'Inconnu'
     : `${q.patientFirstname || ''} ${q.patientLastname || ''}`.trim() || 'Inconnu'
   const doctorName = doctor
-    ? doctor.name as string || `${doctor.firstname || ''} ${doctor.lastname || ''}`.trim() || 'Inconnu'
+    ? `${doctor.firstName || doctor.firstname || ''} ${doctor.lastName || doctor.lastname || ''}`.trim() || 'Inconnu'
     : `${q.doctorFirstname || ''} ${q.doctorLastname || ''}`.trim() || 'Inconnu'
   const facilityName = (facility?.name as string) || 'Inconnu'
 
@@ -475,7 +475,7 @@ export default function QueueDetailPage() {
                 <SelectContent>
                   {doctorUsers.map((u: Record<string, unknown>) => (
                     <SelectItem key={u.id as string} value={u.id as string}>
-                      {u.name as string || `${u.firstname || ''} ${u.lastname || ''}`.trim() || (u.id as string)}
+                      {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
                     </SelectItem>
                   ))}
                 </SelectContent>

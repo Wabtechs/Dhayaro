@@ -424,10 +424,10 @@ export default function DoctorsView() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-                        {getInitials(doc.name || `${doc.firstName || ''} ${doc.lastName || ''}`)}
+                        {getInitials(doc.firstName || doc.lastName ? `${doc.firstName || ''} ${doc.lastName || ''}`.trim() : '??')}
                       </div>
                       <div>
-                        <p className="font-medium">{doc.name || `${doc.firstName || ''} ${doc.lastName || ''}`}</p>
+                        <p className="font-medium">{doc.firstName || doc.lastName ? `${doc.firstName || ''} ${doc.lastName || ''}`.trim() : '—'}</p>
                         {doc.facilityName && (
                           <p className="text-xs text-muted-foreground">{doc.facilityName}</p>
                         )}

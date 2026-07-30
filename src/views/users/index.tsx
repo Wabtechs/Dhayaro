@@ -90,6 +90,12 @@ const roleLabels: Record<string, string> = {
   archivist: 'Archiviste',
 }
 
+function getUserDisplayName(u: Record<string, unknown>): string {
+  const first = (u.firstName || u.firstname || '') as string
+  const last = (u.lastName || u.lastname || '') as string
+  return `${first} ${last}`.trim() || (u.email as string) || (u.id as string)
+}
+
 const roleBadgeColors: Record<string, string> = {
   super_admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
   admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
@@ -266,7 +272,7 @@ export default function Users() {
 
   const openEditDialog = (user: User) => {
     setEditingUser(user)
-    setEditName(user.name)
+    setEditName(getUserDisplayName(user as unknown as Record<string, unknown>))
     setEditEmail(user.email)
     setEditRole(user.role)
     setEditFacility((user as unknown as Record<string, unknown>).facilityId as string || '')
@@ -310,7 +316,7 @@ export default function Users() {
     setDeleting(true)
     try {
       await deleteUser.mutateAsync(deletingUser.id)
-      toast({ title: 'Utilisateur supprimé', description: `${deletingUser.name} a été désactivé.` })
+      toast({ title: 'Utilisateur supprimé', description: `${getUserDisplayName(deletingUser as unknown as Record<string, unknown>)} a été désactivé.` })
       setDeleteOpen(false)
       setDeletingUser(null)
     } catch {
@@ -577,7 +583,7 @@ export default function Users() {
             <DialogHeader>
               <DialogTitle>Supprimer l'utilisateur</DialogTitle>
               <DialogDescription>
-                Êtes-vous sûr de vouloir désactiver <span className="font-medium">{deletingUser?.name}</span> ?
+                Êtes-vous sûr de vouloir désactiver <span className="font-medium">{deletingUser ? getUserDisplayName(deletingUser as unknown as Record<string, unknown>) : ''}</span> ?
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -702,10 +708,10 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-                          {getInitials(user.name)}
+                          {getInitials(getUserDisplayName(user as unknown as Record<string, unknown>))}
                         </div>
                         <div>
-                          <p className="font-medium">{user.name}</p>
+                          <p className="font-medium">{getUserDisplayName(user as unknown as Record<string, unknown>)}</p>
                           {user.facilityName && (
                             <p className="text-xs text-muted-foreground">
                               {user.facilityName}

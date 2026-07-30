@@ -392,7 +392,7 @@ export default function CareEpisodesPage() {
                 <SelectContent>
                   {patients.map((p: { id: string; firstName?: string; lastName?: string; name?: string }) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Patient'}
+                      {p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'Patient'}
                     </SelectItem>
                   ))}
                 </SelectContent>

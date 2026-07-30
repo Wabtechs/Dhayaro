@@ -169,7 +169,7 @@ export default function DocumentsView() {
     const u = usersList.find((item) => item.id === doctorId)
     if (!u) return '—'
     const name = `${u.firstname || u.firstName || ''} ${u.lastname || u.lastName || ''}`.trim()
-    return name || (u.name as string) || '—'
+    return name || '—'
   }
 
   const items = (data?.items ?? []) as DocumentItem[]

@@ -331,7 +331,7 @@ export default function ConsultationsView() {
                     <SelectContent>
                       {usersList.filter((u) => (u.role === 'doctor' || u.role === 'specialist') && u.isActive !== false).map((u) => (
                         <SelectItem key={u.id} value={u.id}>
-                          {u.name}
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -675,7 +675,7 @@ export default function ConsultationsView() {
                 <SelectContent>
                   {usersList.filter((u) => (u.role === 'doctor' || u.role === 'specialist') && u.isActive !== false).map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.name}
+                      {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
                     </SelectItem>
                   ))}
                 </SelectContent>

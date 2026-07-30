@@ -639,10 +639,10 @@ export default function PatientsPage() {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
-                        {(patient.name.split(' ').map((n) => n[0]) || ['??'])}
+                        {((patient.firstName || patient.firstname || patient.lastName || patient.lastname) ? `${patient.firstName || patient.firstname || ''} ${patient.lastName || patient.lastname || ''}`.trim().split(' ').map((n) => n[0]) : '??')}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{(patient.name || '??')}</span>
+                      <span>{patient.firstName || patient.firstname || patient.lastName || patient.lastname ? `${patient.firstName || patient.firstname || ''} ${patient.lastName || patient.lastname || ''}`.trim() : '??'}</span>
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">

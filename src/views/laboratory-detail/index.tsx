@@ -677,7 +677,7 @@ export default function LaboratoryDetailPage() {
                 <SelectContent>
                   {labTechnicians.map((u) => (
                     <SelectItem key={u.id as string} value={u.id as string}>
-                      {String(u.name || `${(u.firstName as string) || ''} ${(u.lastName as string) || ''}`.trim())}
+                      {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : (u.id as string)}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       facilityId: enforceFacilityAccess(body, auth).facilityId,
       patientId: sanitizeUuid(body.patientId) || null,
       consultationId: sanitizeUuid(body.consultationId) || null,
-      doctorId: auth.user.sub,
+      doctorId: sanitizeUuid(body.doctorId) || auth.user.sub,
       episodeId: episodeId || null,
       documentType: body.documentType,
       title: body.title,

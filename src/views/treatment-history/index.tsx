@@ -41,7 +41,7 @@ function buildEntries(
   users: Array<Record<string, unknown>>,
 ): TreatmentEntry[] {
   const patientMap = new Map(patients.map((p) => [p.id, `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Inconnu']))
-  const userMap = new Map(users.map((u) => [u.id, u.name || 'Inconnu']))
+  const userMap = new Map(users.map((u) => [u.id, `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() || 'Inconnu']))
   return cases.map((c) => ({
     id: c.id as string,
     date: (c.createdAt as string) || new Date().toISOString(),

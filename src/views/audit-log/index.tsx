@@ -367,7 +367,7 @@ export default function AuditLogPage() {
             <SelectItem value="all">Tous les utilisateurs</SelectItem>
             {users.map((u) => (
               <SelectItem key={u.id as string} value={u.id as string}>
-                {(u.name as string) || `${u.firstname} ${u.lastname}`}
+                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -440,11 +440,11 @@ export default function AuditLogPage() {
                           <Avatar className="h-7 w-7">
                             <AvatarImage src={user?.avatar} />
                             <AvatarFallback className="text-[10px]">
-                              {user ? getInitials(user.name) : '??'}
+                              {user ? getInitials(user.firstName || user.firstname || user.lastName || user.lastname ? `${user.firstName || user.firstname || ''} ${user.lastName || user.lastname || ''}`.trim() : '??') : '??'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="whitespace-nowrap text-sm font-medium">
-                            {user?.name ?? 'Inconnu'}
+                            {user?.firstName || user?.firstname || user?.lastName || user?.lastname ? `${user.firstName || user.firstname || ''} ${user.lastName || user.lastname || ''}`.trim() : 'Inconnu'}
                           </span>
                         </div>
                       </TableCell>
@@ -540,11 +540,11 @@ export default function AuditLogPage() {
                             <Avatar className="h-6 w-6">
                               <AvatarImage src={user?.avatar} />
                               <AvatarFallback className="text-[9px]">
-                                {user ? getInitials(user.name) : '??'}
+                                {user ? getInitials(user.firstName || user.firstname || user.lastName || user.lastname ? `${user.firstName || user.firstname || ''} ${user.lastName || user.lastname || ''}`.trim() : '??') : '??'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm font-medium">
-                              {user?.name ?? 'Inconnu'}
+                              {user?.firstName || user?.firstname || user?.lastName || user?.lastname ? `${user.firstName || user.firstname || ''} ${user.lastName || user.lastname || ''}`.trim() : 'Inconnu'}
                             </span>
                             <span
                               className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.color}`}

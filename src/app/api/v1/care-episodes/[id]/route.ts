@@ -117,7 +117,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(row)
   } catch (e) {
     logError('PUT /care-episodes/[id]', e)
-    return apiError(500, 'Internal server error')
+    return apiError(500, e instanceof Error ? e.message : 'Internal server error')
   }
 }
 

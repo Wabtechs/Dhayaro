@@ -353,7 +353,7 @@ export default function LaboratoryView() {
                     <SelectContent>
                       {doctorsList.map((d) => (
                         <SelectItem key={d.id} value={d.id}>
-                          {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
+                          {d.firstName || d.lastName ? `${d.firstName || ''} ${d.lastName || ''}`.trim() : d.id}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -734,7 +734,7 @@ export default function LaboratoryView() {
                 <SelectContent>
                   {labTechnicians.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim()}
+                      {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : u.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
