@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileSchema, toProfilePayload, type ProfileValues } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,37 +52,54 @@ export default function ProfilePage() {
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const updateUser = useUpdateUser();
 
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState(user?.phone ?? "");
-  const [department, setDepartment] = useState(user?.department ?? "");
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ProfileValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      department: '',
+      prefLanguage: 'fr',
+      prefTimezone: 'Africa/Kinshasa',
+      emailNotif: true,
+      itemsPerPage: '25',
+    },
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 250);
     return () => clearTimeout(timer);
   }, []);
 
-  const [prefLanguage, setPrefLanguage] = useState("fr");
-  const [prefTimezone, setPrefTimezone] = useState("Africa/Kinshasa");
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [itemsPerPage, setItemsPerPage] = useState("25");
+  useEffect(() => {
+    if (user) {
+      reset({
+        name: user.name ?? '',
+        email: user.email ?? '',
+        phone: user.phone ?? '',
+        department: user.department ?? '',
+        prefLanguage: 'fr',
+        prefTimezone: 'Africa/Kinshasa',
+        emailNotif: true,
+        itemsPerPage: '25',
+      });
+    }
+  }, [user, reset]);
 
   const [saving, setSaving] = useState(false);
 
-  const handleSaveInfo = async () => {
+  const handleSaveInfo = handleSubmit(async (values) => {
     if (!user?.id) {
       toast({ title: "Erreur", description: "Utilisateur non identifié.", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      const nameParts = name.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
       await updateUser.mutateAsync({
         id: user.id,
-        data: { firstname: firstName, lastname: lastName, email },
+        data: toProfilePayload(values),
       });
       toast({ title: "Profil sauvegardé", description: "Vos informations ont été mises à jour." });
     } catch {
@@ -87,7 +107,7 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const displayName = user?.name ?? "";
   const displayEmail = user?.email ?? "";
@@ -212,33 +232,35 @@ export default function ProfilePage() {
                     <Label htmlFor="profile-name">Nom Complet</Label>
                     <Input
                       id="profile-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      {...register("name")}
                     />
+                    {errors.name && (
+                      <p className="text-xs text-destructive">{errors.name.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-email">Email</Label>
                     <Input
                       id="profile-email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      {...register("email")}
                     />
+                    {errors.email && (
+                      <p className="text-xs text-destructive">{errors.email.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-phone">Téléphone</Label>
                     <Input
                       id="profile-phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      {...register("phone")}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-dept">Département</Label>
                     <Input
                       id="profile-dept"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
+                      {...register("department")}
                     />
                   </div>
                 </div>
@@ -307,44 +329,62 @@ export default function ProfilePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Langue</Label>
-                  <Select value={prefLanguage} onValueChange={setPrefLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une langue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ar">العربية</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="prefLanguage"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une langue" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fr">Français</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="ar">العربية</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Fuseau Horaire</Label>
-                  <Select value={prefTimezone} onValueChange={setPrefTimezone}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un fuseau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Africa/Kinshasa">Africa/Kinshasa (UTC+1/+2)</SelectItem>
-                      <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
-                      <SelectItem value="UTC">UTC (UTC+0)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="prefTimezone"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un fuseau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Africa/Kinshasa">Africa/Kinshasa (UTC+1/+2)</SelectItem>
+                          <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
+                          <SelectItem value="UTC">UTC (UTC+0)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Éléments par Page</Label>
-                  <Select value={itemsPerPage} onValueChange={setItemsPerPage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nombre d'éléments" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="itemsPerPage"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Nombre d'éléments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -358,7 +398,13 @@ export default function ProfilePage() {
                       Recevoir des notifications par email
                     </p>
                   </div>
-                  <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
+                  <Controller
+                    name="emailNotif"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
 
                 <Separator />

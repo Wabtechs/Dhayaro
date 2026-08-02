@@ -6,6 +6,7 @@ import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
+import { parseJsonBody, diseaseUpdateSchema } from '@/lib/api-schemas'
 
 const DISEASE_KEYS = ['code', 'name', 'category', 'description', 'symptoms', 'complications', 'treatments', 'isContagious', 'severity'] as const
 
@@ -46,7 +47,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, diseaseUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
     const allowedFields = pickAllowedKeys(body, DISEASE_KEYS)
 
     const [updated] = await getDb()

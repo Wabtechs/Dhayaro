@@ -211,7 +211,7 @@ async function seed() {
   await db.delete(facilities)
   console.log('  Cleaned all tables\n')
 
-  const insertedFacilities = await db.insert(facilities).values(facilityData.map((f) => ({
+  const insertedFacilities: { id: string }[] = await db.insert(facilities).values(facilityData.map((f) => ({
     ...f, id: uuid(), isActive: true, createdAt: daysAgo(365), updatedAt: new Date(),
   }))).returning({ id: facilities.id })
   console.log(`Facilities: ${insertedFacilities.length}`)
@@ -228,7 +228,7 @@ async function seed() {
     PATIENT: patientHash,
   }
 
-  const insertedUsers = await db.insert(users).values(
+  const insertedUsers: { id: string }[] = await db.insert(users).values(
     userData.map((u, i) => ({
       id: uuid(), firstname: u.firstname, lastname: u.lastname, email: u.email,
       passwordHash: hashByRole[u.role], role: u.role, facilityId: insertedFacilities[u.facilityIndex].id,
@@ -237,7 +237,7 @@ async function seed() {
   ).returning({ id: users.id })
   console.log(`Users: ${insertedUsers.length}`)
 
-  const insertedDiseases = await db.insert(diseases).values(
+  const insertedDiseases: { id: string }[] = await db.insert(diseases).values(
     diseaseData.map((d) => ({
       id: uuid(), ...d, complications: d.complications, treatments: d.treatments,
       isActive: true, createdAt: daysAgo(365), updatedAt: new Date(),
@@ -390,7 +390,7 @@ async function seed() {
   console.log(`\nDiagnostics: ${diagnosticsCount}`)
 
   console.log('Generating 18 medications...')
-  const insertedMeds = await db.insert(medications).values(
+  const insertedMeds: { id: string }[] = await db.insert(medications).values(
     medData.map(m => ({ id: uuid(), ...m, sideEffects: [], contraindications: [], isActive: true, createdAt: daysAgo(365) }))
   ).returning({ id: medications.id })
   console.log(`Medications: ${insertedMeds.length}`)
@@ -456,7 +456,7 @@ async function seed() {
     { name: 'Cardiologie', description: 'ECG, échocardiographie, Holter, test d\'effort' },
     { name: 'Anatomopathologie', description: 'Biopsies, cytologie, examen extemporané' },
   ]
-  const insertedLabCats = await db.insert(labCategories).values(
+  const insertedLabCats: { id: string }[] = await db.insert(labCategories).values(
     labCatData.map(c => ({ id: uuid(), ...c, isActive: true, createdAt: daysAgo(365) }))
   ).returning({ id: labCategories.id })
   console.log(`Lab Categories: ${insertedLabCats.length}`)
@@ -498,7 +498,7 @@ async function seed() {
 
   console.log('Generating 100 clinical cases...')
   const caseBatchSize = 100
-  const insertedCases = await db.insert(clinicalCases).values(
+  const insertedCases: { id: string }[] = await db.insert(clinicalCases).values(
     Array.from({ length: caseBatchSize }, (_, _i) => {
       const template = pick(clinicalTemplates)
       return {

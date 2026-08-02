@@ -6,6 +6,7 @@ import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
+import { parseJsonBody, documentUpdateSchema } from '@/lib/api-schemas'
 
 const DOC_KEYS = ['patientId', 'consultationId', 'documentType', 'title', 'content', 'filePath', 'isPrinted'] as const
 
@@ -46,7 +47,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, documentUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const existing = await getDb().select({ id: documents.id }).from(documents).where(eq(documents.id, validId)).limit(1)
     if (existing.length === 0) {

@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addDoctorFilter, addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { parseJsonBody, prescriptionCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,26 +72,12 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, prescriptionCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const treatmentId = sanitizeUuid(body.treatmentId)
     const medicationId = sanitizeUuid(body.medicationId)
-
-    if (!treatmentId) {
-      return apiError(400, 'treatmentId is required and must be a valid UUID')
-    }
-    if (!medicationId) {
-      return apiError(400, 'medicationId is required and must be a valid UUID')
-    }
-    if (!body.dosage) {
-      return apiError(400, 'dosage is required')
-    }
-    if (!body.frequency) {
-      return apiError(400, 'frequency is required')
-    }
-    if (!body.duration) {
-      return apiError(400, 'duration is required')
-    }
 
     const db = getDb()
 

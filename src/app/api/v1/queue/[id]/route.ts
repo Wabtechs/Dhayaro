@@ -6,6 +6,7 @@ import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
+import { parseJsonBody, queueUpdateSchema } from '@/lib/api-schemas'
 
 const QUEUE_KEYS = ['status', 'priority', 'assignedDoctorId', 'queuePosition', 'estimatedWaitMinutes', 'notes', 'startedAt', 'completedAt'] as const
 
@@ -74,7 +75,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, queueUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const existing = await getDb().select({ id: queue.id }).from(queue).where(eq(queue.id, validId)).limit(1)
     if (existing.length === 0) {

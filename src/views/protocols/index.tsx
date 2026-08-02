@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { protocolSchema, toProtocolPayload, type ProtocolValues } from '@/lib/schemas'
 import { Search, Plus, FileCheck, Trash2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,35 +75,21 @@ export default function ProtocolsPage() {
   const total = (data as { total?: number })?.total ?? 0
   const diseases = ((diseasesData as { items?: Array<{ id: string; name: string; code: string }> })?.items || [])
 
-  const [newProtocol, setNewProtocol] = useState({
-    name: '',
-    description: '',
-    diseaseId: '',
-    targetPopulation: '',
+  const protocolForm = useForm<ProtocolValues>({
+    resolver: zodResolver(protocolSchema),
+    defaultValues: { name: '', description: '', diseaseId: '', targetPopulation: '' },
   })
 
-  const handleCreate = async () => {
-    if (!newProtocol.name) {
-      toast({ title: 'Erreur', description: 'Le nom est requis', variant: 'destructive' })
-      return
-    }
+  const handleCreate = protocolForm.handleSubmit(async (values) => {
     try {
-      await createProtocol.mutateAsync({
-        name: newProtocol.name,
-        description: newProtocol.description || null,
-        diseaseId: newProtocol.diseaseId || null,
-        targetPopulation: newProtocol.targetPopulation || null,
-        steps: [],
-        contraindications: [],
-        isActive: true,
-      })
+      await createProtocol.mutateAsync(toProtocolPayload(values))
       toast({ title: 'Succès', description: 'Protocole créé' })
       setShowCreateDialog(false)
-      setNewProtocol({ name: '', description: '', diseaseId: '', targetPopulation: '' })
+      protocolForm.reset()
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le protocole', variant: 'destructive' })
     }
-  }
+  })
 
   const handleDelete = async (id: string) => {
     try {
@@ -262,51 +251,57 @@ export default function ProtocolsPage() {
               Créer un nouveau protocole de traitement
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Nom *</label>
               <Input
                 placeholder="Nom du protocole..."
-                value={newProtocol.name}
-                onChange={(e) => setNewProtocol(prev => ({ ...prev, name: e.target.value }))}
+                {...protocolForm.register('name')}
               />
+              {protocolForm.formState.errors.name && (
+                <p className="text-xs text-destructive">{protocolForm.formState.errors.name.message}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
               <Input
                 placeholder="Description du protocole..."
-                value={newProtocol.description}
-                onChange={(e) => setNewProtocol(prev => ({ ...prev, description: e.target.value }))}
+                {...protocolForm.register('description')}
               />
             </div>
             <div>
               <label className="text-sm font-medium">Maladie associée</label>
-              <Select value={newProtocol.diseaseId} onValueChange={(v) => setNewProtocol(prev => ({ ...prev, diseaseId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une maladie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {diseases.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.code} - {d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={protocolForm.control}
+                name="diseaseId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une maladie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {diseases.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.code} - {d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div>
               <label className="text-sm font-medium">Population cible</label>
               <Input
                 placeholder="Ex: Adultes, Enfants, etc."
-                value={newProtocol.targetPopulation}
-                onChange={(e) => setNewProtocol(prev => ({ ...prev, targetPopulation: e.target.value }))}
+                {...protocolForm.register('targetPopulation')}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Annuler</Button>
-            <Button onClick={handleCreate} disabled={createProtocol.isPending}>
-              {createProtocol.isPending ? 'Création...' : 'Créer'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>Annuler</Button>
+              <Button type="submit" disabled={createProtocol.isPending}>
+                {createProtocol.isPending ? 'Création...' : 'Créer'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

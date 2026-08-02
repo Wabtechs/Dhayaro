@@ -5,6 +5,7 @@ import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { parseJsonBody, protocolCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,9 +75,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.name) return apiError(400, 'name is required')
+    const parsed = await parseJsonBody(request, protocolCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const db = getDb()
     const { facilityId } = enforceFacilityAccess(body, auth)

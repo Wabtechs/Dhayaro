@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -62,6 +64,12 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import {
+  consultationEditSchema,
+  toConsultationEditPayload,
+  CONSULTATION_STATUSES,
+  type ConsultationEditValues,
+} from '@/lib/schemas'
 import { generateMedicalReportPDF } from '@/lib/export-medical'
 import { generateMedicalReportExcel } from '@/lib/export-excel'
 import { generateMedicalReportDOCX } from '@/lib/export-docx'
@@ -90,8 +98,15 @@ export default function ConsultationDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    motif: '', notes: '', provisionalDiagnosis: '', status: 'WAITING', doctorId: '',
+  const editForm = useForm<ConsultationEditValues>({
+    resolver: zodResolver(consultationEditSchema),
+    defaultValues: {
+      motif: '',
+      notes: '',
+      provisionalDiagnosis: '',
+      status: 'WAITING',
+      doctorId: '',
+    },
   })
 
   if (isLoading) {
@@ -258,29 +273,22 @@ export default function ConsultationDetailPage() {
   }
 
   const openEditDialog = () => {
-    setEditForm({
+    editForm.reset({
       motif,
       notes,
       provisionalDiagnosis,
-      status,
+      status: status as ConsultationEditValues['status'],
       doctorId: doctorId || '',
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateConsultation.mutateAsync({
         id: consultationId,
-        data: {
-          motif: editForm.motif,
-          notes: editForm.notes || null,
-          provisionalDiagnosis: editForm.provisionalDiagnosis || null,
-          status: editForm.status,
-          doctorId: editForm.doctorId || undefined,
-        },
+        data: toConsultationEditPayload(values),
       })
       toast({ title: 'Consultation mise à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -289,7 +297,7 @@ export default function ConsultationDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -740,44 +748,60 @@ export default function ConsultationDetailPage() {
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="motif">Motif</Label>
-              <Input id="motif" value={editForm.motif} onChange={(e) => setEditForm({ ...editForm, motif: e.target.value })} required />
+              <Input id="motif" {...editForm.register('motif')} />
+              {editForm.formState.errors.motif && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.motif.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="provisionalDiagnosis">Diagnostic provisoire</Label>
-              <Textarea id="provisionalDiagnosis" rows={2} value={editForm.provisionalDiagnosis} onChange={(e) => setEditForm({ ...editForm, provisionalDiagnosis: e.target.value })} />
+              <Textarea id="provisionalDiagnosis" rows={2} {...editForm.register('provisionalDiagnosis')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="doctorId">Médecin</Label>
-              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
-                <SelectTrigger id="doctorId">
-                  <SelectValue placeholder="Sélectionner un médecin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {userItems.filter((u) => (u.role as string) === 'doctor' || (u.role as string) === 'specialist').map((doc) => (
-                    <SelectItem key={doc.id as string} value={doc.id as string}>
-                      {`${(doc.firstName as string) || ''} ${(doc.lastName as string) || ''}`.trim() || (doc.email as string)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="doctorId"
+                control={editForm.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="doctorId">
+                      <SelectValue placeholder="Sélectionner un médecin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userItems.filter((u) => (u.role as string) === 'doctor' || (u.role as string) === 'specialist').map((doc) => (
+                        <SelectItem key={doc.id as string} value={doc.id as string}>
+                          {`${(doc.firstName as string) || ''} ${(doc.lastName as string) || ''}`.trim() || (doc.email as string)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WAITING">En attente</SelectItem>
-                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                name="status"
+                control={editForm.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONSULTATION_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {statusConfig[s].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" rows={3} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+              <Textarea id="notes" rows={3} {...editForm.register('notes')} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>

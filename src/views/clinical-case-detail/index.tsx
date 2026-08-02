@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { clinicalCaseSchema, toClinicalCasePayload, CASE_PRIORITIES, caseNoteSchema, type ClinicalCaseValues, type CaseNoteValues } from '@/lib/schemas'
 import {
   ArrowLeft,
   Calendar,
@@ -90,14 +93,17 @@ export default function ClinicalCaseDetailPage() {
   const { user } = useAuthStore()
 
   const c = clinicalCase as Record<string, unknown> | null | undefined
-  const [noteContent, setNoteContent] = useState('')
   const [notes, setNotes] = useState<CaseNote[]>([])
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({
-    title: '', description: '', diagnosis: '', priority: 'medium',
-    symptoms: '', tags: '',
+  const noteForm = useForm<CaseNoteValues>({
+    resolver: zodResolver(caseNoteSchema),
+    defaultValues: { content: '' },
+  })
+  const editForm = useForm<ClinicalCaseValues>({
+    resolver: zodResolver(clinicalCaseSchema),
+    defaultValues: { title: '', description: '', patientId: '', facilityId: '', assignedDoctorId: '', priority: 'medium', diagnosis: '', symptoms: '', tags: '' },
   })
 
   if (isLoading) {
@@ -214,18 +220,17 @@ export default function ClinicalCaseDetailPage() {
   const doctorName = doctor ? `${(doctor.firstName as string) || ''} ${(doctor.lastName as string) || ''}`.trim() : 'Inconnu'
   const facilityName = (facility?.name as string) || 'Inconnu'
 
-  const handleAddNote = () => {
-    if (!noteContent.trim()) return
+  const onAddNote = noteForm.handleSubmit((values) => {
     const newNote: CaseNote = {
       id: `note-${Date.now()}`,
       caseId,
       authorId: (user?.id as string) || 'unknown',
-      content: noteContent.trim(),
+      content: values.content.trim(),
       createdAt: new Date().toISOString(),
     }
     setNotes((prev) => [newNote, ...prev])
-    setNoteContent('')
-  }
+    noteForm.reset()
+  })
 
   const statusActions: { label: string; status: CaseStatus; icon: React.ReactNode }[] = []
   if (caseStatus === 'draft') {
@@ -252,31 +257,26 @@ export default function ClinicalCaseDetailPage() {
   }
 
   const openEditDialog = () => {
-    setEditForm({
+    editForm.reset({
       title,
       description,
+      patientId,
+      facilityId,
+      assignedDoctorId: doctorId,
+      priority: casePriority as ClinicalCaseValues['priority'],
       diagnosis,
-      priority: casePriority,
       symptoms: symptoms.join(', '),
       tags: tags.join(', '),
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateCase.mutateAsync({
         id: caseId,
-        data: {
-          title: editForm.title,
-          description: editForm.description,
-          diagnosis: editForm.diagnosis,
-          priority: editForm.priority,
-          symptoms: editForm.symptoms ? editForm.symptoms.split(',').map(s => s.trim()).filter(Boolean) : [],
-          tags: editForm.tags ? editForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        },
+        data: toClinicalCasePayload(values),
       })
       toast({ title: 'Cas mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -285,7 +285,7 @@ export default function ClinicalCaseDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleStatusChange = async (newStatus: CaseStatus) => {
     try {
@@ -424,14 +424,14 @@ export default function ClinicalCaseDetailPage() {
                 <Textarea
                   placeholder="Ajouter une note..."
                   rows={3}
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
+                  {...noteForm.register('content')}
                 />
+                {noteForm.formState.errors.content && <p className="mt-1 text-xs text-destructive">{noteForm.formState.errors.content.message}</p>}
                 <div className="mt-2 flex justify-end">
                   <Button
                     size="sm"
-                    onClick={handleAddNote}
-                    disabled={!noteContent.trim()}
+                    onClick={onAddNote}
+                    disabled={!noteForm.watch('content')?.trim()}
                   >
                     <MessageSquare className="mr-2 h-3.5 w-3.5" />
                     Ajouter une note
@@ -615,39 +615,47 @@ export default function ClinicalCaseDetailPage() {
               Modifiez les détails du cas ci-dessous.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={onUpdate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Titre</Label>
-              <Input id="title" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} required />
+              <Input id="title" {...editForm.register('title')} />
+              {editForm.formState.errors.title && <p className="text-xs text-destructive">{editForm.formState.errors.title.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" rows={3} value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+              <Textarea id="description" rows={3} {...editForm.register('description')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="diagnosis">Diagnostic</Label>
-              <Textarea id="diagnosis" rows={2} value={editForm.diagnosis} onChange={(e) => setEditForm({ ...editForm, diagnosis: e.target.value })} />
+              <Textarea id="diagnosis" rows={2} {...editForm.register('diagnosis')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="priority">Priorité</Label>
-              <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(priorityLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="priority"
+                control={editForm.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="priority">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CASE_PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p}>{priorityLabels[p]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.priority && <p className="text-xs text-destructive">{editForm.formState.errors.priority.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="symptoms">Symptômes (séparés par des virgules)</Label>
-              <Input id="symptoms" value={editForm.symptoms} onChange={(e) => setEditForm({ ...editForm, symptoms: e.target.value })} placeholder="Ex: Fièvre, Toux" />
+              <Input id="symptoms" {...editForm.register('symptoms')} placeholder="Ex: Fièvre, Toux" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
-              <Input id="tags" value={editForm.tags} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })} placeholder="Ex: Urgent, Pédiatrie" />
+              <Input id="tags" {...editForm.register('tags')} placeholder="Ex: Urgent, Pédiatrie" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>

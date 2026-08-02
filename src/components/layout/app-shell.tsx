@@ -1,6 +1,8 @@
 'use client'
 
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
@@ -12,8 +14,20 @@ import {
 } from '@/components/ui/sheet'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        router.push('/patients')
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [router])
 
   return (
     <div className="relative min-h-screen bg-background">

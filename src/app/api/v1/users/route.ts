@@ -6,6 +6,7 @@ import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { parseJsonBody, userCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,20 +88,9 @@ export async function POST(request: NextRequest) {
       return apiError(403, 'Only administrators can create users')
     }
 
-    const body = await request.json()
-
-    if (!body.email || !body.firstname || !body.lastname || !body.role) {
-      return apiError(400, 'email, firstname, lastname, and role are required')
-    }
-
-    if (!body.password) {
-      return apiError(400, 'password is required')
-    }
-
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST']
-    if (!validRoles.includes(body.role)) {
-      return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
-    }
+    const parsed = await parseJsonBody(request, userCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const MULTI_FACILITY_ROLES = ['SUPER_ADMIN', 'ADMIN']
     if (!MULTI_FACILITY_ROLES.includes(body.role)) {

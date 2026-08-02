@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { episodeEditSchema, toEpisodeEditPayload, EPISODE_STATUSES, type EpisodeEditValues } from '@/lib/schemas'
 import { ArrowLeft, Archive, Clock, User, FileText, Brain, Pill, TestTube, Stethoscope, Pencil, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,7 +85,11 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
   const episode = data as EpisodeDetail | undefined
 
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editForm, setEditForm] = useState({ status: '', admitReason: '', admitDate: '', dischargeDate: '' })
+
+  const editForm = useForm<EpisodeEditValues>({
+    resolver: zodResolver(episodeEditSchema),
+    defaultValues: { status: 'ADMITTED', admitReason: '', admitDate: '', dischargeDate: '' },
+  })
 
   const handleArchive = async () => {
     if (!episode) return
@@ -106,8 +113,8 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
 
   const openEditDialog = () => {
     if (!episode) return
-    setEditForm({
-      status: episode.status,
+    editForm.reset({
+      status: (episode.status as EpisodeEditValues['status']) || 'ADMITTED',
       admitReason: episode.admitReason || '',
       admitDate: episode.admitDate ? episode.admitDate.slice(0, 16) : '',
       dischargeDate: episode.dischargeDate ? episode.dischargeDate.slice(0, 16) : '',
@@ -115,24 +122,19 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
     setShowEditDialog(true)
   }
 
-  const handleEdit = async () => {
+  const handleEdit = editForm.handleSubmit(async (values) => {
     if (!episode) return
     try {
       await updateEpisode.mutateAsync({
         id: episode.id,
-        data: {
-          status: editForm.status,
-          admitReason: editForm.admitReason || null,
-          admitDate: editForm.admitDate ? new Date(editForm.admitDate).toISOString() : undefined,
-          dischargeDate: editForm.dischargeDate ? new Date(editForm.dischargeDate).toISOString() : null,
-        },
+        data: toEpisodeEditPayload(values),
       })
       toast({ title: 'Succès', description: 'Épisode mis à jour' })
       setShowEditDialog(false)
     } catch (e) {
       toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de modifier l\'épisode', variant: 'destructive' })
     }
-  }
+  })
 
   if (isLoading) {
     return (
@@ -214,8 +216,6 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
   const treatments = entities.treatments || []
   const labExams = entities.labExams || []
   const documents = entities.documents || []
-
-  const statusKeys = Object.keys(statusLabels).filter(k => k !== 'ARCHIVED')
 
   return (
     <div className="space-y-6">
@@ -478,50 +478,54 @@ export default function CareEpisodeDetailPage({ id }: { id: string }) {
               {episode.episodeNumber} — {episode.patientFirstname} {episode.patientLastname}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleEdit} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Statut</label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm(prev => ({ ...prev, status: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusKeys.map((key) => (
-                    <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EPISODE_STATUSES.map((key) => (
+                        <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.status && <p className="text-xs text-destructive">{editForm.formState.errors.status.message}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Motif d'admission</label>
               <Input
-                value={editForm.admitReason}
-                onChange={(e) => setEditForm(prev => ({ ...prev, admitReason: e.target.value }))}
+                {...editForm.register('admitReason')}
               />
             </div>
             <div>
               <label className="text-sm font-medium">Date d'admission</label>
               <Input
                 type="datetime-local"
-                value={editForm.admitDate}
-                onChange={(e) => setEditForm(prev => ({ ...prev, admitDate: e.target.value }))}
+                {...editForm.register('admitDate')}
               />
             </div>
             <div>
               <label className="text-sm font-medium">Date de sortie</label>
               <Input
                 type="datetime-local"
-                value={editForm.dischargeDate}
-                onChange={(e) => setEditForm(prev => ({ ...prev, dischargeDate: e.target.value }))}
+                {...editForm.register('dischargeDate')}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Annuler</Button>
-            <Button onClick={handleEdit} disabled={updateEpisode.isPending}>
-              {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>Annuler</Button>
+              <Button type="submit" disabled={updateEpisode.isPending}>
+                {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

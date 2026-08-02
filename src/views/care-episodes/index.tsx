@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { episodeCreateSchema, episodeEditSchema, toEpisodeCreatePayload, toEpisodeEditPayload, EPISODE_STATUSES, type EpisodeCreateValues, type EpisodeEditValues } from '@/lib/schemas'
 import { Search, Plus, Calendar, User, Eye, FileText, Pencil, MoreHorizontal, Archive, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,8 +102,17 @@ export default function CareEpisodesPage() {
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingEpisode, setEditingEpisode] = useState<EpisodeItem | null>(null)
-  const [editForm, setEditForm] = useState({ status: '', admitReason: '', admitDate: '', dischargeDate: '' })
   const [archivingId, setArchivingId] = useState<string | null>(null)
+
+  const createForm = useForm<EpisodeCreateValues>({
+    resolver: zodResolver(episodeCreateSchema),
+    defaultValues: { patientId: '', admitReason: '' },
+  })
+
+  const editForm = useForm<EpisodeEditValues>({
+    resolver: zodResolver(episodeEditSchema),
+    defaultValues: { status: 'ADMITTED', admitReason: '', admitDate: '', dischargeDate: '' },
+  })
 
   const params = new URLSearchParams()
   if (search) params.set('search', search)
@@ -120,55 +132,40 @@ export default function CareEpisodesPage() {
   const total = (data as { total?: number })?.total ?? 0
   const patients = ((patientsData as { items?: Array<{ id: string; firstName?: string; lastName?: string; name?: string }> })?.items || [])
 
-  const [newEpisode, setNewEpisode] = useState({ patientId: '', admitReason: '' })
-
-  const handleCreate = async () => {
-    if (!newEpisode.patientId) {
-      toast({ title: 'Erreur', description: 'Veuillez sélectionner un patient', variant: 'destructive' })
-      return
-    }
+  const handleCreate = createForm.handleSubmit(async (values) => {
     try {
-      await createEpisode.mutateAsync({
-        patientId: newEpisode.patientId,
-        admitReason: newEpisode.admitReason || null,
-        status: 'ADMITTED',
-      })
+      await createEpisode.mutateAsync(toEpisodeCreatePayload(values))
       toast({ title: 'Succès', description: 'Épisode de soins créé' })
       setShowCreateDialog(false)
-      setNewEpisode({ patientId: '', admitReason: '' })
+      createForm.reset()
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer l\'épisode', variant: 'destructive' })
     }
-  }
+  })
 
   const openEditDialog = (ep: EpisodeItem) => {
     setEditingEpisode(ep)
-    setEditForm({
-      status: ep.status,
+    editForm.reset({
+      status: (ep.status as EpisodeEditValues['status']) || 'ADMITTED',
       admitReason: ep.admitReason || '',
       admitDate: ep.admitDate ? ep.admitDate.slice(0, 16) : '',
       dischargeDate: ep.dischargeDate ? ep.dischargeDate.slice(0, 16) : '',
     })
   }
 
-  const handleEdit = async () => {
+  const handleEdit = editForm.handleSubmit(async (values) => {
     if (!editingEpisode) return
     try {
       await updateEpisode.mutateAsync({
         id: editingEpisode.id,
-        data: {
-          status: editForm.status,
-          admitReason: editForm.admitReason || null,
-          admitDate: editForm.admitDate ? new Date(editForm.admitDate).toISOString() : undefined,
-          dischargeDate: editForm.dischargeDate ? new Date(editForm.dischargeDate).toISOString() : null,
-        },
+        data: toEpisodeEditPayload(values),
       })
       toast({ title: 'Succès', description: 'Épisode mis à jour' })
       setEditingEpisode(null)
     } catch (e) {
       toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de modifier l\'épisode', variant: 'destructive' })
     }
-  }
+  })
 
   const handleArchive = async (id: string) => {
     try {
@@ -189,8 +186,6 @@ export default function CareEpisodesPage() {
   }
 
   const totalPages = Math.ceil(total / 10)
-
-  const statusKeys = Object.keys(statusLabels).filter(k => k !== 'ARCHIVED')
 
   return (
     <div className="space-y-6">
@@ -382,37 +377,43 @@ export default function CareEpisodesPage() {
               Créer un nouvel épisode pour un patient
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Patient *</label>
-              <Select value={newEpisode.patientId} onValueChange={(v) => setNewEpisode(prev => ({ ...prev, patientId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((p: { id: string; firstName?: string; lastName?: string; name?: string }) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'Patient'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={createForm.control}
+                name="patientId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un patient" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map((p: { id: string; firstName?: string; lastName?: string; name?: string }) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'Patient'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {createForm.formState.errors.patientId && <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Motif d&apos;admission</label>
               <Input
                 placeholder="Motif de l'admission..."
-                value={newEpisode.admitReason}
-                onChange={(e) => setNewEpisode(prev => ({ ...prev, admitReason: e.target.value }))}
+                {...createForm.register('admitReason')}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Annuler</Button>
-            <Button onClick={handleCreate} disabled={createEpisode.isPending}>
-              {createEpisode.isPending ? 'Création...' : 'Créer l\'épisode'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>Annuler</Button>
+              <Button type="submit" disabled={createEpisode.isPending}>
+                {createEpisode.isPending ? 'Création...' : 'Créer l\'épisode'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -424,50 +425,54 @@ export default function CareEpisodesPage() {
               {editingEpisode?.episodeNumber} — {editingEpisode?.patientFirstname} {editingEpisode?.patientLastname}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleEdit} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Statut</label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm(prev => ({ ...prev, status: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusKeys.map((key) => (
-                    <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EPISODE_STATUSES.map((key) => (
+                        <SelectItem key={key} value={key}>{statusLabels[key]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.status && <p className="text-xs text-destructive">{editForm.formState.errors.status.message}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Motif d'admission</label>
               <Input
-                value={editForm.admitReason}
-                onChange={(e) => setEditForm(prev => ({ ...prev, admitReason: e.target.value }))}
+                {...editForm.register('admitReason')}
               />
             </div>
             <div>
               <label className="text-sm font-medium">Date d'admission</label>
               <Input
                 type="datetime-local"
-                value={editForm.admitDate}
-                onChange={(e) => setEditForm(prev => ({ ...prev, admitDate: e.target.value }))}
+                {...editForm.register('admitDate')}
               />
             </div>
             <div>
               <label className="text-sm font-medium">Date de sortie</label>
               <Input
                 type="datetime-local"
-                value={editForm.dischargeDate}
-                onChange={(e) => setEditForm(prev => ({ ...prev, dischargeDate: e.target.value }))}
+                {...editForm.register('dischargeDate')}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingEpisode(null)}>Annuler</Button>
-            <Button onClick={handleEdit} disabled={updateEpisode.isPending}>
-              {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingEpisode(null)}>Annuler</Button>
+              <Button type="submit" disabled={updateEpisode.isPending}>
+                {updateEpisode.isPending ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

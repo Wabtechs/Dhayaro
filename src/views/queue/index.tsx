@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ListOrdered,
   Search,
@@ -69,7 +71,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
+import { queueCreateSchema, queueEditSchema, toQueueCreatePayload, toQueueEditPayload, PRIORITIES, QUEUE_STATUSES, type QueueCreateValues, type QueueEditValues } from '@/lib/schemas'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -185,72 +187,48 @@ export default function QueueView() {
   const [editingQueue, setEditingQueue] = useState<QueueItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newQueue, setNewQueue] = useState({
-    patientId: '',
-    consultationId: '',
-    assignedDoctorId: '',
-    priority: 'NORMAL' as string,
-    estimatedWaitMinutes: '',
-    notes: '',
+  const createForm = useForm<QueueCreateValues>({
+    resolver: zodResolver(queueCreateSchema),
+    defaultValues: { patientId: '', consultationId: '', assignedDoctorId: '', priority: 'NORMAL', estimatedWaitMinutes: '', notes: '' },
+  })
+  const editForm = useForm<QueueEditValues>({
+    resolver: zodResolver(queueEditSchema),
+    defaultValues: { priority: 'NORMAL', assignedDoctorId: '', notes: '', status: 'WAITING' },
   })
 
-  const [editForm, setEditForm] = useState({
-    priority: 'NORMAL' as string,
-    assignedDoctorId: '',
-    notes: '',
-    status: 'WAITING' as string,
-  })
-
-  const handleCreate = async () => {
+  const onCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      const patientUuid = sanitizeUuid(newQueue.patientId)
-      if (!patientUuid) {
-        toast({ title: 'Erreur', description: 'Veuillez sélectionner un patient.', variant: 'destructive' })
-        return
-      }
-      await createQueue.mutateAsync({
-        patientId: patientUuid,
-        consultationId: sanitizeUuid(newQueue.consultationId) || undefined,
-        assignedDoctorId: sanitizeUuid(newQueue.assignedDoctorId) || undefined,
-        priority: newQueue.priority || 'NORMAL',
-        estimatedWaitMinutes: newQueue.estimatedWaitMinutes ? Number(newQueue.estimatedWaitMinutes) : undefined,
-        notes: newQueue.notes || null,
-      })
+      await createQueue.mutateAsync(toQueueCreatePayload(values))
       toast({ title: 'Ticket créé', description: 'Le ticket a été ajouté à la file d\'attente.' })
       setDialogOpen(false)
-      setNewQueue({ patientId: '', consultationId: '', assignedDoctorId: '', priority: 'NORMAL', estimatedWaitMinutes: '', notes: '' })
+      createForm.reset()
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le ticket.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEdit = (q: QueueItem) => {
     setEditingQueue(q)
-    setEditForm({
-      priority: (q.priority as string) || 'NORMAL',
+    editForm.reset({
+      priority: ((q.priority as string) || 'NORMAL') as QueueEditValues['priority'],
       assignedDoctorId: (q.assignedDoctorId as string) || '',
       notes: (q.notes as string) || '',
-      status: (q.status as string) || 'WAITING',
+      status: ((q.status as string) || 'WAITING') as QueueEditValues['status'],
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const onUpdate = editForm.handleSubmit(async (values) => {
     if (!editingQueue) return
     setSaving(true)
     try {
       await updateQueue.mutateAsync({
         id: editingQueue.id as string,
-        data: {
-          priority: editForm.priority,
-          assignedDoctorId: sanitizeUuid(editForm.assignedDoctorId) || null,
-          notes: editForm.notes || null,
-          status: editForm.status,
-        },
+        data: toQueueEditPayload(values),
       })
       toast({ title: 'Ticket mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -260,7 +238,7 @@ export default function QueueView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = (q: QueueItem) => {
     setConfirmDelete({
@@ -309,64 +287,90 @@ export default function QueueView() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Patient *</label>
-                  <Select value={newQueue.patientId} onValueChange={(v) => setNewQueue({ ...newQueue, patientId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="patientId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.patientId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Consultation (optionnel)</label>
-                  <Select value={newQueue.consultationId} onValueChange={(v) => setNewQueue({ ...newQueue, consultationId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une consultation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {consultationsList.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {String(c.consultationNumber || c.id)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="consultationId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une consultation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {consultationsList.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {String(c.consultationNumber || c.id)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Médecin assigné</label>
-                <Select value={newQueue.assignedDoctorId} onValueChange={(v) => setNewQueue({ ...newQueue, assignedDoctorId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un médecin (optionnel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctorUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={createForm.control}
+                  name="assignedDoctorId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un médecin (optionnel)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctorUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Priorité</label>
-                  <Select value={newQueue.priority} onValueChange={(v) => setNewQueue({ ...newQueue, priority: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Faible</SelectItem>
-                      <SelectItem value="NORMAL">Normal</SelectItem>
-                      <SelectItem value="HIGH">Élevée</SelectItem>
-                      <SelectItem value="URGENT">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRIORITIES.map((p) => (
+                            <SelectItem key={p} value={p}>{priorityConfig[p]?.label || p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Temps d&apos;attente estimé (min)</label>
@@ -374,8 +378,7 @@ export default function QueueView() {
                     type="number"
                     min={0}
                     placeholder="Ex: 15"
-                    value={newQueue.estimatedWaitMinutes}
-                    onChange={(e) => setNewQueue({ ...newQueue, estimatedWaitMinutes: e.target.value })}
+                    {...createForm.register('estimatedWaitMinutes')}
                   />
                 </div>
               </div>
@@ -384,8 +387,7 @@ export default function QueueView() {
                 <Textarea
                   placeholder="Notes éventuelles"
                   rows={3}
-                  value={newQueue.notes}
-                  onChange={(e) => setNewQueue({ ...newQueue, notes: e.target.value })}
+                  {...createForm.register('notes')}
                 />
               </div>
             </div>
@@ -393,7 +395,7 @@ export default function QueueView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating || !newQueue.patientId} onClick={handleCreate}>
+              <Button type="button" disabled={creating || !createForm.watch('patientId')} onClick={onCreate}>
                 {creating ? 'Création...' : 'Créer le ticket'}
               </Button>
             </DialogFooter>
@@ -583,57 +585,76 @@ export default function QueueView() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Priorité</label>
-              <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Faible</SelectItem>
-                  <SelectItem value="NORMAL">Normal</SelectItem>
-                  <SelectItem value="HIGH">Élevée</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="priority"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p}>{priorityConfig[p]?.label || p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.priority && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.priority.message}</p>
+              )}
             </div>
             {can('queue:assign') && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Médecin assigné</label>
-              <Select value={editForm.assignedDoctorId} onValueChange={(v) => setEditForm({ ...editForm, assignedDoctorId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un médecin" />
-                </SelectTrigger>
-                <SelectContent>
-                    {doctorUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="assignedDoctorId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un médecin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {doctorUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut</label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WAITING">En attente</SelectItem>
-                  <SelectItem value="WITH_DOCTOR">Chez le médecin</SelectItem>
-                  <SelectItem value="WITH_LAB">Au laboratoire</SelectItem>
-                  <SelectItem value="WITH_PHARMACY">À la pharmacie</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUEUE_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{statusConfig[s]?.label || s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.status && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.status.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Notes</label>
               <Textarea
                 rows={3}
-                value={editForm.notes}
-                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                {...editForm.register('notes')}
               />
             </div>
           </div>
@@ -641,7 +662,7 @@ export default function QueueView() {
             <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
               Annuler
             </Button>
-            <Button type="button" disabled={saving} onClick={handleUpdate}>
+            <Button type="button" disabled={saving} onClick={onUpdate}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>

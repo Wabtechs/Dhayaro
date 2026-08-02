@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -57,6 +59,11 @@ import { useDoctorDetail, useUpdateDoctor, useDeleteDoctor, useFacilitiesData } 
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import {
+  doctorEditSchema,
+  toDoctorPayload,
+  type DoctorEditValues,
+} from '@/lib/schemas'
 import { Skeleton } from '@/components/ui/skeleton'
 const roleLabels: Record<string, string> = {
   doctor: 'Médecin Généraliste',
@@ -67,7 +74,6 @@ const roleBadgeColors: Record<string, string> = {
   doctor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
   specialist: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
 }
-const ROLE_MAP: Record<string, string> = { doctor: 'DOCTOR', specialist: 'SPECIALIST' }
 
 interface DoctorDetail {
   id: string
@@ -103,15 +109,11 @@ export default function DoctorDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('doctor')
-  const [facility, setFacility] = useState('')
-  const [phone, setPhone] = useState('')
-  const [specialty, setSpecialty] = useState('')
-  const [licenseNumber, setLicenseNumber] = useState('')
-  const [availability, setAvailability] = useState('')
+
+  const editForm = useForm<DoctorEditValues>({
+    resolver: zodResolver(doctorEditSchema),
+    defaultValues: { firstName: '', lastName: '', email: '', role: 'doctor', facility: '', phone: '', specialty: '', licenseNumber: '', availability: 'AVAILABLE' },
+  })
 
   const d = data as DoctorDetail | null | undefined
   const facilitiesList = (facilitiesData?.items ?? []) as { id: string; name: string }[]
@@ -188,35 +190,26 @@ export default function DoctorDetailPage() {
   const roleLabel = roleLabels[d.role] || d.role
 
   const openEdit = () => {
-    setFirstName(d.firstName || '')
-    setLastName(d.lastName || '')
-    setEmail(d.email)
-    setRole((d.role || 'DOCTOR').toLowerCase())
-    setFacility(d.facilityId || '')
-    setPhone(d.phone || '')
-    setSpecialty((d.specialty as string) || '')
-    setLicenseNumber((d.licenseNumber as string) || '')
-    setAvailability((d.availability as string) || 'AVAILABLE')
+    editForm.reset({
+      firstName: d.firstName || '',
+      lastName: d.lastName || '',
+      email: d.email,
+      role: ((d.role || 'DOCTOR') as string).toLowerCase() as DoctorEditValues['role'],
+      facility: d.facilityId || '',
+      phone: d.phone || '',
+      specialty: (d.specialty as string) || '',
+      licenseNumber: (d.licenseNumber as string) || '',
+      availability: ((d.availability as string) || 'AVAILABLE') as DoctorEditValues['availability'],
+    })
     setEditOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateDoctor.mutateAsync({
         id: doctorId,
-        data: {
-          firstname: firstName,
-          lastname: lastName,
-          email,
-          role: ROLE_MAP[role] || 'DOCTOR',
-          facilityId: facility || null,
-          phone: phone || undefined,
-          specialty: specialty || null,
-          licenseNumber: licenseNumber || null,
-          availability: availability || null,
-        },
+        data: toDoctorPayload(values),
       })
       toast({ title: 'Médecin mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditOpen(false)
@@ -225,7 +218,7 @@ export default function DoctorDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = () => {
     setConfirmDelete({
@@ -407,68 +400,98 @@ export default function DoctorDetailPage() {
             <DialogTitle>Modifier le Médecin</DialogTitle>
             <DialogDescription>Modifiez les informations du médecin.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={onUpdate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="e-firstname">Prénom</Label>
-                <Input id="e-firstname" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                <Input id="e-firstname" {...editForm.register('firstName')} />
+                {editForm.formState.errors.firstName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.firstName.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="e-lastname">Nom</Label>
-                <Input id="e-lastname" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                <Input id="e-lastname" {...editForm.register('lastName')} />
+                {editForm.formState.errors.lastName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.lastName.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="e-email">Email</Label>
-              <Input id="e-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input id="e-email" type="email" {...editForm.register('email')} />
+              {editForm.formState.errors.email && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.email.message}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rôle</Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">Médecin Généraliste</SelectItem>
-                    <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doctor">Médecin Généraliste</SelectItem>
+                        <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             <div className="space-y-2">
               <Label>Téléphone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
+              <Input placeholder="+243 ..." {...editForm.register('phone')} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Spécialité</Label>
-              <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
+              <Input placeholder="Ex: Médecine générale" {...editForm.register('specialty')} />
             </div>
             <div className="space-y-2">
               <Label>N° d'ordre</Label>
-              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+              <Input placeholder="Ex: ORD-1234" {...editForm.register('licenseNumber')} />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Disponibilité</Label>
-            <Select value={availability} onValueChange={setAvailability}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AVAILABLE">Disponible</SelectItem>
-                <SelectItem value="BUSY">Occupé</SelectItem>
-                <SelectItem value="OFF_DUTY">Hors service</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              control={editForm.control}
+              name="availability"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                    <SelectItem value="ON_LEAVE">En congé</SelectItem>
+                    <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="space-y-2">
             <Label>Établissement</Label>
-              <Select value={facility} onValueChange={setFacility}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
-                <SelectContent>
-                  {facilitiesList.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="facility"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
+                    <SelectContent>
+                      {facilitiesList.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.facility?.message && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.facility.message}</p>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Annuler</Button>

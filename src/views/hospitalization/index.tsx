@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { admitSchema, dischargeSchema, toDischargePayload, type AdmitValues, type DischargeValues } from '@/lib/schemas'
 import {
   Search, ChevronLeft, ChevronRight, DoorOpen, LogOut, Plus,
 } from 'lucide-react'
@@ -74,59 +77,68 @@ export default function HospitalizationView() {
   const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
   const [admitOpen, setAdmitOpen] = useState(false)
-  const [admitForm, setAdmitForm] = useState({ patientId: '', admitReason: '' })
   const [admitting, setAdmitting] = useState(false)
 
   const [dischargeOpen, setDischargeOpen] = useState(false)
   const [dischargeItem, setDischargeItem] = useState<EpisodeItem | null>(null)
-  const [dischargeForm, setDischargeForm] = useState({ outcome: '', summary: '' })
   const [discharging, setDischarging] = useState(false)
+
+  const [editDischargeOpen, setEditDischargeOpen] = useState(false)
+  const [editDischargeItem, setEditDischargeItem] = useState<EpisodeItem | null>(null)
+  const [editingDischarge, setEditingDischarge] = useState(false)
+
+  const admitForm = useForm<AdmitValues>({
+    resolver: zodResolver(admitSchema),
+    defaultValues: { patientId: '', admitReason: '' },
+  })
+
+  const dischargeForm = useForm<DischargeValues>({
+    resolver: zodResolver(dischargeSchema),
+    defaultValues: { outcome: '', summary: '' },
+  })
+
+  const editDischargeForm = useForm<DischargeValues>({
+    resolver: zodResolver(dischargeSchema),
+    defaultValues: { outcome: '', summary: '' },
+  })
 
   const openDischarge = (item: EpisodeItem) => {
     setDischargeItem(item)
-    setDischargeForm({
+    dischargeForm.reset({
       outcome: item.dischargeOutcome || '',
       summary: JSON.stringify(item.dischargeSummary || {}, null, 2) === '{}' ? '' : String(item.dischargeSummary?.summary || ''),
     })
     setDischargeOpen(true)
   }
 
-  const handleAdmit = async () => {
-    if (!admitForm.patientId || !admitForm.admitReason) {
-      toast({ title: 'Erreur', description: 'Veuillez sélectionner un patient et saisir le motif.', variant: 'destructive' })
-      return
-    }
+  const handleAdmit = admitForm.handleSubmit(async (values) => {
     setAdmitting(true)
     try {
       await createEpisode.mutateAsync({
-        patientId: admitForm.patientId,
+        patientId: values.patientId,
         status: 'HOSPITALIZED',
-        admitReason: admitForm.admitReason,
+        admitReason: values.admitReason,
       })
       toast({ title: 'Succès', description: 'Patient hospitalisé avec succès.' })
       setAdmitOpen(false)
-      setAdmitForm({ patientId: '', admitReason: '' })
+      admitForm.reset()
     } catch {
       toast({ title: 'Erreur', description: 'Impossible d\'hospitaliser le patient.', variant: 'destructive' })
     } finally {
       setAdmitting(false)
     }
-  }
+  })
 
-  const handleDischarge = async () => {
-    if (!dischargeItem || !dischargeForm.outcome) {
-      toast({ title: 'Erreur', description: 'Veuillez sélectionner l\'issue de la sortie.', variant: 'destructive' })
-      return
-    }
+  const handleDischarge = dischargeForm.handleSubmit(async (values) => {
+    if (!dischargeItem) return
     setDischarging(true)
     try {
       await updateEpisode.mutateAsync({
         id: dischargeItem.id,
         data: {
-          status: 'DISCHARGED',
+          ...toDischargePayload(values),
           dischargeDate: new Date().toISOString(),
-          dischargeOutcome: dischargeForm.outcome,
-          dischargeSummary: { summary: dischargeForm.summary, date: new Date().toISOString() },
+          dischargeSummary: { summary: values.summary, date: new Date().toISOString() },
         },
       })
       toast({ title: 'Succès', description: 'Patient sorti avec succès.' })
@@ -137,7 +149,37 @@ export default function HospitalizationView() {
     } finally {
       setDischarging(false)
     }
+  })
+
+  const openEditDischarge = (item: EpisodeItem) => {
+    setEditDischargeItem(item)
+    editDischargeForm.reset({
+      outcome: item.dischargeOutcome || '',
+      summary: JSON.stringify(item.dischargeSummary || {}, null, 2) === '{}' ? '' : String(item.dischargeSummary?.summary || ''),
+    })
+    setEditDischargeOpen(true)
   }
+
+  const handleEditDischarge = editDischargeForm.handleSubmit(async (values) => {
+    if (!editDischargeItem) return
+    setEditingDischarge(true)
+    try {
+      await updateEpisode.mutateAsync({
+        id: editDischargeItem.id,
+        data: {
+          ...toDischargePayload(values),
+          dischargeSummary: { summary: values.summary, updatedAt: new Date().toISOString() },
+        },
+      })
+      toast({ title: 'Succès', description: 'Issue de sortie mise à jour.' })
+      setEditDischargeOpen(false)
+      setEditDischargeItem(null)
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'issue.', variant: 'destructive' })
+    } finally {
+      setEditingDischarge(false)
+    }
+  })
 
   const hospitalizedCount = tab === 'hospitalized' ? totalCount : 0
 
@@ -236,6 +278,11 @@ export default function HospitalizationView() {
                             <LogOut className="h-4 w-4 mr-1" /> Sortie
                           </Button>
                         )}
+                        {tab === 'discharged' && (
+                          <Button size="sm" variant="outline" onClick={() => openEditDischarge(item)} disabled={!can('episodes:edit')}>
+                            Modifier
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   )
@@ -264,38 +311,45 @@ export default function HospitalizationView() {
             <DialogTitle>Nouvelle admission</DialogTitle>
             <DialogDescription>Hospitaliser un patient</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleAdmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Patient</Label>
-              <Select value={admitForm.patientId} onValueChange={(v) => setAdmitForm((f) => ({ ...f, patientId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patientsList.map((p) => (
-                    <SelectItem key={p.id as string} value={p.id as string}>
-                      {p.firstname as string} {p.lastname as string}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={admitForm.control}
+                name="patientId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un patient" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patientsList.map((p) => (
+                        <SelectItem key={p.id as string} value={p.id as string}>
+                          {p.firstname as string} {p.lastname as string}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {admitForm.formState.errors.patientId && <p className="text-xs text-destructive">{admitForm.formState.errors.patientId.message}</p>}
             </div>
             <div className="space-y-2">
               <Label>Motif d'admission <span className="text-destructive">*</span></Label>
               <Textarea
                 placeholder="Motif de l'hospitalisation"
-                value={admitForm.admitReason}
-                onChange={(e) => setAdmitForm((f) => ({ ...f, admitReason: e.target.value }))}
                 rows={3}
+                {...admitForm.register('admitReason')}
               />
+              {admitForm.formState.errors.admitReason && <p className="text-xs text-destructive">{admitForm.formState.errors.admitReason.message}</p>}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAdmitOpen(false)} disabled={admitting}>Annuler</Button>
-            <Button onClick={handleAdmit} disabled={admitting}>
-              {admitting ? 'Admission...' : 'Hospitaliser'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAdmitOpen(false)} disabled={admitting}>Annuler</Button>
+              <Button type="submit" disabled={admitting}>
+                {admitting ? 'Admission...' : 'Hospitaliser'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -307,38 +361,92 @@ export default function HospitalizationView() {
               {dischargeItem ? `${dischargeItem.patientFirstname || ''} ${dischargeItem.patientLastname || ''}` : ''}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={handleDischarge} className="space-y-4">
             <div className="space-y-2">
               <Label>Issue de la sortie <span className="text-destructive">*</span></Label>
-              <Select value={dischargeForm.outcome} onValueChange={(v) => setDischargeForm((f) => ({ ...f, outcome: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner l'issue" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="GUERISON">Guérison</SelectItem>
-                  <SelectItem value="AMELIORATION">Amélioration</SelectItem>
-                  <SelectItem value="DECES">Décès</SelectItem>
-                  <SelectItem value="TRANSFERT">Transfert</SelectItem>
-                  <SelectItem value="FUITE">Fuite</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={dischargeForm.control}
+                name="outcome"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner l'issue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GUERISON">Guérison</SelectItem>
+                      <SelectItem value="AMELIORATION">Amélioration</SelectItem>
+                      <SelectItem value="DECES">Décès</SelectItem>
+                      <SelectItem value="TRANSFERT">Transfert</SelectItem>
+                      <SelectItem value="FUITE">Fuite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {dischargeForm.formState.errors.outcome && <p className="text-xs text-destructive">{dischargeForm.formState.errors.outcome.message}</p>}
             </div>
             <div className="space-y-2">
               <Label>Résumé clinique</Label>
               <Textarea
                 placeholder="Résumé de l'hospitalisation"
-                value={dischargeForm.summary}
-                onChange={(e) => setDischargeForm((f) => ({ ...f, summary: e.target.value }))}
                 rows={4}
+                {...dischargeForm.register('summary')}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDischargeOpen(false)} disabled={discharging}>Annuler</Button>
-            <Button onClick={handleDischarge} disabled={discharging}>
-              {discharging ? 'Sortie...' : 'Finaliser la sortie'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDischargeOpen(false)} disabled={discharging}>Annuler</Button>
+              <Button type="submit" disabled={discharging}>
+                {discharging ? 'Sortie...' : 'Finaliser la sortie'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={editDischargeOpen} onOpenChange={setEditDischargeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier l'issue de sortie</DialogTitle>
+            <DialogDescription>
+              {editDischargeItem ? `${editDischargeItem.patientFirstname || ''} ${editDischargeItem.patientLastname || ''}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditDischarge} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Issue de la sortie <span className="text-destructive">*</span></Label>
+              <Controller
+                control={editDischargeForm.control}
+                name="outcome"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner l'issue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GUERISON">Guérison</SelectItem>
+                      <SelectItem value="AMELIORATION">Amélioration</SelectItem>
+                      <SelectItem value="DECES">Décès</SelectItem>
+                      <SelectItem value="TRANSFERT">Transfert</SelectItem>
+                      <SelectItem value="FUITE">Fuite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editDischargeForm.formState.errors.outcome && <p className="text-xs text-destructive">{editDischargeForm.formState.errors.outcome.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Résumé clinique</Label>
+              <Textarea
+                placeholder="Résumé de l'hospitalisation"
+                rows={4}
+                {...editDischargeForm.register('summary')}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDischargeOpen(false)} disabled={editingDischarge}>Annuler</Button>
+              <Button type="submit" disabled={editingDischarge}>
+                {editingDischarge ? 'Mise à jour...' : 'Mettre à jour'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

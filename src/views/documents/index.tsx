@@ -3,6 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  documentCreateSchema,
+  documentEditSchema,
+  toDocumentPayload,
+  DOCUMENT_TYPES,
+  type DocumentCreateValues,
+  type DocumentEditValues,
+} from '@/lib/schemas'
 import {
   FileText,
   Search,
@@ -73,7 +83,6 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
 import { generateMedicalReportPDF } from '@/lib/export-medical'
 import { generateMedicalReportExcel } from '@/lib/export-excel'
 import { generateMedicalReportDOCX } from '@/lib/export-docx'
@@ -185,115 +194,54 @@ export default function DocumentsView() {
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [previewDocument, setPreviewDocument] = useState<DocumentItem | null>(null)
-  const [newDocument, setNewDocument] = useState({
-    patientId: '',
-    doctorId: '',
-    consultationId: 'none',
-    documentType: '',
-    title: '',
-    content: '',
-    filePath: '',
+
+  const createForm = useForm<DocumentCreateValues>({
+    resolver: zodResolver(documentCreateSchema),
+    defaultValues: { patientId: '', doctorId: '', consultationId: 'none', documentType: '' as DocumentCreateValues['documentType'], title: '', content: '', filePath: '' },
   })
 
-  const [editForm, setEditForm] = useState({
-    patientId: '',
-    doctorId: '',
-    consultationId: 'none',
-    documentType: '',
-    title: '',
-    content: '',
-    isPrinted: false,
+  const editForm = useForm<DocumentEditValues>({
+    resolver: zodResolver(documentEditSchema),
+    defaultValues: { patientId: '', doctorId: '', consultationId: 'none', documentType: '' as DocumentEditValues['documentType'], title: '', content: '', isPrinted: false },
   })
 
-  const handleCreate = async () => {
-    if (!newDocument.title.trim()) {
-      toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' })
-      return
-    }
-    if (!newDocument.documentType) {
-      toast({ title: 'Erreur', description: 'Le type de document est requis.', variant: 'destructive' })
-      return
-    }
-    if (!newDocument.patientId) {
-      toast({ title: 'Erreur', description: 'Le patient est requis.', variant: 'destructive' })
-      return
-    }
+  const handleCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      let parsedContent: Record<string, unknown> = {}
-      const raw = newDocument.content.trim()
-      if (raw) {
-        try {
-          parsedContent = JSON.parse(raw)
-        } catch {
-          parsedContent = { text: raw }
-        }
-      }
-      await createDocument.mutateAsync({
-        patientId: sanitizeUuid(newDocument.patientId) || undefined,
-        doctorId: sanitizeUuid(newDocument.doctorId) || undefined,
-        consultationId:
-          newDocument.consultationId && newDocument.consultationId !== 'none'
-            ? sanitizeUuid(newDocument.consultationId) || undefined
-            : undefined,
-        documentType: newDocument.documentType,
-        title: newDocument.title.trim(),
-        content: parsedContent,
-        filePath: newDocument.filePath.trim() || null,
-      })
+      await createDocument.mutateAsync(toDocumentPayload(values))
       await queryClient.invalidateQueries({ queryKey: ['documents'] })
-      toast({ title: 'Document créé', description: `"${newDocument.title}" a été enregistré.` })
+      toast({ title: 'Document créé', description: `"${values.title}" a été enregistré.` })
       setDialogOpen(false)
-      setNewDocument({ patientId: '', doctorId: '', consultationId: 'none', documentType: '', title: '', content: '', filePath: '' })
+      createForm.reset()
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le document.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEdit = (d: DocumentItem) => {
     setEditingDocument(d)
-    setEditForm({
+    editForm.reset({
       patientId: (d.patientId as string) || '',
       doctorId: (d.doctorId as string) || '',
       consultationId: (d.consultationId as string) || 'none',
-      documentType: (d.documentType as string) || '',
+      documentType: (d.documentType as DocumentEditValues['documentType']) || '' as DocumentEditValues['documentType'],
       title: (d.title as string) || '',
-      content: d.content ? JSON.stringify(d.content, null, 2) : '',
-      isPrinted: Boolean(d.isPrinted),
+      content: typeof d.content === 'object' ? JSON.stringify(d.content, null, 2) : ((d.content as string) || ''),
+      isPrinted: !!d.isPrinted,
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     if (!editingDocument) return
     setSaving(true)
     try {
-      let parsedContent: Record<string, unknown> = {}
-      const raw = editForm.content.trim()
-      if (raw) {
-        try {
-          parsedContent = JSON.parse(raw)
-        } catch {
-          parsedContent = { text: raw }
-        }
-      }
       await updateDocument.mutateAsync({
         id: editingDocument.id as string,
-        data: {
-          patientId: sanitizeUuid(editForm.patientId) || undefined,
-          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
-          consultationId:
-            editForm.consultationId && editForm.consultationId !== 'none'
-              ? sanitizeUuid(editForm.consultationId) || undefined
-              : undefined,
-          documentType: editForm.documentType,
-          title: editForm.title.trim(),
-          content: parsedContent,
-          isPrinted: editForm.isPrinted,
-        },
+        data: toDocumentPayload(values),
       })
       toast({ title: 'Document mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -303,7 +251,7 @@ export default function DocumentsView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = (d: DocumentItem) => {
     setConfirmDelete({
@@ -438,78 +386,110 @@ export default function DocumentsView() {
                 Remplissez les informations pour enregistrer un nouveau document.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <form onSubmit={handleCreate} className="grid gap-4 py-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Patient *</label>
-                  <Select value={newDocument.patientId} onValueChange={(v) => setNewDocument({ ...newDocument, patientId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="patientId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.patientId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Médecin *</label>
-                  <Select value={newDocument.doctorId} onValueChange={(v) => setNewDocument({ ...newDocument, doctorId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctorsList.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="doctorId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un médecin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doctorsList.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Consultation (optionnel)</label>
-                <Select value={newDocument.consultationId} onValueChange={(v) => setNewDocument({ ...newDocument, consultationId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une consultation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Aucune</SelectItem>
-                    {consultationsList.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {String(c.consultationNumber || c.id)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={createForm.control}
+                  name="consultationId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une consultation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune</SelectItem>
+                        {consultationsList.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {String(c.consultationNumber || c.id)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Type *</label>
-                  <Select value={newDocument.documentType} onValueChange={(v) => setNewDocument({ ...newDocument, documentType: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(typeLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="documentType"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_TYPES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {typeLabels[value] || value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.documentType && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.documentType.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Titre *</label>
                   <Input
                     placeholder="Titre du document"
-                    value={newDocument.title}
-                    onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
+                    {...createForm.register('title')}
                   />
+                  {createForm.formState.errors.title && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.title.message}</p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
@@ -517,27 +497,25 @@ export default function DocumentsView() {
                 <Textarea
                   placeholder='{"texte": "..."} ou texte libre'
                   rows={4}
-                  value={newDocument.content}
-                  onChange={(e) => setNewDocument({ ...newDocument, content: e.target.value })}
+                  {...createForm.register('content')}
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Chemin fichier (optionnel)</label>
                 <Input
                   placeholder="/documents/fichier.pdf"
-                  value={newDocument.filePath}
-                  onChange={(e) => setNewDocument({ ...newDocument, filePath: e.target.value })}
+                  {...createForm.register('filePath')}
                 />
               </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="button" disabled={creating || !newDocument.title.trim() || !newDocument.documentType || !newDocument.patientId} onClick={handleCreate}>
-                {creating ? 'Création...' : 'Créer le document'}
-              </Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={creating}>
+                  {creating ? 'Création...' : 'Créer le document'}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -726,107 +704,137 @@ export default function DocumentsView() {
               Modifiez les informations du document ci-dessous.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <form onSubmit={handleUpdate} className="grid gap-4 py-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Patient *</label>
-                <Select value={editForm.patientId} onValueChange={(v) => setEditForm({ ...editForm, patientId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un patient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patientsList.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.firstName} {p.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="patientId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un patient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patientsList.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.firstName} {p.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.patientId && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.patientId.message}</p>
+                )}
               </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Médecin *</label>
-                  <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctorsList.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={editForm.control}
+                    name="doctorId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un médecin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doctorsList.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Consultation (optionnel)</label>
-                <Select value={editForm.consultationId} onValueChange={(v) => setEditForm({ ...editForm, consultationId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une consultation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Aucune</SelectItem>
-                    {consultationsList.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {String(c.consultationNumber || c.id)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="consultationId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une consultation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune</SelectItem>
+                        {consultationsList.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {String(c.consultationNumber || c.id)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Type *</label>
-                <Select value={editForm.documentType} onValueChange={(v) => setEditForm({ ...editForm, documentType: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(typeLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="documentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOCUMENT_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {typeLabels[value] || value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.documentType && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.documentType.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Titre *</label>
                 <Input
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  {...editForm.register('title')}
                 />
+                {editForm.formState.errors.title && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.title.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Contenu (JSON ou texte)</label>
               <Textarea
                 rows={4}
-                value={editForm.content}
-                onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                {...editForm.register('content')}
               />
             </div>
             <div className="flex items-end space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input
                   type="checkbox"
-                  checked={editForm.isPrinted}
-                  onChange={(e) => setEditForm({ ...editForm, isPrinted: e.target.checked })}
+                  {...editForm.register('isPrinted')}
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 Imprimé
               </label>
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button type="button" disabled={saving} onClick={handleUpdate}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

@@ -62,6 +62,9 @@ import {
   useUpdateFacility,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { facilityEditSchema, type FacilityEditValues } from '@/lib/schemas'
 import { formatDate, getStatusLabel, getStatusColor, getRoleLabel } from '@/lib/utils'
 
 const typeLabels: Record<string, string> = {
@@ -87,17 +90,18 @@ export default function FacilityDetailPage() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({
-    name: '', type: '', address: '', city: '', phone: '', email: '', bedCount: '',
+  const editForm = useForm<FacilityEditValues>({
+    resolver: zodResolver(facilityEditSchema),
+    defaultValues: { name: '', type: 'hospital', address: '', city: '', phone: '', email: '', bedCount: '' },
   })
 
   const f = facility as Record<string, unknown> | null | undefined
 
   const openEditDialog = () => {
     if (!f) return
-    setEditForm({
+    editForm.reset({
       name: (f.name as string) || '',
-      type: (f.type as string) || 'hospital',
+      type: ((f.type as string) || 'hospital') as FacilityEditValues['type'],
       address: (f.address as string) || '',
       city: (f.city as string) || '',
       phone: (f.phone as string) || '',
@@ -107,20 +111,19 @@ export default function FacilityDetailPage() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateFacility.mutateAsync({
         id: f!.id as string,
         data: {
-          name: editForm.name,
-          type: editForm.type,
-          address: editForm.address,
-          city: editForm.city,
-          phone: editForm.phone,
-          email: editForm.email,
-          capacity: editForm.bedCount ? Number(editForm.bedCount) : undefined,
+          name: values.name,
+          type: values.type,
+          address: values.address,
+          city: values.city,
+          phone: values.phone,
+          email: values.email,
+          capacity: values.bedCount ? Number(values.bedCount) : undefined,
         },
       })
       toast({ title: 'Établissement mis à jour', description: 'Les modifications ont été enregistrées.' })
@@ -130,7 +133,7 @@ export default function FacilityDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const facilityCases = ((allCasesData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
   const facilityPatients = ((allPatientsData as unknown as { items?: Array<Record<string, unknown>> })?.items || []) as Record<string, unknown>[]
@@ -590,45 +593,57 @@ export default function FacilityDetailPage() {
               Modifiez les informations de l'établissement ci-dessous.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={onUpdate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nom</Label>
-              <Input id="name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+              <Input id="name" {...editForm.register('name')} />
+              {editForm.formState.errors.name && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.name.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <Select value={editForm.type} onValueChange={(v) => setEditForm({ ...editForm, type: v })}>
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(typeLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="type"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(typeLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Adresse</Label>
-              <Input id="address" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+              <Input id="address" {...editForm.register('address')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="city">Ville</Label>
-              <Input id="city" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+              <Input id="city" {...editForm.register('city')} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Téléphone</Label>
-                <Input id="phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                <Input id="phone" {...editForm.register('phone')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                <Input id="email" type="email" {...editForm.register('email')} />
+                {editForm.formState.errors.email && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.email.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="bedCount">Capacité (lits)</Label>
-              <Input id="bedCount" type="number" min="0" value={editForm.bedCount} onChange={(e) => setEditForm({ ...editForm, bedCount: e.target.value })} />
+              <Input id="bedCount" type="number" min="0" {...editForm.register('bedCount')} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>

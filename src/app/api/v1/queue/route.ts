@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { parseJsonBody, queueCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,16 +92,11 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'NURSE'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.patientId) {
-      return apiError(400, 'patientId is required')
-    }
+    const parsed = await parseJsonBody(request, queueCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const patientId = sanitizeUuid(body.patientId)
-    if (!patientId) {
-      return apiError(400, 'Invalid patientId')
-    }
 
     const patientCheck = await getDb().select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {

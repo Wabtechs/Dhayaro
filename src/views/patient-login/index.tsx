@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { usePatientAuthStore } from '@/store/patient-auth-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,10 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { Activity, Eye, EyeOff } from 'lucide-react'
+import { loginSchema, type LoginValues } from '@/lib/schemas'
 
 export default function PatientLoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,24 +21,28 @@ export default function PatientLoginPage() {
   const login = usePatientAuthStore((s) => s.login)
   const router = useRouter()
 
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '', rememberMe: false },
+  })
+
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 200)
     return () => clearTimeout(timer)
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = handleSubmit(async (values) => {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      await login(values.email, values.password)
       router.push('/patient/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
-  }
+  })
 
   if (isPageLoading) {
     return (
@@ -77,18 +82,19 @@ export default function PatientLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="patient@email.cd"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
                 autoFocus
+                {...register('email')}
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
@@ -97,9 +103,7 @@ export default function PatientLoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register('password')}
                 />
                 <button
                   type="button"
@@ -109,6 +113,9 @@ export default function PatientLoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
             </div>
             {error && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">

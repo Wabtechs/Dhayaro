@@ -4,6 +4,7 @@ import { diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { parseJsonBody, diseaseCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,17 +52,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.code) {
-      return apiError(400, 'code is required')
-    }
-    if (!body.name) {
-      return apiError(400, 'name is required')
-    }
-    if (!body.category) {
-      return apiError(400, 'category is required')
-    }
+    const parsed = await parseJsonBody(request, diseaseCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const db = getDb()
 

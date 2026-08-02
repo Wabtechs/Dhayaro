@@ -7,6 +7,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseJsonBody, userUpdateSchema } from '@/lib/api-schemas'
 
 export async function GET(
   request: NextRequest,
@@ -72,14 +73,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
-
-    if (body.role !== undefined) {
-      const validRoles = ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST']
-      if (!validRoles.includes(body.role)) {
-        return apiError(400, `role must be one of: ${validRoles.join(', ')}`)
-      }
-    }
+    const parsed = await parseJsonBody(request, userUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const MULTI_FACILITY_ROLES = ['SUPER_ADMIN', 'ADMIN']
     const targetRole = body.role as string | undefined

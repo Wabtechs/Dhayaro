@@ -64,17 +64,43 @@ function getAllowedRoles(pathname: string): string[] | null {
   return null
 }
 
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+}
+
+const isDev = process.env.NODE_ENV === 'development'
+
+function applyHeaders(response: NextResponse, isApi: boolean): NextResponse {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value)
+  }
+  if (isDev && isApi) {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
+  return response
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const isApi = pathname.startsWith('/api/')
 
-  if (isPublicPath(pathname)) {
-    return NextResponse.next()
+  if (isApi && request.method === 'OPTIONS') {
+    return applyHeaders(NextResponse.json({}), true)
   }
 
-  if (pathname.startsWith('/api/')) {
+  if (isPublicPath(pathname)) {
+    return applyHeaders(NextResponse.next(), isApi)
+  }
+
+  if (isApi) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '')
     if (!token) {
-      return NextResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+      return applyHeaders(NextResponse.json({ detail: 'Not authenticated' }, { status: 401 }), true)
     }
     try {
       const { payload } = await jwtVerify(token, JWT_SECRET)
@@ -83,16 +109,16 @@ export async function middleware(request: NextRequest) {
       if (allowedRoles) {
         const userRole = payload.role as string
         if (!allowedRoles.includes(userRole)) {
-          return NextResponse.json(
-            { detail: 'Insufficient permissions' },
-            { status: 403 }
+          return applyHeaders(
+            NextResponse.json({ detail: 'Insufficient permissions' }, { status: 403 }),
+            true
           )
         }
       }
 
-      return NextResponse.next()
+      return applyHeaders(NextResponse.next(), true)
     } catch {
-      return NextResponse.json({ detail: 'Invalid or expired token' }, { status: 401 })
+      return applyHeaders(NextResponse.json({ detail: 'Invalid or expired token' }, { status: 401 }), true)
     }
   }
 
@@ -102,16 +128,17 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
+    const response = NextResponse.redirect(loginUrl)
+    return applyHeaders(response, false)
   }
 
   try {
     await jwtVerify(token, JWT_SECRET)
-    return NextResponse.next()
+    return applyHeaders(NextResponse.next(), false)
   } catch {
     const response = NextResponse.redirect(new URL('/login', request.url))
     response.cookies.delete('dhayaro_token')
-    return response
+    return applyHeaders(response, false)
   }
 }
 

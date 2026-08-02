@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -49,7 +51,13 @@ import {
   useUpdateDoctor,
   useDeleteDoctor,
 } from '@/hooks/use-data'
-import { sanitizeUuid } from '@/lib/validation'
+import {
+  doctorCreateSchema,
+  doctorEditSchema,
+  toDoctorPayload,
+  type DoctorCreateValues,
+  type DoctorEditValues,
+} from '@/lib/schemas'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getInitials } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -82,11 +90,6 @@ const roleBadgeColors: Record<string, string> = {
   specialist: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
 }
 
-const ROLE_MAP: Record<string, string> = {
-  doctor: 'DOCTOR',
-  specialist: 'SPECIALIST',
-}
-
 export default function DoctorsView() {
   const router = useRouter()
   const { toast } = useToast()
@@ -104,26 +107,15 @@ export default function DoctorsView() {
   const [editingDoctor, setEditingDoctor] = useState<DoctorItem | null>(null)
   const [deletingDoctor, setDeletingDoctor] = useState<DoctorItem | null>(null)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState<string>('doctor')
-  const [facility, setFacility] = useState('')
-  const [phone, setPhone] = useState('')
-  const [specialty, setSpecialty] = useState('')
-  const [licenseNumber, setLicenseNumber] = useState('')
-  const [availability, setAvailability] = useState('AVAILABLE')
+  const createForm = useForm<DoctorCreateValues>({
+    resolver: zodResolver(doctorCreateSchema),
+    defaultValues: { firstName: '', lastName: '', email: '', role: 'doctor', facility: '', phone: '', specialty: '', licenseNumber: '', availability: 'AVAILABLE', password: '' },
+  })
 
-  const [editFirstName, setEditFirstName] = useState('')
-  const [editLastName, setEditLastName] = useState('')
-  const [editEmail, setEditEmail] = useState('')
-  const [editRole, setEditRole] = useState<string>('doctor')
-  const [editFacility, setEditFacility] = useState('')
-  const [editPhone, setEditPhone] = useState('')
-  const [editSpecialty, setEditSpecialty] = useState('')
-  const [editLicenseNumber, setEditLicenseNumber] = useState('')
-  const [editAvailability, setEditAvailability] = useState('AVAILABLE')
+  const editForm = useForm<DoctorEditValues>({
+    resolver: zodResolver(doctorEditSchema),
+    defaultValues: { firstName: '', lastName: '', email: '', role: 'doctor', facility: '', phone: '', specialty: '', licenseNumber: '', availability: 'AVAILABLE' },
+  })
 
   const params = `role=${roleFilter}&page=${page}&size=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`
   const { data, isLoading } = useDoctorsData(params)
@@ -137,80 +129,46 @@ export default function DoctorsView() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const facilitiesList = (facilitiesData?.items ?? []) as { id: string; name: string }[]
 
-  const resetCreateForm = () => {
-    setFirstName('')
-    setLastName('')
-    setEmail('')
-    setPassword('')
-    setRole('doctor')
-    setFacility('')
-    setPhone('')
-    setSpecialty('')
-    setLicenseNumber('')
-    setAvailability('AVAILABLE')
-  }
-
   const openEdit = (doc: DoctorItem) => {
     setEditingDoctor(doc)
-    setEditFirstName(doc.firstName || '')
-    setEditLastName(doc.lastName || '')
-    setEditEmail(doc.email)
-    setEditRole((doc.role || 'DOCTOR').toLowerCase())
-    setEditFacility(doc.facilityId || '')
-    setEditPhone(doc.phone || '')
-    setEditSpecialty((doc.specialty as string) || '')
-    setEditLicenseNumber((doc.licenseNumber as string) || '')
-    setEditAvailability((doc.availability as string) || 'AVAILABLE')
+    editForm.reset({
+      firstName: doc.firstName || '',
+      lastName: doc.lastName || '',
+      email: doc.email,
+      role: ((doc.role || 'DOCTOR') as string).toLowerCase() as DoctorEditValues['role'],
+      facility: doc.facilityId || '',
+      phone: doc.phone || '',
+      specialty: (doc.specialty as string) || '',
+      licenseNumber: (doc.licenseNumber as string) || '',
+      availability: ((doc.availability as string) || 'AVAILABLE') as DoctorEditValues['availability'],
+    })
     setEditOpen(true)
   }
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      await createDoctor.mutateAsync({
-        firstname: firstName,
-        lastname: lastName,
-        email,
-        password,
-        role: ROLE_MAP[role] || 'DOCTOR',
-        facilityId: sanitizeUuid(facility),
-        phone: phone || undefined,
-        specialty: specialty || null,
-        licenseNumber: licenseNumber || null,
-        availability: availability || null,
-      })
-      toast({ title: 'Médecin créé', description: `${firstName} ${lastName} a été ajouté.` })
+      await createDoctor.mutateAsync(toDoctorPayload(values))
+      toast({ title: 'Médecin créé', description: `${values.firstName} ${values.lastName} a été ajouté.` })
       setCreateOpen(false)
-      resetCreateForm()
+      createForm.reset()
       setPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le médecin.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     if (!editingDoctor) return
     setSaving(true)
     try {
       await updateDoctor.mutateAsync({
         id: editingDoctor.id,
-        data: {
-          firstname: editFirstName,
-          lastname: editLastName,
-          email: editEmail,
-          role: ROLE_MAP[editRole] || 'DOCTOR',
-          facilityId: sanitizeUuid(editFacility),
-          phone: editPhone || undefined,
-          specialty: editSpecialty || null,
-          licenseNumber: editLicenseNumber || null,
-          availability: editAvailability || null,
-        },
+        data: toDoctorPayload(values),
       })
-      toast({ title: 'Médecin mis à jour', description: `${editFirstName} ${editLastName} a été modifié.` })
+      toast({ title: 'Médecin mis à jour', description: `${values.firstName} ${values.lastName} a été modifié.` })
       setEditOpen(false)
       setEditingDoctor(null)
     } catch {
@@ -218,7 +176,7 @@ export default function DoctorsView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = async () => {
     if (!deletingDoctor) return
@@ -294,72 +252,105 @@ export default function DoctorsView() {
                   Ajoutez un médecin ou spécialiste à la plateforme.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
+              <form onSubmit={onCreate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstname">Prénom</Label>
-                    <Input id="firstname" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                    <Input id="firstname" {...createForm.register('firstName')} />
+                    {createForm.formState.errors.firstName && (
+                      <p className="text-xs text-destructive">{createForm.formState.errors.firstName.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastname">Nom</Label>
-                    <Input id="lastname" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                    <Input id="lastname" {...createForm.register('lastName')} />
+                    {createForm.formState.errors.lastName && (
+                      <p className="text-xs text-destructive">{createForm.formState.errors.lastName.message}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input id="email" type="email" {...createForm.register('email')} />
+                  {createForm.formState.errors.email && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.email.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Input id="password" type="password" {...createForm.register('password')} />
+                  {createForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.password.message}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Rôle</Label>
-                    <Select value={role} onValueChange={setRole}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="doctor">Médecin Généraliste</SelectItem>
-                        <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      control={createForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="doctor">Médecin Généraliste</SelectItem>
+                            <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                     <div className="space-y-2">
                       <Label>Téléphone</Label>
-                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243 ..." />
+                      <Input placeholder="+243 ..." {...createForm.register('phone')} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Spécialité</Label>
-                      <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
+                      <Input placeholder="Ex: Médecine générale" {...createForm.register('specialty')} />
                     </div>
                     <div className="space-y-2">
                       <Label>N° d'ordre</Label>
-                      <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+                      <Input placeholder="Ex: ORD-1234" {...createForm.register('licenseNumber')} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Disponibilité</Label>
-                    <Select value={availability} onValueChange={setAvailability}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
-                        <SelectItem value="BUSY">Occupé</SelectItem>
-                        <SelectItem value="OFF_DUTY">Hors service</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      control={createForm.control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                            <SelectItem value="ON_LEAVE">En congé</SelectItem>
+                            <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Établissement</Label>
-                  <Select value={facility} onValueChange={setFacility}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
-                    <SelectContent>
-                      {facilitiesList.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="facility"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
+                        <SelectContent>
+                          {facilitiesList.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.facility?.message && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.facility.message}</p>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
@@ -516,68 +507,98 @@ export default function DoctorsView() {
             <DialogTitle>Modifier le Médecin</DialogTitle>
             <DialogDescription>Modifiez les informations du médecin.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={onUpdate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstname">Prénom</Label>
-                <Input id="edit-firstname" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} required />
+                <Input id="edit-firstname" {...editForm.register('firstName')} />
+                {editForm.formState.errors.firstName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.firstName.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-lastname">Nom</Label>
-                <Input id="edit-lastname" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} required />
+                <Input id="edit-lastname" {...editForm.register('lastName')} />
+                {editForm.formState.errors.lastName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.lastName.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email</Label>
-              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+              <Input id="edit-email" type="email" {...editForm.register('email')} />
+              {editForm.formState.errors.email && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.email.message}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rôle</Label>
-                <Select value={editRole} onValueChange={setEditRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">Médecin Généraliste</SelectItem>
-                    <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doctor">Médecin Généraliste</SelectItem>
+                        <SelectItem value="specialist">Médecin Spécialiste</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="space-y-2">
                       <Label>Téléphone</Label>
-                      <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+243 ..." />
+                      <Input placeholder="+243 ..." {...editForm.register('phone')} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Spécialité</Label>
-                      <Input value={editSpecialty} onChange={(e) => setEditSpecialty(e.target.value)} placeholder="Ex: Médecine générale" />
+                      <Input placeholder="Ex: Médecine générale" {...editForm.register('specialty')} />
                     </div>
                     <div className="space-y-2">
                       <Label>N° d'ordre</Label>
-                      <Input value={editLicenseNumber} onChange={(e) => setEditLicenseNumber(e.target.value)} placeholder="Ex: ORD-1234" />
+                      <Input placeholder="Ex: ORD-1234" {...editForm.register('licenseNumber')} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Disponibilité</Label>
-                    <Select value={editAvailability} onValueChange={setEditAvailability}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
-                        <SelectItem value="BUSY">Occupé</SelectItem>
-                        <SelectItem value="OFF_DUTY">Hors service</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      control={editForm.control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                            <SelectItem value="ON_LEAVE">En congé</SelectItem>
+                            <SelectItem value="OFF_DUTY">Hors service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Établissement</Label>
-              <Select value={editFacility} onValueChange={setEditFacility}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
-                <SelectContent>
-                  {facilitiesList.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="facility"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un établissement" /></SelectTrigger>
+                    <SelectContent>
+                      {facilitiesList.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.facility?.message && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.facility.message}</p>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Annuler</Button>

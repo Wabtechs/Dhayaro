@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { parseJsonBody, diagnosticUpdateSchema } from '@/lib/api-schemas'
 
 const DIAGNOSTIC_KEYS = ['diseaseId', 'diagnosticType', 'description', 'notes', 'consultationId', 'patientId', 'doctorId', 'facilityId', 'isValidated'] as const
 
@@ -73,7 +74,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, diagnosticUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const existing = await getDb().select({
       id: diagnostics.id,
@@ -82,11 +85,6 @@ export async function PUT(
       isValidated: diagnostics.isValidated,
     }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
     if (existing.length === 0) return apiError(404, 'Diagnostic not found')
-
-    if (body.diseaseId) {
-      const diseaseId = sanitizeUuid(body.diseaseId)
-      if (!diseaseId) return apiError(400, 'Invalid diseaseId')
-    }
 
     const allowedFields = pickAllowedKeys(body, DIAGNOSTIC_KEYS)
 

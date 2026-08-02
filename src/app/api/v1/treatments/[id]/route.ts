@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseJsonBody, treatmentUpdateSchema } from '@/lib/api-schemas'
 
 const TREATMENT_KEYS = ['description', 'status', 'startDate', 'endDate', 'notes', 'outcome', 'consultationId', 'patientId', 'doctorId', 'diagnosisId', 'facilityId'] as const
 
@@ -46,16 +47,9 @@ export async function PUT(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const body = await request.json()
-
-    if (body.patientId) {
-      const patientId = sanitizeUuid(body.patientId)
-      if (!patientId) return apiError(400, 'Invalid patientId')
-    }
-    if (body.doctorId) {
-      const doctorId = sanitizeUuid(body.doctorId)
-      if (!doctorId) return apiError(400, 'Invalid doctorId')
-    }
+    const parsed = await parseJsonBody(request, treatmentUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const allowedFields = pickAllowedKeys(body, TREATMENT_KEYS)
 

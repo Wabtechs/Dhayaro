@@ -66,12 +66,14 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { clinicalCaseSchema, toClinicalCasePayload, CASE_PRIORITIES, type ClinicalCaseValues } from '@/lib/schemas'
 import { useClinicalCasesData, usePatientsData, useFacilitiesData, useUsersData, useUpdateClinicalCase, useDeleteClinicalCase } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CaseStatus, CasePriority } from '@/types'
 
@@ -149,28 +151,13 @@ export default function ClinicalCasesPage() {
   const deleteCase = useDeleteClinicalCase()
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newCase, setNewCase] = useState({
-    title: '',
-    description: '',
-    patientId: '',
-    facilityId: '',
-    assignedDoctorId: '',
-    priority: '' as CasePriority | '',
-    diagnosis: '',
-    symptoms: '',
-    tags: '',
+  const createForm = useForm<ClinicalCaseValues>({
+    resolver: zodResolver(clinicalCaseSchema),
+    defaultValues: { title: '', description: '', patientId: '', facilityId: '', assignedDoctorId: '', priority: 'medium', diagnosis: '', symptoms: '', tags: '' },
   })
-
-  const [editCase, setEditCase] = useState({
-    title: '',
-    description: '',
-    patientId: '',
-    facilityId: '',
-    assignedDoctorId: '',
-    priority: '' as CasePriority | '',
-    diagnosis: '',
-    symptoms: '',
-    tags: '',
+  const editForm = useForm<ClinicalCaseValues>({
+    resolver: zodResolver(clinicalCaseSchema),
+    defaultValues: { title: '', description: '', patientId: '', facilityId: '', assignedDoctorId: '', priority: 'medium', diagnosis: '', symptoms: '', tags: '' },
   })
 
   const searchParams = [
@@ -204,50 +191,31 @@ export default function ClinicalCasesPage() {
     return doctor ? `${doctor.firstName || doctor.firstname || ''} ${doctor.lastName || doctor.lastname || ''}`.trim() || 'Inconnu' : 'Inconnu'
   }
 
-  const handleCreateCase = async () => {
-    if (!newCase.title.trim()) {
-      toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' })
-      return
-    }
-    if (!newCase.patientId) {
-      toast({ title: 'Erreur', description: 'Le patient est requis.', variant: 'destructive' })
-      return
-    }
+  const onCreateCase = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
-      await api.post('/clinical-cases', {
-        title: newCase.title,
-        description: newCase.description,
-        patientId: sanitizeUuid(newCase.patientId),
-        facilityId: sanitizeUuid(newCase.facilityId),
-        doctorId: sanitizeUuid(newCase.assignedDoctorId),
-        provisionalDiagnosis: newCase.diagnosis,
-        symptomsJson: newCase.symptoms ? { description: newCase.symptoms } : {},
-        tagsJson: newCase.tags ? { tags: newCase.tags.split(',').map((t: string) => t.trim()).filter(Boolean) } : {},
-        priority: newCase.priority || 'medium',
-        outcomeStatus: 'PENDING',
-      }, token)
+      await api.post('/clinical-cases', toClinicalCasePayload(values), token)
       await queryClient.invalidateQueries({ queryKey: ['clinical-cases'] })
-      toast({ title: 'Cas créé', description: `"${newCase.title}" a été ajouté.` })
+      toast({ title: 'Cas créé', description: `"${values.title}" a été ajouté.` })
       setDialogOpen(false)
-      setNewCase({ title: '', description: '', patientId: '', facilityId: '', assignedDoctorId: '', priority: '', diagnosis: '', symptoms: '', tags: '' })
+      createForm.reset()
     } catch {
       toast({ title: 'Erreur', description: "Impossible de créer le cas clinique.", variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEditDialog = (c: CaseItem) => {
     setEditingCase(c)
-    setEditCase({
+    editForm.reset({
       title: (c.title as string) || '',
       description: (c.description as string) || '',
       patientId: (c.patientId as string) || '',
       facilityId: (c.facilityId as string) || '',
       assignedDoctorId: (c.assignedDoctorId as string) || (c.doctorId as string) || '',
-      priority: ((c.priority as string) || 'medium') as CasePriority | '',
+      priority: ((c.priority as string) || 'medium') as ClinicalCaseValues['priority'],
       diagnosis: (c.diagnosis as string) || '',
       symptoms: Array.isArray(c.symptoms) ? (c.symptoms as string[]).join(', ') : '',
       tags: Array.isArray(c.tags) ? (c.tags as string[]).join(', ') : '',
@@ -255,25 +223,15 @@ export default function ClinicalCasesPage() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdateCase = async () => {
+  const onUpdateCase = editForm.handleSubmit(async (values) => {
     if (!editingCase) return
     setSaving(true)
     try {
       await updateCase.mutateAsync({
         id: editingCase.id as string,
-        data: {
-          title: editCase.title,
-          description: editCase.description,
-          patientId: sanitizeUuid(editCase.patientId),
-          facilityId: sanitizeUuid(editCase.facilityId),
-          doctorId: sanitizeUuid(editCase.assignedDoctorId),
-          provisionalDiagnosis: editCase.diagnosis,
-          symptomsJson: editCase.symptoms ? { description: editCase.symptoms } : {},
-          tagsJson: editCase.tags ? { tags: editCase.tags.split(',').map((t: string) => t.trim()).filter(Boolean) } : {},
-          priority: editCase.priority || 'medium',
-        },
+        data: toClinicalCasePayload(values),
       })
-      toast({ title: 'Cas mis à jour', description: `"${editCase.title}" a été modifié.` })
+      toast({ title: 'Cas mis à jour', description: `"${values.title}" a été modifié.` })
       setEditDialogOpen(false)
       setEditingCase(null)
     } catch {
@@ -281,7 +239,7 @@ export default function ClinicalCasesPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDeleteCase = (c: Record<string, unknown>) => {
     const title = (c.title as string) || 'ce cas'
@@ -377,18 +335,16 @@ export default function ClinicalCasesPage() {
                 clinique.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); handleCreateCase() }} className="grid gap-4 py-4">
+            <form onSubmit={onCreateCase} className="grid gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Titre *
                 </label>
                 <Input
                   placeholder="Titre du cas"
-                  value={newCase.title}
-                  onChange={(e) =>
-                    setNewCase({ ...newCase, title: e.target.value })
-                  }
+                  {...createForm.register('title')}
                 />
+                {createForm.formState.errors.title && <p className="text-xs text-destructive">{createForm.formState.errors.title.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
@@ -397,10 +353,7 @@ export default function ClinicalCasesPage() {
                 <Textarea
                   placeholder="Description détaillée du cas"
                   rows={3}
-                  value={newCase.description}
-                  onChange={(e) =>
-                    setNewCase({ ...newCase, description: e.target.value })
-                  }
+                  {...createForm.register('description')}
                 />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -408,90 +361,95 @@ export default function ClinicalCasesPage() {
                   <label className="text-sm font-medium text-foreground">
                     Patient
                   </label>
-                  <Select
-                    value={newCase.patientId}
-                    onValueChange={(v) =>
-                      setNewCase({ ...newCase, patientId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="patientId"
+                    control={createForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.patientId && <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Établissement
                   </label>
-                  <Select
-                    value={newCase.facilityId}
-                    onValueChange={(v) =>
-                      setNewCase({ ...newCase, facilityId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un établissement" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {facilitiesList.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="facilityId"
+                    control={createForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un établissement" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {facilitiesList.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Médecin assigné
                   </label>
-                  <Select
-                    value={newCase.assignedDoctorId}
-                    onValueChange={(v) =>
-                      setNewCase({ ...newCase, assignedDoctorId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usersList
-                        .filter((u) => u.role === 'doctor')
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <Controller
+                    name="assignedDoctorId"
+                    control={createForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un médecin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {usersList
+                            .filter((u) => u.role === 'doctor')
+                            .map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
                       Priorité
                     </label>
-                  <Select
-                    value={newCase.priority}
-                    onValueChange={(v) =>
-                      setNewCase({ ...newCase, priority: v as CasePriority })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner la priorité" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Faible</SelectItem>
-                      <SelectItem value="medium">Moyenne</SelectItem>
-                      <SelectItem value="high">Élevée</SelectItem>
-                      <SelectItem value="critical">Critique</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="priority"
+                    control={createForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner la priorité" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CASE_PRIORITIES.map((p) => (
+                            <SelectItem key={p} value={p}>{priorityLabels[p]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.priority && <p className="text-xs text-destructive">{createForm.formState.errors.priority.message}</p>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -500,10 +458,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="Diagnostic principal"
-                  value={newCase.diagnosis}
-                  onChange={(e) =>
-                    setNewCase({ ...newCase, diagnosis: e.target.value })
-                  }
+                  {...createForm.register('diagnosis')}
                 />
               </div>
               <div className="space-y-2">
@@ -512,10 +467,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="ex: Fièvre, Toux, Douleur"
-                  value={newCase.symptoms}
-                  onChange={(e) =>
-                    setNewCase({ ...newCase, symptoms: e.target.value })
-                  }
+                  {...createForm.register('symptoms')}
                 />
               </div>
               <div className="space-y-2">
@@ -524,10 +476,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="ex: Cardiologie, Urgence"
-                  value={newCase.tags}
-                  onChange={(e) =>
-                    setNewCase({ ...newCase, tags: e.target.value })
-                  }
+                  {...createForm.register('tags')}
                 />
               </div>
             </form>
@@ -535,7 +484,7 @@ export default function ClinicalCasesPage() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating || !newCase.title.trim() || !newCase.patientId} onClick={handleCreateCase}>{creating ? 'Création...' : 'Créer le cas'}</Button>
+              <Button type="button" disabled={creating} onClick={onCreateCase}>{creating ? 'Création...' : 'Créer le cas'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -554,11 +503,9 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="Titre du cas"
-                  value={editCase.title}
-                  onChange={(e) =>
-                    setEditCase({ ...editCase, title: e.target.value })
-                  }
+                  {...editForm.register('title')}
                 />
+                {editForm.formState.errors.title && <p className="text-xs text-destructive">{editForm.formState.errors.title.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
@@ -567,10 +514,7 @@ export default function ClinicalCasesPage() {
                 <Textarea
                   placeholder="Description détaillée du cas"
                   rows={3}
-                  value={editCase.description}
-                  onChange={(e) =>
-                    setEditCase({ ...editCase, description: e.target.value })
-                  }
+                  {...editForm.register('description')}
                 />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -578,90 +522,95 @@ export default function ClinicalCasesPage() {
                   <label className="text-sm font-medium text-foreground">
                     Patient
                   </label>
-                  <Select
-                    value={editCase.patientId}
-                    onValueChange={(v) =>
-                      setEditCase({ ...editCase, patientId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="patientId"
+                    control={editForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {editForm.formState.errors.patientId && <p className="text-xs text-destructive">{editForm.formState.errors.patientId.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Établissement
                   </label>
-                  <Select
-                    value={editCase.facilityId}
-                    onValueChange={(v) =>
-                      setEditCase({ ...editCase, facilityId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un établissement" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {facilitiesList.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="facilityId"
+                    control={editForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un établissement" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {facilitiesList.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Médecin assigné
                   </label>
-                  <Select
-                    value={editCase.assignedDoctorId}
-                    onValueChange={(v) =>
-                      setEditCase({ ...editCase, assignedDoctorId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usersList
-                        .filter((u) => u.role === 'doctor')
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <Controller
+                    name="assignedDoctorId"
+                    control={editForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un médecin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {usersList
+                            .filter((u) => u.role === 'doctor')
+                            .map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
                       Priorité
                     </label>
-                  <Select
-                    value={editCase.priority}
-                    onValueChange={(v) =>
-                      setEditCase({ ...editCase, priority: v as CasePriority })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner la priorité" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Faible</SelectItem>
-                      <SelectItem value="medium">Moyenne</SelectItem>
-                      <SelectItem value="high">Élevée</SelectItem>
-                      <SelectItem value="critical">Critique</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="priority"
+                    control={editForm.control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner la priorité" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CASE_PRIORITIES.map((p) => (
+                            <SelectItem key={p} value={p}>{priorityLabels[p]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {editForm.formState.errors.priority && <p className="text-xs text-destructive">{editForm.formState.errors.priority.message}</p>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -670,10 +619,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="Diagnostic principal"
-                  value={editCase.diagnosis}
-                  onChange={(e) =>
-                    setEditCase({ ...editCase, diagnosis: e.target.value })
-                  }
+                  {...editForm.register('diagnosis')}
                 />
               </div>
               <div className="space-y-2">
@@ -682,10 +628,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="ex: Fièvre, Toux, Douleur"
-                  value={editCase.symptoms}
-                  onChange={(e) =>
-                    setEditCase({ ...editCase, symptoms: e.target.value })
-                  }
+                  {...editForm.register('symptoms')}
                 />
               </div>
               <div className="space-y-2">
@@ -694,10 +637,7 @@ export default function ClinicalCasesPage() {
                 </label>
                 <Input
                   placeholder="ex: Cardiologie, Urgence"
-                  value={editCase.tags}
-                  onChange={(e) =>
-                    setEditCase({ ...editCase, tags: e.target.value })
-                  }
+                  {...editForm.register('tags')}
                 />
               </div>
             </div>
@@ -705,7 +645,7 @@ export default function ClinicalCasesPage() {
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={saving} onClick={handleUpdateCase}>{saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
+              <Button type="button" disabled={saving} onClick={onUpdateCase}>{saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

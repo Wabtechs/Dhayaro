@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { documentEditSchema, toDocumentPayload, DOCUMENT_TYPES, type DocumentEditValues } from '@/lib/schemas'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ArrowLeft,
@@ -115,13 +118,9 @@ export default function DocumentDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({
-    patientId: '',
-    consultationId: 'none',
-    documentType: '',
-    title: '',
-    content: '',
-    isPrinted: false,
+  const editForm = useForm<DocumentEditValues>({
+    resolver: zodResolver(documentEditSchema),
+    defaultValues: { patientId: '', doctorId: '', consultationId: 'none', documentType: '' as DocumentEditValues['documentType'], title: '', content: '', isPrinted: false },
   })
 
   if (isLoading) {
@@ -231,10 +230,11 @@ export default function DocumentDetailPage() {
   const contentEntries = Object.entries(content)
 
   const openEditDialog = () => {
-    setEditForm({
+    editForm.reset({
       patientId,
+      doctorId: doctorId || '',
       consultationId: consultationId || 'none',
-      documentType,
+      documentType: documentType as DocumentEditValues['documentType'],
       title,
       content: contentEntries.length ? JSON.stringify(content, null, 2) : '',
       isPrinted,
@@ -242,32 +242,12 @@ export default function DocumentDetailPage() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
-      let parsedContent: Record<string, unknown> = {}
-      const raw = editForm.content.trim()
-      if (raw) {
-        try {
-          parsedContent = JSON.parse(raw)
-        } catch {
-          parsedContent = { text: raw }
-        }
-      }
       await updateDocument.mutateAsync({
         id: documentId,
-        data: {
-          patientId: editForm.patientId ? editForm.patientId : undefined,
-          consultationId:
-            editForm.consultationId && editForm.consultationId !== 'none'
-              ? editForm.consultationId
-              : undefined,
-          documentType: editForm.documentType,
-          title: editForm.title.trim(),
-          content: parsedContent,
-          isPrinted: editForm.isPrinted,
-        },
+        data: toDocumentPayload(values),
       })
       toast({ title: 'Document mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -276,7 +256,7 @@ export default function DocumentDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = () => {
     setConfirmDelete({
@@ -483,67 +463,93 @@ export default function DocumentDetailPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="patientId">Patient</Label>
-                <Select value={editForm.patientId} onValueChange={(v) => setEditForm({ ...editForm, patientId: v })}>
-                  <SelectTrigger id="patientId">
-                    <SelectValue placeholder="Sélectionner un patient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patientItems.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.firstName} {p.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="patientId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="patientId">
+                        <SelectValue placeholder="Sélectionner un patient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patientItems.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.firstName} {p.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.patientId && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.patientId.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="consultationId">Consultation (optionnel)</Label>
-                <Select value={editForm.consultationId} onValueChange={(v) => setEditForm({ ...editForm, consultationId: v })}>
-                  <SelectTrigger id="consultationId">
-                    <SelectValue placeholder="Sélectionner une consultation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Aucune</SelectItem>
-                    {consultationItems.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {String(c.consultationNumber || c.id)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="consultationId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="consultationId">
+                        <SelectValue placeholder="Sélectionner une consultation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune</SelectItem>
+                        {consultationItems.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {String(c.consultationNumber || c.id)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="documentType">Type</Label>
-                <Select value={editForm.documentType} onValueChange={(v) => setEditForm({ ...editForm, documentType: v })}>
-                  <SelectTrigger id="documentType">
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(typeLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="documentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="documentType">
+                        <SelectValue placeholder="Sélectionner un type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOCUMENT_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {typeLabels[value] || value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.documentType && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.documentType.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Titre</Label>
-                <Input id="title" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} required />
+                <Input id="title" {...editForm.register('title')} />
+                {editForm.formState.errors.title && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.title.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="content">Contenu (JSON ou texte)</Label>
-              <Textarea id="content" rows={4} value={editForm.content} onChange={(e) => setEditForm({ ...editForm, content: e.target.value })} />
+              <Textarea id="content" rows={4} {...editForm.register('content')} />
             </div>
             <div className="flex items-center gap-2">
               <input
                 id="isPrinted"
                 type="checkbox"
-                checked={editForm.isPrinted}
-                onChange={(e) => setEditForm({ ...editForm, isPrinted: e.target.checked })}
+                {...editForm.register('isPrinted')}
                 className="h-4 w-4 rounded border-gray-300"
               />
               <Label htmlFor="isPrinted">Imprimé</Label>

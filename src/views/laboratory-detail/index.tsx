@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
   Calendar,
@@ -69,7 +71,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
+import { labExamEditSchema, toLabExamPayload, LAB_EXAM_STATUSES, type LabExamEditValues } from '@/lib/schemas'
 import { generateMedicalReportPDF } from '@/lib/export-medical'
 import { generateMedicalReportExcel } from '@/lib/export-excel'
 import { generateMedicalReportDOCX } from '@/lib/export-docx'
@@ -127,14 +129,9 @@ export default function LaboratoryDetailPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    examName: '',
-    categoryId: '',
-    clinicalIndication: '',
-    status: 'REQUESTED' as string,
-    resultNotes: '',
-    results: '{}',
-    labTechnicianId: '',
+  const editForm = useForm<LabExamEditValues>({
+    resolver: zodResolver(labExamEditSchema),
+    defaultValues: { categoryId: '', labTechnicianId: '', examName: '', clinicalIndication: '', status: 'REQUESTED', results: '', resultNotes: '' },
   })
 
   const patientItems = useMemo(
@@ -271,16 +268,16 @@ export default function LaboratoryDetailPage() {
   const openEditDialog = () => {
     const parsedResults = (() => {
       try {
-        return results ? JSON.stringify(results, null, 2) : '{}'
+        return results ? JSON.stringify(results, null, 2) : ''
       } catch {
-        return '{}'
+        return ''
       }
     })()
-    setEditForm({
+    editForm.reset({
       examName,
       categoryId,
       clinicalIndication,
-      status,
+      status: (LAB_EXAM_STATUSES as readonly string[]).includes(status) ? (status as LabExamEditValues['status']) : 'REQUESTED',
       resultNotes,
       results: parsedResults,
       labTechnicianId,
@@ -288,27 +285,12 @@ export default function LaboratoryDetailPage() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
-      const parsedResults = (() => {
-        try {
-          return editForm.results ? JSON.parse(editForm.results) : {}
-        } catch {
-          return {}
-        }
-      })() as Record<string, unknown>
       await updateLabExam.mutateAsync({
         id: examId,
-        data: {
-          examName: editForm.examName,
-          categoryId: sanitizeUuid(editForm.categoryId) || undefined,
-          clinicalIndication: editForm.clinicalIndication || null,
-          status: editForm.status,
-          resultNotes: editForm.resultNotes || null,
-          results: parsedResults,
-          labTechnicianId: sanitizeUuid(editForm.labTechnicianId) || undefined,
-        },
+        data: toLabExamPayload(values),
       })
       toast({ title: 'Examen mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -317,7 +299,7 @@ export default function LaboratoryDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleValidate = async () => {
     try {
@@ -633,69 +615,91 @@ export default function LaboratoryDetailPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="examName">Examen</Label>
-              <Input id="examName" value={editForm.examName} onChange={(ev) => setEditForm({ ...editForm, examName: ev.target.value })} required />
+              <Input id="examName" {...editForm.register('examName')} required />
+              {editForm.formState.errors.examName && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.examName.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="categoryId">Catégorie</Label>
-              <Select value={editForm.categoryId} onValueChange={(v) => setEditForm({ ...editForm, categoryId: v })}>
-                <SelectTrigger id="categoryId">
-                  <SelectValue placeholder="Sélectionner une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesList.map((c) => (
-                    <SelectItem key={c.id as string} value={c.id as string}>
-                      {String(c.name)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="categoryId">
+                      <SelectValue placeholder="Sélectionner une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoriesList.map((c) => (
+                        <SelectItem key={c.id as string} value={c.id as string}>
+                          {String(c.name)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clinicalIndication">Indication clinique</Label>
-              <Textarea id="clinicalIndication" rows={2} value={editForm.clinicalIndication} onChange={(ev) => setEditForm({ ...editForm, clinicalIndication: ev.target.value })} />
+              <Textarea id="clinicalIndication" rows={2} {...editForm.register('clinicalIndication')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="REQUESTED">Demandé</SelectItem>
-                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LAB_EXAM_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{statusConfig[s]?.label || s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="labTechnicianId">Technicien de laboratoire</Label>
-              <Select value={editForm.labTechnicianId} onValueChange={(v) => setEditForm({ ...editForm, labTechnicianId: v })}>
-                <SelectTrigger id="labTechnicianId">
-                  <SelectValue placeholder="Sélectionner un technicien (optionnel)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labTechnicians.map((u) => (
-                    <SelectItem key={u.id as string} value={u.id as string}>
-                      {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : (u.id as string)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="labTechnicianId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="labTechnicianId">
+                      <SelectValue placeholder="Sélectionner un technicien (optionnel)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {labTechnicians.map((u) => (
+                        <SelectItem key={u.id as string} value={u.id as string}>
+                          {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : (u.id as string)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="results">Résultats (JSON)</Label>
               <Textarea
                 id="results"
                 rows={4}
-                value={editForm.results}
-                onChange={(ev) => setEditForm({ ...editForm, results: ev.target.value })}
+                {...editForm.register('results')}
                 placeholder={'{\n  "valeur": "..."\n}'}
               />
+              {editForm.formState.errors.results && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.results.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="resultNotes">Notes résultat</Label>
-              <Textarea id="resultNotes" rows={2} value={editForm.resultNotes} onChange={(ev) => setEditForm({ ...editForm, resultNotes: ev.target.value })} />
+              <Textarea id="resultNotes" rows={2} {...editForm.register('resultNotes')} />
             </div>
           </div>
           <DialogFooter>

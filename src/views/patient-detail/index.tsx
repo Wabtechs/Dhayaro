@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -48,7 +50,7 @@ import {
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { cn, formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
+import { patientSchema, type PatientValues, toPatientPayload, commaJoin } from '@/lib/schemas'
 import type { CaseStatus, CasePriority } from '@/types'
 
 const bloodTypeColors: Record<string, string> = {
@@ -106,9 +108,19 @@ export default function PatientDetailPage() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({
-    firstName: '', lastName: '', dateOfBirth: '', gender: '' as 'M' | 'F' | '',
-    phone: '', address: '', bloodType: '', facilityId: '', allergies: '',
+  const editForm = useForm<PatientValues>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      gender: '' as PatientValues['gender'],
+      phone: '',
+      address: '',
+      bloodType: '',
+      facilityId: '',
+      allergies: '',
+    },
   })
 
   if (isLoading) {
@@ -203,27 +215,21 @@ export default function PatientDetailPage() {
   const facilitiesList = ((facilitiesData as { items?: Array<{ id: string; name: string }> })?.items ?? []) as Array<{ id: string; name: string }>
 
   const openEditDialog = () => {
-    setEditForm({
-      firstName, lastName, dateOfBirth, gender: gender as 'M' | 'F' | '',
+    editForm.reset({
+      firstName, lastName, dateOfBirth,
+      gender: gender.toUpperCase() as PatientValues['gender'],
       phone: phone === '—' ? '' : phone, address: address === '—' ? '' : address,
-      bloodType, facilityId, allergies: allergies.join(', '),
+      bloodType: bloodType as PatientValues['bloodType'], facilityId, allergies: commaJoin(allergies),
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updatePatient.mutateAsync({
         id: patientId,
-        data: {
-          firstname: editForm.firstName, lastname: editForm.lastName,
-          dateOfBirth: editForm.dateOfBirth, sex: editForm.gender,
-          phone: editForm.phone, address: editForm.address,
-          bloodGroup: editForm.bloodType, facilityId: sanitizeUuid(editForm.facilityId),
-          allergies: editForm.allergies ? editForm.allergies.split(',').map(a => a.trim()).filter(Boolean) : [],
-        },
+        data: toPatientPayload(values),
       })
       toast({ title: 'Patient mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -232,7 +238,7 @@ export default function PatientDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const facilityMap = (facilitiesData as { items?: Array<{ id: string; name: string }> })?.items
     ? Object.fromEntries((facilitiesData as { items: Array<{ id: string; name: string }> }).items.map((f) => [f.id, f.name]))
@@ -498,75 +504,111 @@ export default function PatientDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Prénom</Label>
-                <Input id="firstName" value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} required />
+                <Input id="firstName" {...editForm.register('firstName')} />
+                {editForm.formState.errors.firstName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.firstName.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Nom</Label>
-                <Input id="lastName" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} required />
+                <Input id="lastName" {...editForm.register('lastName')} />
+                {editForm.formState.errors.lastName && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.lastName.message}</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dateOfBirth">Date de naissance</Label>
-                <Input id="dateOfBirth" type="date" value={editForm.dateOfBirth} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                <Input id="dateOfBirth" type="date" {...editForm.register('dateOfBirth')} />
+                {editForm.formState.errors.dateOfBirth && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.dateOfBirth.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="gender">Sexe</Label>
-                <Select value={editForm.gender} onValueChange={(v: 'M' | 'F') => setEditForm({ ...editForm, gender: v })}>
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculin</SelectItem>
-                    <SelectItem value="F">Féminin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="gender"
+                  control={editForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(v) => field.onChange(v)}>
+                      <SelectTrigger id="gender">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Masculin</SelectItem>
+                        <SelectItem value="F">Féminin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.gender && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.gender.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Téléphone</Label>
-              <Input id="phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+              <Input id="phone" {...editForm.register('phone')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Adresse</Label>
-              <Input id="address" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+              <Input id="address" {...editForm.register('address')} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Groupe sanguin</Label>
-                <Select value={editForm.bloodType} onValueChange={(v) => setEditForm({ ...editForm, bloodType: v })}>
-                  <SelectTrigger id="bloodType">
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A-">A-</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B-">B-</SelectItem>
-                    <SelectItem value="AB+">AB+</SelectItem>
-                    <SelectItem value="AB-">AB-</SelectItem>
-                    <SelectItem value="O+">O+</SelectItem>
-                    <SelectItem value="O-">O-</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="bloodType"
+                  control={editForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(v) => field.onChange(v)}>
+                      <SelectTrigger id="bloodType">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.bloodType && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.bloodType.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="facilityId">Établissement</Label>
-                <Select value={editForm.facilityId} onValueChange={(v) => setEditForm({ ...editForm, facilityId: v })}>
-                  <SelectTrigger id="facilityId">
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilitiesList.map((fac) => (
-                      <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="facilityId"
+                  control={editForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(v) => field.onChange(v)}>
+                      <SelectTrigger id="facilityId">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilitiesList.map((fac) => (
+                          <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {editForm.formState.errors.facilityId && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.facilityId.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="allergies">Allergies (séparées par des virgules)</Label>
-              <Input id="allergies" value={editForm.allergies} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} placeholder="Ex: Pénicilline, Arachides" />
+              <Input id="allergies" {...editForm.register('allergies')} placeholder="Ex: Pénicilline, Arachides" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>

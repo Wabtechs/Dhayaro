@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { parseJsonBody, careEpisodeUpdateSchema } from '@/lib/api-schemas'
 
 const ALLOWED_UPDATE_KEYS = ['status', 'dischargeDate', 'dischargeSummary', 'dischargeOutcome', 'isArchived', 'metadata', 'admitReason'] as const
 
@@ -94,7 +95,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const episodeId = sanitizeUuid(id)
     if (!episodeId) return apiError(400, 'Invalid episode ID')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, careEpisodeUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
     const db = getDb()
 
     const conditions = [eq(careEpisodes.id, episodeId)]

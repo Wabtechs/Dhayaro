@@ -3,15 +3,13 @@ import { getDb } from '@/lib/db'
 import { users, patients } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
+import { parseJsonBody, authLoginSchema } from '@/lib/api-schemas'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password } = body
-
-    if (!email || !password) {
-      return NextResponse.json({ detail: 'Email and password are required' }, { status: 400 })
-    }
+    const parsed = await parseJsonBody(request, authLoginSchema)
+    if (parsed.ok === false) return parsed.error
+    const { email, password } = parsed.body
 
     const rows = await getDb()
       .select({

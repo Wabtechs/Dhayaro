@@ -4,6 +4,7 @@ import { facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { parseJsonBody, facilityCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,16 +43,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['ADMIN', 'SUPER_ADMIN'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.name || !body.code || !body.facilityType) {
-      return apiError(400, 'name, code, and facilityType are required')
-    }
-
-    const validTypes = ['HOSPITAL', 'CLINIC', 'LABORATORY', 'PHARMACY']
-    if (!validTypes.includes(body.facilityType)) {
-      return apiError(400, `facilityType must be one of: ${validTypes.join(', ')}`)
-    }
+    const parsed = await parseJsonBody(request, facilityCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const sql = getSql()
     const id = crypto.randomUUID()

@@ -5,6 +5,7 @@ import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { parseJsonBody, notificationCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,16 +43,11 @@ export async function POST(request: NextRequest) {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.userId || !body.title || !body.message) {
-      return apiError(400, 'userId, title, and message are required')
-    }
+    const parsed = await parseJsonBody(request, notificationCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const userId = sanitizeUuid(body.userId)
-    if (!userId) {
-      return apiError(400, 'Invalid userId')
-    }
 
     const now = new Date()
 

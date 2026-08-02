@@ -4,6 +4,7 @@ import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
 import { apiError, logError } from '@/lib/api-errors'
+import { parseJsonBody, settingsUpdateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,12 +33,10 @@ export async function PUT(request: NextRequest) {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, settingsUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
     const preferences = body.preferences
-
-    if (!preferences || typeof preferences !== 'object') {
-      return apiError(400, 'preferences object is required')
-    }
 
     await getDb()
       .update(users)

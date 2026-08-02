@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { diseaseSchema, toDiseasePayload, SEVERITY_LEVELS, type DiseaseValues } from '@/lib/schemas'
 import {
   ArrowLeft,
   Bug,
@@ -68,8 +71,6 @@ const severityConfig: Record<string, { label: string; color: string }> = {
   CRITICAL: { label: 'Critique', color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' },
 }
 
-const commaSplit = (str?: string) =>
-  str ? str.split(',').map((s) => s.trim()).filter(Boolean) : []
 const commaJoin = (arr?: string[]) => (arr || []).join(', ')
 
 interface DiseaseDetail {
@@ -89,18 +90,6 @@ interface DiseaseDetail {
   [key: string]: unknown
 }
 
-interface DiseaseForm {
-  code: string
-  name: string
-  category: string
-  description: string
-  severity: string
-  isContagious: boolean
-  symptoms: string
-  complications: string
-  treatments: string
-}
-
 export default function DiseaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -116,16 +105,10 @@ export default function DiseaseDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState<DiseaseForm>({
-    code: '',
-    name: '',
-    category: '',
-    description: '',
-    severity: 'MODERATE',
-    isContagious: false,
-    symptoms: '',
-    complications: '',
-    treatments: '',
+
+  const editForm = useForm<DiseaseValues>({
+    resolver: zodResolver(diseaseSchema),
+    defaultValues: { code: '', name: '', category: '', description: '', severity: 'MODERATE', isContagious: false, symptoms: '', complications: '', treatments: '' },
   })
 
   if (isLoading) {
@@ -210,12 +193,12 @@ export default function DiseaseDetailPage() {
   const updatedAt = d.updatedAt || ''
 
   const openEditDialog = () => {
-    setEditForm({
+    editForm.reset({
       code: d.code || '',
       name: d.name || '',
       category: d.category || '',
       description: d.description || '',
-      severity: d.severity || 'MODERATE',
+      severity: (d.severity as DiseaseValues['severity']) || 'MODERATE',
       isContagious: Boolean(d.isContagious),
       symptoms: commaJoin(d.symptoms),
       complications: commaJoin(d.complications),
@@ -224,23 +207,12 @@ export default function DiseaseDetailPage() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateDisease.mutateAsync({
         id: diseaseId,
-        data: {
-          code: editForm.code,
-          name: editForm.name,
-          category: editForm.category,
-          description: editForm.description || null,
-          severity: editForm.severity,
-          isContagious: editForm.isContagious,
-          symptoms: commaSplit(editForm.symptoms),
-          complications: commaSplit(editForm.complications),
-          treatments: commaSplit(editForm.treatments),
-        } as unknown as Record<string, unknown>,
+        data: toDiseasePayload(values) as unknown as Record<string, unknown>,
       })
       toast({ title: 'Maladie mise à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -249,7 +221,7 @@ export default function DiseaseDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = () => {
     setConfirmDelete({
@@ -456,57 +428,57 @@ export default function DiseaseDetailPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Code *</label>
                 <Input
-                  value={editForm.code}
-                  onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
-                  required
+                  {...editForm.register('code')}
                 />
+                {editForm.formState.errors.code && <p className="text-xs text-destructive">{editForm.formState.errors.code.message}</p>}
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm font-medium">Nom *</label>
                 <Input
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  required
+                  {...editForm.register('name')}
                 />
+                {editForm.formState.errors.name && <p className="text-xs text-destructive">{editForm.formState.errors.name.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Catégorie *</label>
               <Input
-                value={editForm.category}
-                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                required
+                {...editForm.register('category')}
               />
+              {editForm.formState.errors.category && <p className="text-xs text-destructive">{editForm.formState.errors.category.message}</p>}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <Textarea
                 rows={3}
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                {...editForm.register('description')}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sévérité</label>
-                <Select value={editForm.severity} onValueChange={(v) => setEditForm({ ...editForm, severity: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LOW">Faible</SelectItem>
-                    <SelectItem value="MODERATE">Modérée</SelectItem>
-                    <SelectItem value="HIGH">Élevée</SelectItem>
-                    <SelectItem value="CRITICAL">Critique</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="severity"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SEVERITY_LEVELS.map((level) => (
+                          <SelectItem key={level} value={level}>{severityConfig[level]?.label || level}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm font-medium">
                   <input
                     type="checkbox"
-                    checked={editForm.isContagious}
-                    onChange={(e) => setEditForm({ ...editForm, isContagious: e.target.checked })}
+                    {...editForm.register('isContagious')}
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   Contagieux
@@ -516,22 +488,19 @@ export default function DiseaseDetailPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Symptômes (séparés par des virgules)</label>
               <Input
-                value={editForm.symptoms}
-                onChange={(e) => setEditForm({ ...editForm, symptoms: e.target.value })}
+                {...editForm.register('symptoms')}
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Complications (séparés par des virgules)</label>
               <Input
-                value={editForm.complications}
-                onChange={(e) => setEditForm({ ...editForm, complications: e.target.value })}
+                {...editForm.register('complications')}
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Traitements (séparés par des virgules)</label>
               <Input
-                value={editForm.treatments}
-                onChange={(e) => setEditForm({ ...editForm, treatments: e.target.value })}
+                {...editForm.register('treatments')}
               />
             </div>
             <DialogFooter>

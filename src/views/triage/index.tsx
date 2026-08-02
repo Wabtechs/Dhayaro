@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
+import { triageSchema, PRIORITIES, type TriageValues } from '@/lib/schemas'
 import {
   Heart, Activity, Thermometer, Weight, Ruler, Droplets,
   Search, ChevronLeft, ChevronRight,
@@ -72,37 +75,44 @@ export default function TriageView() {
   const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const [vitalSigns, setVitalSigns] = useState({
-    bloodPressureSystolic: '',
-    bloodPressureDiastolic: '',
-    heartRate: '',
-    temperature: '',
-    respiratoryRate: '',
-    oxygenSaturation: '',
-    weight: '',
-    height: '',
+  const form = useForm<TriageValues>({
+    resolver: zodResolver(triageSchema),
+    defaultValues: {
+      vitalSigns: {
+        bloodPressureSystolic: '',
+        bloodPressureDiastolic: '',
+        heartRate: '',
+        temperature: '',
+        respiratoryRate: '',
+        oxygenSaturation: '',
+        weight: '',
+        height: '',
+      },
+      priority: 'NORMAL',
+      assignedDoctorId: '',
+      motif: '',
+      notes: '',
+    },
   })
-  const [triagePriority, setTriagePriority] = useState('NORMAL')
-  const [assignedDoctorId, setAssignedDoctorId] = useState('')
-  const [motif, setMotif] = useState('')
-  const [notes, setNotes] = useState('')
 
   const openTriage = (item: QueueItem) => {
     setSelectedPatient(item)
-    setVitalSigns({
-      bloodPressureSystolic: '',
-      bloodPressureDiastolic: '',
-      heartRate: '',
-      temperature: '',
-      respiratoryRate: '',
-      oxygenSaturation: '',
-      weight: '',
-      height: '',
+    form.reset({
+      vitalSigns: {
+        bloodPressureSystolic: '',
+        bloodPressureDiastolic: '',
+        heartRate: '',
+        temperature: '',
+        respiratoryRate: '',
+        oxygenSaturation: '',
+        weight: '',
+        height: '',
+      },
+      priority: (item.priority as TriageValues['priority']) || 'NORMAL',
+      assignedDoctorId: item.assignedDoctorId || '',
+      motif: '',
+      notes: item.notes || '',
     })
-    setTriagePriority(item.priority || 'NORMAL')
-    setAssignedDoctorId(item.assignedDoctorId || '')
-    setMotif('')
-    setNotes(item.notes || '')
     setTriageOpen(true)
   }
 
@@ -112,49 +122,46 @@ export default function TriageView() {
     return `${first} ${last}`.trim() || '—'
   }
 
-  const handleSubmit = async () => {
-    if (!selectedPatient?.patientId || !assignedDoctorId || !motif) {
-      toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' })
-      return
-    }
-    if (!vitalSigns.bloodPressureSystolic && !vitalSigns.heartRate && !vitalSigns.temperature) {
-      toast({ title: 'Erreur', description: 'Veuillez saisir au moins les signes vitaux principaux.', variant: 'destructive' })
+  const onSubmit = form.handleSubmit(async (values) => {
+    if (!selectedPatient?.id || !selectedPatient?.patientId) {
+      toast({ title: 'Erreur', description: 'Patient non identifié.', variant: 'destructive' })
       return
     }
     setSaving(true)
     try {
       const vitals: Record<string, unknown> = {}
-      if (vitalSigns.bloodPressureSystolic) {
-        vitals.bloodPressure = `${vitalSigns.bloodPressureSystolic}/${vitalSigns.bloodPressureDiastolic || '?'}`
-        vitals.bloodPressureSystolic = parseInt(vitalSigns.bloodPressureSystolic)
-        vitals.bloodPressureDiastolic = vitalSigns.bloodPressureDiastolic ? parseInt(vitalSigns.bloodPressureDiastolic) : null
+      if (values.vitalSigns.bloodPressureSystolic) {
+        vitals.bloodPressure = `${values.vitalSigns.bloodPressureSystolic}/${values.vitalSigns.bloodPressureDiastolic || '?'}`
+        vitals.bloodPressureSystolic = parseInt(values.vitalSigns.bloodPressureSystolic)
+        vitals.bloodPressureDiastolic = values.vitalSigns.bloodPressureDiastolic ? parseInt(values.vitalSigns.bloodPressureDiastolic) : null
       }
-      if (vitalSigns.heartRate) vitals.heartRate = parseInt(vitalSigns.heartRate)
-      if (vitalSigns.temperature) vitals.temperature = parseFloat(vitalSigns.temperature)
-      if (vitalSigns.respiratoryRate) vitals.respiratoryRate = parseInt(vitalSigns.respiratoryRate)
-      if (vitalSigns.oxygenSaturation) vitals.oxygenSaturation = parseInt(vitalSigns.oxygenSaturation)
-      if (vitalSigns.weight) vitals.weight = parseFloat(vitalSigns.weight)
-      if (vitalSigns.height) vitals.height = parseInt(vitalSigns.height)
+      if (values.vitalSigns.heartRate) vitals.heartRate = parseInt(values.vitalSigns.heartRate)
+      if (values.vitalSigns.temperature) vitals.temperature = parseFloat(values.vitalSigns.temperature)
+      if (values.vitalSigns.respiratoryRate) vitals.respiratoryRate = parseInt(values.vitalSigns.respiratoryRate)
+      if (values.vitalSigns.oxygenSaturation) vitals.oxygenSaturation = parseInt(values.vitalSigns.oxygenSaturation)
+      if (values.vitalSigns.weight) vitals.weight = parseFloat(values.vitalSigns.weight)
+      if (values.vitalSigns.height) vitals.height = parseInt(values.vitalSigns.height)
 
       await submitTriage.mutateAsync({
         queueId: selectedPatient.id,
-        patientId: selectedPatient.patientId!,
-        priority: triagePriority,
-        assignedDoctorId,
+        patientId: selectedPatient.patientId,
+        priority: values.priority,
+        assignedDoctorId: values.assignedDoctorId,
         vitalSigns: vitals,
-        motif,
-        notes: notes || undefined,
+        motif: values.motif,
+        notes: values.notes || undefined,
       })
 
       toast({ title: 'Succès', description: 'Triage effectué avec succès. Patient envoyé en consultation.' })
       setTriageOpen(false)
       setSelectedPatient(null)
+      form.reset()
     } catch {
       toast({ title: 'Erreur', description: 'Impossible d\'effectuer le triage. Réessayez.', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const waitingCount = totalCount
 
@@ -304,8 +311,7 @@ export default function TriageView() {
                   <Input
                     placeholder="120"
                     type="number"
-                    value={vitalSigns.bloodPressureSystolic}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, bloodPressureSystolic: e.target.value }))}
+                    {...form.register('vitalSigns.bloodPressureSystolic')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -315,8 +321,7 @@ export default function TriageView() {
                   <Input
                     placeholder="80"
                     type="number"
-                    value={vitalSigns.bloodPressureDiastolic}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, bloodPressureDiastolic: e.target.value }))}
+                    {...form.register('vitalSigns.bloodPressureDiastolic')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -326,8 +331,7 @@ export default function TriageView() {
                   <Input
                     placeholder="bpm"
                     type="number"
-                    value={vitalSigns.heartRate}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, heartRate: e.target.value }))}
+                    {...form.register('vitalSigns.heartRate')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -338,8 +342,7 @@ export default function TriageView() {
                     placeholder="°C"
                     type="number"
                     step="0.1"
-                    value={vitalSigns.temperature}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, temperature: e.target.value }))}
+                    {...form.register('vitalSigns.temperature')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -349,8 +352,7 @@ export default function TriageView() {
                   <Input
                     placeholder="/min"
                     type="number"
-                    value={vitalSigns.respiratoryRate}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, respiratoryRate: e.target.value }))}
+                    {...form.register('vitalSigns.respiratoryRate')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -360,8 +362,7 @@ export default function TriageView() {
                   <Input
                     placeholder="%"
                     type="number"
-                    value={vitalSigns.oxygenSaturation}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, oxygenSaturation: e.target.value }))}
+                    {...form.register('vitalSigns.oxygenSaturation')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -372,8 +373,7 @@ export default function TriageView() {
                     placeholder="kg"
                     type="number"
                     step="0.1"
-                    value={vitalSigns.weight}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, weight: e.target.value }))}
+                    {...form.register('vitalSigns.weight')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -383,45 +383,61 @@ export default function TriageView() {
                   <Input
                     placeholder="cm"
                     type="number"
-                    value={vitalSigns.height}
-                    onChange={(e) => setVitalSigns((s) => ({ ...s, height: e.target.value }))}
+                    {...form.register('vitalSigns.height')}
                   />
                 </div>
               </div>
+              {form.formState.errors.vitalSigns?.message && (
+                <p className="text-xs text-destructive">{form.formState.errors.vitalSigns.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Priorité</Label>
-                <Select value={triagePriority} onValueChange={setTriagePriority}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LOW">Faible</SelectItem>
-                    <SelectItem value="NORMAL">Normal</SelectItem>
-                    <SelectItem value="HIGH">Élevée</SelectItem>
-                    <SelectItem value="URGENT">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="priority"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p}>{priorityConfig[p].label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">
                   Médecin traitant <span className="text-destructive">*</span>
                 </Label>
-                <Select value={assignedDoctorId} onValueChange={setAssignedDoctorId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un médecin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctorUsers.map((u) => (
-                      <SelectItem key={u.id as string} value={u.id as string}>
-                        {u.firstname as string} {u.lastname as string}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="assignedDoctorId"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un médecin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctorUsers.map((u) => (
+                          <SelectItem key={u.id as string} value={u.id as string}>
+                            {u.firstname as string} {u.lastname as string}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.assignedDoctorId && (
+                  <p className="text-xs text-destructive">{form.formState.errors.assignedDoctorId.message}</p>
+                )}
               </div>
             </div>
 
@@ -431,19 +447,20 @@ export default function TriageView() {
               </Label>
               <Textarea
                 placeholder="Motif principal de la consultation"
-                value={motif}
-                onChange={(e) => setMotif(e.target.value)}
                 rows={2}
+                {...form.register('motif')}
               />
+              {form.formState.errors.motif && (
+                <p className="text-xs text-destructive">{form.formState.errors.motif.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Notes de triage</Label>
               <Textarea
                 placeholder="Observations supplémentaires"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
                 rows={2}
+                {...form.register('notes')}
               />
             </div>
           </div>
@@ -452,7 +469,7 @@ export default function TriageView() {
             <Button variant="outline" onClick={() => setTriageOpen(false)} disabled={saving}>
               Annuler
             </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
+            <Button onClick={onSubmit} disabled={saving}>
               {saving ? 'En cours...' : 'Valider le triage'}
             </Button>
           </DialogFooter>

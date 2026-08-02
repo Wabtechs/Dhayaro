@@ -18,6 +18,7 @@
     "db:migrate-patient": "node scripts/migrate-patient-portal.mjs"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.5.7",
     "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-alert-dialog": "^1.1.20",
     "@radix-ui/react-avatar": "^1.2.2",
@@ -38,21 +39,23 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "drizzle-orm": "^0.44.3",
     "docx": "^9.7.1",
+    "drizzle-orm": "^0.44.3",
     "file-saver": "^2.0.5",
+    "jose": "^6.0.11",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "xlsx": "^0.18.5",
-    "jose": "^6.0.11",
     "lucide-react": "^1.24.0",
     "next": "^15.5.20",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-hook-form": "^7.83.0",
     "recharts": "^2.15.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.2",
-    "zustand": "^5.0.14"
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.14",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

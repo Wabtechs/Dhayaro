@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { HeartPulse, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,41 +12,33 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuthStore } from '@/store/auth-store'
 import { Logo } from '@/components/ui/logo'
+import { loginSchema, type LoginValues } from '@/lib/schemas'
 
 export default function Login() {
   const router = useRouter()
   const login = useAuthStore((s) => s.login)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '', rememberMe: false },
+  })
+
+  const onSubmit = handleSubmit(async (values) => {
     setError('')
-
-    if (!email.trim()) {
-      setError('Veuillez entrer votre adresse email')
-      return
-    }
-    if (!password.trim()) {
-      setError('Veuillez entrer votre mot de passe')
-      return
-    }
-
     setLoading(true)
     try {
-      await login(email, password)
+      await login(values.email, values.password)
       router.push('/dashboard')
     } catch {
       setError('Identifiant ou mot de passe incorrect')
     } finally {
       setLoading(false)
     }
-  }
+  })
 
   return (
     <div className="flex min-h-screen">
@@ -98,7 +92,7 @@ export default function Login() {
 
           <Card>
             <CardContent className="pt-6">
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={onSubmit} className="space-y-5">
                 {error && (
                   <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {error}
@@ -113,11 +107,13 @@ export default function Login() {
                       id="email"
                       type="email"
                       placeholder="votre@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
+                      {...register('email')}
                     />
                   </div>
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -128,9 +124,8 @@ export default function Login() {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       className="pl-10 pr-10"
+                      {...register('password')}
                     />
                     <button
                       type="button"
@@ -144,15 +139,17 @@ export default function Login() {
                       )}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="text-xs text-destructive">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
                       className="h-4 w-4 rounded border-input accent-primary"
+                      {...register('rememberMe')}
                     />
                     <span className="text-muted-foreground">
                       Se souvenir de moi

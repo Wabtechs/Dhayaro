@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { helpImages } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
 import { apiError, logError } from '@/lib/api-errors'
+import { parseJsonBody, helpImageSchema } from '@/lib/api-schemas'
 import { eq, inArray } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -33,12 +34,10 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, helpImageSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
     const { location, imageData, altText } = body
-
-    if (!location || !imageData) {
-      return apiError(400, 'location and imageData are required')
-    }
 
     const db = getDb()
     const existing = await db

@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller, type UseFormReturn } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { diseaseSchema, toDiseasePayload, SEVERITY_LEVELS, type DiseaseValues } from '@/lib/schemas'
 import {
   Bug,
   Search,
@@ -74,8 +77,6 @@ const severityConfig: Record<string, { label: string; color: string }> = {
   CRITICAL: { label: 'Critique', color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' },
 }
 
-const commaSplit = (str?: string) =>
-  str ? str.split(',').map((s) => s.trim()).filter(Boolean) : []
 const commaJoin = (arr?: string[]) => (arr || []).join(', ')
 
 interface DiseaseItem {
@@ -93,30 +94,6 @@ interface DiseaseItem {
   createdAt?: string
   updatedAt?: string
   [key: string]: unknown
-}
-
-interface DiseaseForm {
-  code: string
-  name: string
-  category: string
-  description: string
-  severity: string
-  isContagious: boolean
-  symptoms: string
-  complications: string
-  treatments: string
-}
-
-const emptyForm: DiseaseForm = {
-  code: '',
-  name: '',
-  category: '',
-  description: '',
-  severity: 'MODERATE',
-  isContagious: false,
-  symptoms: '',
-  complications: '',
-  treatments: '',
 }
 
 export { DiseasesView }
@@ -154,43 +131,41 @@ export default function DiseasesView() {
   const [editingDisease, setEditingDisease] = useState<DiseaseItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newDisease, setNewDisease] = useState<DiseaseForm>(emptyForm)
-  const [editForm, setEditForm] = useState<DiseaseForm>(emptyForm)
 
-  const handleCreate = async () => {
+  const createForm = useForm<DiseaseValues>({
+    resolver: zodResolver(diseaseSchema),
+    defaultValues: { code: '', name: '', category: '', description: '', severity: 'MODERATE', isContagious: false, symptoms: '', complications: '', treatments: '' },
+  })
+
+  const editForm = useForm<DiseaseValues>({
+    resolver: zodResolver(diseaseSchema),
+    defaultValues: { code: '', name: '', category: '', description: '', severity: 'MODERATE', isContagious: false, symptoms: '', complications: '', treatments: '' },
+  })
+
+  const handleCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      await createDisease.mutateAsync({
-        code: newDisease.code,
-        name: newDisease.name,
-        category: newDisease.category,
-        description: newDisease.description || null,
-        severity: newDisease.severity,
-        isContagious: newDisease.isContagious,
-        symptoms: commaSplit(newDisease.symptoms),
-        complications: commaSplit(newDisease.complications),
-        treatments: commaSplit(newDisease.treatments),
-      } as unknown as Record<string, unknown>)
+      await createDisease.mutateAsync(toDiseasePayload(values) as unknown as Record<string, unknown>)
       await queryClient.invalidateQueries({ queryKey: ['diseases'] })
-      toast({ title: 'Maladie créée', description: `"${newDisease.name}" a été enregistrée.` })
+      toast({ title: 'Maladie créée', description: `"${values.name}" a été enregistrée.` })
       setDialogOpen(false)
-      setNewDisease(emptyForm)
+      createForm.reset()
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer la maladie.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEdit = (d: DiseaseItem) => {
     setEditingDisease(d)
-    setEditForm({
+    editForm.reset({
       code: d.code,
       name: d.name,
       category: d.category,
       description: d.description || '',
-      severity: d.severity || 'MODERATE',
+      severity: (d.severity as DiseaseValues['severity']) || 'MODERATE',
       isContagious: Boolean(d.isContagious),
       symptoms: commaJoin(d.symptoms),
       complications: commaJoin(d.complications),
@@ -199,23 +174,13 @@ export default function DiseasesView() {
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     if (!editingDisease) return
     setSaving(true)
     try {
       await updateDisease.mutateAsync({
         id: editingDisease.id,
-        data: {
-          code: editForm.code,
-          name: editForm.name,
-          category: editForm.category,
-          description: editForm.description || null,
-          severity: editForm.severity,
-          isContagious: editForm.isContagious,
-          symptoms: commaSplit(editForm.symptoms),
-          complications: commaSplit(editForm.complications),
-          treatments: commaSplit(editForm.treatments),
-        } as unknown as Record<string, unknown>,
+        data: toDiseasePayload(values) as unknown as Record<string, unknown>,
       })
       toast({ title: 'Maladie mise à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -225,7 +190,7 @@ export default function DiseasesView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = (d: DiseaseItem) => {
     setConfirmDelete({
@@ -241,64 +206,67 @@ export default function DiseasesView() {
     })
   }
 
-  const renderForm = (form: DiseaseForm, setForm: (f: DiseaseForm) => void) => (
+  const renderForm = (form: UseFormReturn<DiseaseValues>) => (
     <div className="grid gap-4 py-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <label className="text-sm font-medium">Code *</label>
           <Input
             placeholder="Ex: A09"
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
+            {...form.register('code')}
           />
+          {form.formState.errors.code && <p className="text-xs text-destructive">{form.formState.errors.code.message}</p>}
         </div>
         <div className="space-y-2 sm:col-span-2">
           <label className="text-sm font-medium">Nom *</label>
           <Input
             placeholder="Nom de la maladie"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            {...form.register('name')}
           />
+          {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
         </div>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Catégorie *</label>
         <Input
           placeholder="Ex: Infectieuse"
-          value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          {...form.register('category')}
         />
+        {form.formState.errors.category && <p className="text-xs text-destructive">{form.formState.errors.category.message}</p>}
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Description</label>
         <Textarea
           placeholder="Description clinique"
           rows={3}
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          {...form.register('description')}
         />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium">Sévérité</label>
-          <Select value={form.severity} onValueChange={(v) => setForm({ ...form, severity: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="LOW">Faible</SelectItem>
-              <SelectItem value="MODERATE">Modérée</SelectItem>
-              <SelectItem value="HIGH">Élevée</SelectItem>
-              <SelectItem value="CRITICAL">Critique</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            control={form.control}
+            name="severity"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEVERITY_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>{severityConfig[level]?.label || level}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
         <div className="flex items-end">
           <label className="flex items-center gap-2 text-sm font-medium">
             <input
               type="checkbox"
-              checked={form.isContagious}
-              onChange={(e) => setForm({ ...form, isContagious: e.target.checked })}
+              {...form.register('isContagious')}
               className="h-4 w-4 rounded border-gray-300"
             />
             Contagieux
@@ -309,24 +277,21 @@ export default function DiseasesView() {
         <label className="text-sm font-medium">Symptômes (séparés par des virgules)</label>
         <Input
           placeholder="Ex: Fièvre, Toux"
-          value={form.symptoms}
-          onChange={(e) => setForm({ ...form, symptoms: e.target.value })}
+          {...form.register('symptoms')}
         />
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Complications (séparés par des virgules)</label>
         <Input
           placeholder="Ex: Déshydratation, Choc"
-          value={form.complications}
-          onChange={(e) => setForm({ ...form, complications: e.target.value })}
+          {...form.register('complications')}
         />
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Traitements (séparés par des virgules)</label>
         <Input
           placeholder="Ex: Hydratation, Antibiotiques"
-          value={form.treatments}
-          onChange={(e) => setForm({ ...form, treatments: e.target.value })}
+          {...form.register('treatments')}
         />
       </div>
     </div>
@@ -360,15 +325,17 @@ export default function DiseasesView() {
                 Remplissez les informations pour enregistrer une nouvelle maladie de référence.
               </DialogDescription>
             </DialogHeader>
-            {renderForm(newDisease, setNewDisease)}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="button" disabled={creating || !newDisease.code || !newDisease.name || !newDisease.category} onClick={handleCreate}>
-                {creating ? 'Création...' : 'Créer la maladie'}
-              </Button>
-            </DialogFooter>
+            <form onSubmit={handleCreate}>
+              {renderForm(createForm)}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={creating}>
+                  {creating ? 'Création...' : 'Créer la maladie'}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -560,15 +527,17 @@ export default function DiseasesView() {
               Modifiez les informations de la maladie ci-dessous.
             </DialogDescription>
           </DialogHeader>
-          {renderForm(editForm, setEditForm)}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button type="button" disabled={saving} onClick={handleUpdate}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </DialogFooter>
+          <form onSubmit={handleUpdate}>
+            {renderForm(editForm)}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

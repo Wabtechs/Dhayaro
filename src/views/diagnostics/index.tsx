@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Brain,
   Search,
@@ -73,7 +75,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
+import { diagnosticSchema, diagnosticEditSchema, toDiagnosticPayload, DIAGNOSTIC_TYPES, type DiagnosticValues, type DiagnosticEditValues } from '@/lib/schemas'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
@@ -188,89 +190,50 @@ export default function DiagnosticsView() {
   const [editingDiagnostic, setEditingDiagnostic] = useState<DiagnosticItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newDiagnostic, setNewDiagnostic] = useState({
-    patientId: '',
-    doctorId: '',
-    consultationId: '',
-    diseaseId: '',
-    diagnosticType: 'PROVISIONAL' as string,
-    description: '',
-    notes: '',
+  const createForm = useForm<DiagnosticValues>({
+    resolver: zodResolver(diagnosticSchema),
+    defaultValues: { patientId: '', doctorId: '', consultationId: '', diseaseId: '', diagnosticType: 'PROVISIONAL', description: '', notes: '' },
+  })
+  const editForm = useForm<DiagnosticEditValues>({
+    resolver: zodResolver(diagnosticEditSchema),
+    defaultValues: { doctorId: '', diseaseId: '', diagnosticType: 'PROVISIONAL', description: '', notes: '' },
   })
 
-  const [editForm, setEditForm] = useState({
-    diagnosticType: 'PROVISIONAL' as string,
-    diseaseId: '',
-    description: '',
-    notes: '',
-    doctorId: '',
-  })
-
-  const resetNewDiagnostic = () => {
-    setNewDiagnostic({
-      patientId: '',
-      doctorId: '',
-      consultationId: '',
-      diseaseId: '',
-      diagnosticType: 'PROVISIONAL',
-      description: '',
-      notes: '',
-    })
-  }
-
-  const handleCreate = async () => {
-    if (!newDiagnostic.patientId || !newDiagnostic.doctorId || !newDiagnostic.consultationId || !newDiagnostic.description) {
-      toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' })
-      return
-    }
+  const handleCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      await createDiagnostic.mutateAsync({
-        patientId: sanitizeUuid(newDiagnostic.patientId) as string,
-        doctorId: sanitizeUuid(newDiagnostic.doctorId) as string,
-        consultationId: sanitizeUuid(newDiagnostic.consultationId) as string,
-        diseaseId: sanitizeUuid(newDiagnostic.diseaseId) || undefined,
-        diagnosticType: newDiagnostic.diagnosticType,
-        description: newDiagnostic.description,
-        notes: newDiagnostic.notes || null,
-      })
+      await createDiagnostic.mutateAsync(toDiagnosticPayload(values))
       await queryClient.invalidateQueries({ queryKey: ['diagnostics'] })
-      toast({ title: 'Diagnostic créé', description: `"${newDiagnostic.description}" a été enregistré.` })
+      toast({ title: 'Diagnostic créé', description: `"${values.description}" a été enregistré.` })
       setDialogOpen(false)
-      resetNewDiagnostic()
+      createForm.reset()
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer le diagnostic.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEdit = (d: DiagnosticItem) => {
     setEditingDiagnostic(d)
-    setEditForm({
-      diagnosticType: (d.diagnosticType as string) || 'PROVISIONAL',
+    editForm.reset({
+      doctorId: (d.doctorId as string) || '',
       diseaseId: (d.diseaseId as string) || '',
+      diagnosticType: (d.diagnosticType as DiagnosticEditValues['diagnosticType']) || 'PROVISIONAL',
       description: (d.description as string) || '',
       notes: (d.notes as string) || '',
-      doctorId: (d.doctorId as string) || '',
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const handleUpdate = editForm.handleSubmit(async (values) => {
     if (!editingDiagnostic) return
     setSaving(true)
     try {
       await updateDiagnostic.mutateAsync({
         id: editingDiagnostic.id as string,
-        data: {
-          diagnosticType: editForm.diagnosticType,
-          diseaseId: sanitizeUuid(editForm.diseaseId) || undefined,
-          description: editForm.description,
-          notes: editForm.notes || null,
-          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
-        },
+        data: toDiagnosticPayload(values),
       })
       toast({ title: 'Diagnostic mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -280,7 +243,7 @@ export default function DiagnosticsView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = (d: DiagnosticItem) => {
     setConfirmDelete({
@@ -328,96 +291,139 @@ export default function DiagnosticsView() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Patient *</label>
-                  <Select value={newDiagnostic.patientId} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, patientId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="patientId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.patientId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Médecin *</label>
-                  <Select value={newDiagnostic.doctorId} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, doctorId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctorsList.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.firstName} {u.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="doctorId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un médecin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doctorsList.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.firstName} {u.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.doctorId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.doctorId.message}</p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Consultation *</label>
-                  <Select value={newDiagnostic.consultationId} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, consultationId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une consultation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {consultationsList.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.consultationNumber || c.id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="consultationId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une consultation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {consultationsList.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.consultationNumber || c.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.consultationId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.consultationId.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Maladie</label>
-                  <Select value={newDiagnostic.diseaseId} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, diseaseId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une maladie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {diseasesList.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.code ? `${d.code} — ${d.name}` : d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="diseaseId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une maladie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {diseasesList.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.code ? `${d.code} — ${d.name}` : d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Type *</label>
-                <Select value={newDiagnostic.diagnosticType} onValueChange={(v) => setNewDiagnostic({ ...newDiagnostic, diagnosticType: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PROVISIONAL">Provisoire</SelectItem>
-                    <SelectItem value="FINAL">Final</SelectItem>
-                    <SelectItem value="DIFFERENTIAL">Différentiel</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={createForm.control}
+                  name="diagnosticType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DIAGNOSTIC_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>{diagnosticTypeConfig[t]?.label || t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {createForm.formState.errors.diagnosticType && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.diagnosticType.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description *</label>
                 <Textarea
                   placeholder="Description du diagnostic"
                   rows={3}
-                  value={newDiagnostic.description}
-                  onChange={(e) => setNewDiagnostic({ ...newDiagnostic, description: e.target.value })}
+                  {...createForm.register('description')}
                 />
+                {createForm.formState.errors.description && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.description.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Notes</label>
                 <Textarea
                   placeholder="Notes cliniques"
                   rows={3}
-                  value={newDiagnostic.notes}
-                  onChange={(e) => setNewDiagnostic({ ...newDiagnostic, notes: e.target.value })}
+                  {...createForm.register('notes')}
                 />
               </div>
             </div>
@@ -425,7 +431,7 @@ export default function DiagnosticsView() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating || !newDiagnostic.patientId || !newDiagnostic.doctorId || !newDiagnostic.consultationId || !newDiagnostic.description} onClick={handleCreate}>
+              <Button type="button" disabled={creating} onClick={handleCreate}>
                 {creating ? 'Création...' : 'Créer le diagnostic'}
               </Button>
             </DialogFooter>
@@ -685,61 +691,80 @@ export default function DiagnosticsView() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Type *</label>
-              <Select value={editForm.diagnosticType} onValueChange={(v) => setEditForm({ ...editForm, diagnosticType: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PROVISIONAL">Provisoire</SelectItem>
-                  <SelectItem value="FINAL">Final</SelectItem>
-                  <SelectItem value="DIFFERENTIAL">Différentiel</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="diagnosticType"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIAGNOSTIC_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{diagnosticTypeConfig[t]?.label || t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Maladie</label>
-              <Select value={editForm.diseaseId} onValueChange={(v) => setEditForm({ ...editForm, diseaseId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une maladie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {diseasesList.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.code ? `${d.code} — ${d.name}` : d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="diseaseId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une maladie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {diseasesList.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.code ? `${d.code} — ${d.name}` : d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Médecin</label>
-              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un médecin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctorsList.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="doctorId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un médecin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctorsList.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description *</label>
               <Textarea
                 rows={3}
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                {...editForm.register('description')}
               />
+              {editForm.formState.errors.description && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.description.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Notes</label>
               <Textarea
                 rows={3}
-                value={editForm.notes}
-                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                {...editForm.register('notes')}
               />
             </div>
           </div>
@@ -747,7 +772,7 @@ export default function DiagnosticsView() {
             <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
               Annuler
             </Button>
-            <Button type="button" disabled={saving || !editForm.description} onClick={handleUpdate}>
+            <Button type="button" disabled={saving} onClick={handleUpdate}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>

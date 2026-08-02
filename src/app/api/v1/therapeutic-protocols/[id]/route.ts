@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseJsonBody, protocolUpdateSchema } from '@/lib/api-schemas'
 
 const ALLOWED_UPDATE_KEYS = ['name', 'description', 'steps', 'targetPopulation', 'contraindications', 'efficacyRate', 'isActive', 'diseaseId'] as const
 
@@ -37,7 +38,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const protocolId = sanitizeUuid(id)
     if (!protocolId) return apiError(400, 'Invalid protocol ID')
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, protocolUpdateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
     const db = getDb()
 
     const [existing] = await db.select({ id: therapeuticProtocols.id }).from(therapeuticProtocols).where(eq(therapeuticProtocols.id, protocolId)).limit(1)

@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { settingsSchema, type SettingsValues } from "@/lib/schemas";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,38 +30,20 @@ import { useAppStore } from "@/store";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings, useUpdateSettings } from "@/hooks/use-data";
 
-interface SavedSettings {
-  platformName: string;
-  language: string;
-  timezone: string;
-  facility: string;
-  dateFormat: string;
-  emailNotifications: boolean;
-  newCaseAlerts: boolean;
-  caseUpdateAlerts: boolean;
-  reminderAlerts: boolean;
-  reportAlerts: boolean;
-  emailFrequency: string;
-  twoFactorAuth: boolean;
-  sessionTimeout: string;
-  sidebarHover: boolean;
-  compactMode: boolean;
-}
-
-const DEFAULT_SETTINGS: SavedSettings = {
+const DEFAULT_SETTINGS: SettingsValues = {
   platformName: "Dhayaro",
   language: "fr",
-  timezone: "Africa/Algiers",
+  timezone: "Africa/Kinshasa",
   facility: "hospital-central",
   dateFormat: "DD/MM/YYYY",
   emailNotifications: true,
   newCaseAlerts: true,
   caseUpdateAlerts: true,
-  reminderAlerts: false,
+  reminderAlerts: true,
   reportAlerts: true,
   emailFrequency: "daily",
   twoFactorAuth: false,
-  sessionTimeout: "30",
+  sessionTimeout: 30,
   sidebarHover: true,
   compactMode: false,
 };
@@ -72,57 +57,54 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const loaded = (settingsData?.preferences as unknown as SavedSettings) || DEFAULT_SETTINGS;
-
-  const [platformName, setPlatformName] = useState(loaded.platformName);
-  const [language, setLanguage] = useState(loaded.language);
-  const [timezone, setTimezone] = useState(loaded.timezone);
-  const [facility, setFacility] = useState(loaded.facility);
-  const [dateFormat, setDateFormat] = useState(loaded.dateFormat);
-
-  const [emailNotifications, setEmailNotifications] = useState(loaded.emailNotifications);
-  const [newCaseAlerts, setNewCaseAlerts] = useState(loaded.newCaseAlerts);
-  const [caseUpdateAlerts, setCaseUpdateAlerts] = useState(loaded.caseUpdateAlerts);
-  const [reminderAlerts, setReminderAlerts] = useState(loaded.reminderAlerts);
-  const [reportAlerts, setReportAlerts] = useState(loaded.reportAlerts);
-  const [emailFrequency, setEmailFrequency] = useState(loaded.emailFrequency);
-
-  const [twoFactorAuth, setTwoFactorAuth] = useState(loaded.twoFactorAuth);
-  const [sessionTimeout, setSessionTimeout] = useState(loaded.sessionTimeout);
-
-  const [sidebarHover, setSidebarHover] = useState(loaded.sidebarHover);
-  const [compactMode, setCompactMode] = useState(loaded.compactMode);
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<SettingsValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      platformName: '',
+      language: 'fr',
+      timezone: 'Africa/Kinshasa',
+      facility: '',
+      dateFormat: 'DD/MM/YYYY',
+      emailNotifications: true,
+      newCaseAlerts: true,
+      caseUpdateAlerts: true,
+      reminderAlerts: true,
+      reportAlerts: true,
+      emailFrequency: 'daily',
+      twoFactorAuth: false,
+      sessionTimeout: 30,
+      sidebarHover: true,
+      compactMode: false,
+    },
+  });
 
   useEffect(() => {
     if (settingsData?.preferences) {
-      const p = settingsData.preferences as unknown as SavedSettings;
-      setPlatformName(p.platformName);
-      setLanguage(p.language);
-      setTimezone(p.timezone);
-      setFacility(p.facility);
-      setDateFormat(p.dateFormat);
-      setEmailNotifications(p.emailNotifications);
-      setNewCaseAlerts(p.newCaseAlerts);
-      setCaseUpdateAlerts(p.caseUpdateAlerts);
-      setReminderAlerts(p.reminderAlerts);
-      setReportAlerts(p.reportAlerts);
-      setEmailFrequency(p.emailFrequency);
-      setTwoFactorAuth(p.twoFactorAuth);
-      setSessionTimeout(p.sessionTimeout);
-      setSidebarHover(p.sidebarHover);
-      setCompactMode(p.compactMode);
+      const p = settingsData.preferences as unknown as Partial<SettingsValues>;
+      reset({
+        platformName: p.platformName ?? DEFAULT_SETTINGS.platformName,
+        language: p.language ?? DEFAULT_SETTINGS.language,
+        timezone: p.timezone ?? DEFAULT_SETTINGS.timezone,
+        facility: p.facility ?? DEFAULT_SETTINGS.facility,
+        dateFormat: p.dateFormat ?? DEFAULT_SETTINGS.dateFormat,
+        emailNotifications: p.emailNotifications ?? DEFAULT_SETTINGS.emailNotifications,
+        newCaseAlerts: p.newCaseAlerts ?? DEFAULT_SETTINGS.newCaseAlerts,
+        caseUpdateAlerts: p.caseUpdateAlerts ?? DEFAULT_SETTINGS.caseUpdateAlerts,
+        reminderAlerts: p.reminderAlerts ?? DEFAULT_SETTINGS.reminderAlerts,
+        reportAlerts: p.reportAlerts ?? DEFAULT_SETTINGS.reportAlerts,
+        emailFrequency: p.emailFrequency ?? DEFAULT_SETTINGS.emailFrequency,
+        twoFactorAuth: p.twoFactorAuth ?? DEFAULT_SETTINGS.twoFactorAuth,
+        sessionTimeout: p.sessionTimeout != null ? Number(p.sessionTimeout) : DEFAULT_SETTINGS.sessionTimeout,
+        sidebarHover: p.sidebarHover ?? DEFAULT_SETTINGS.sidebarHover,
+        compactMode: p.compactMode ?? DEFAULT_SETTINGS.compactMode,
+      });
     }
-  }, [settingsData]);
+  }, [settingsData, reset]);
 
-  const handleSave = async () => {
+  const handleSave = handleSubmit(async (values) => {
     setSaving(true);
-    const preferences: SavedSettings = {
-      platformName, language, timezone, facility, dateFormat,
-      emailNotifications, newCaseAlerts, caseUpdateAlerts, reminderAlerts, reportAlerts, emailFrequency,
-      twoFactorAuth, sessionTimeout, sidebarHover, compactMode,
-    };
     try {
-      await updateSettings.mutateAsync(preferences as unknown as Record<string, unknown>);
+      await updateSettings.mutateAsync(values as unknown as Record<string, unknown>);
       setSaved(true);
       toast({ title: "Paramètres sauvegardés", description: "Vos préférences ont été enregistrées." });
       setTimeout(() => setSaved(false), 2500);
@@ -131,7 +113,7 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   if (isLoading) {
     return (
@@ -215,68 +197,94 @@ export default function SettingsPage() {
                   <Label htmlFor="platform-name">Nom de la Plateforme</Label>
                   <Input
                     id="platform-name"
-                    value={platformName}
-                    onChange={(e) => setPlatformName(e.target.value)}
+                    {...register("platformName")}
                   />
+                  {errors.platformName && (
+                    <p className="text-xs text-destructive">{errors.platformName.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label>Langue</Label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger>
-                      <Globe className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Sélectionner une langue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ar">العربية</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="language"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <Globe className="mr-2 h-4 w-4" />
+                          <SelectValue placeholder="Sélectionner une langue" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fr">Français</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="ar">العربية</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Fuseau Horaire</Label>
-                  <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger>
-                      <Clock className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Sélectionner un fuseau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Africa/Algiers">Africa/Algiers (UTC+1)</SelectItem>
-                      <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
-                      <SelectItem value="UTC">UTC (UTC+0)</SelectItem>
-                      <SelectItem value="America/New_York">America/New_York (UTC-5)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="timezone"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <Clock className="mr-2 h-4 w-4" />
+                          <SelectValue placeholder="Sélectionner un fuseau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Africa/Algiers">Africa/Algiers (UTC+1)</SelectItem>
+                          <SelectItem value="Europe/Paris">Europe/Paris (UTC+1/+2)</SelectItem>
+                          <SelectItem value="UTC">UTC (UTC+0)</SelectItem>
+                          <SelectItem value="America/New_York">America/New_York (UTC-5)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Établissement par Défaut</Label>
-                  <Select value={facility} onValueChange={setFacility}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un établissement" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hospital-central">Hôpital Central</SelectItem>
-                      <SelectItem value="clinique-sainte-marie">Clinique Sainte-Marie</SelectItem>
-                      <SelectItem value="centre-medical-nord">Centre Médical du Nord</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="facility"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un établissement" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hospital-central">Hôpital Central</SelectItem>
+                          <SelectItem value="clinique-sainte-marie">Clinique Sainte-Marie</SelectItem>
+                          <SelectItem value="centre-medical-nord">Centre Médical du Nord</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Format de Date</Label>
-                  <Select value={dateFormat} onValueChange={setDateFormat}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="dateFormat"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                          <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                          <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -303,7 +311,13 @@ export default function SettingsPage() {
                     <p className="font-medium">Notifications par Email</p>
                     <p className="text-sm text-muted-foreground">Recevoir les notifications par email</p>
                   </div>
-                  <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+                  <Controller
+                    name="emailNotifications"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -311,7 +325,13 @@ export default function SettingsPage() {
                     <p className="font-medium">Nouveau Cas</p>
                     <p className="text-sm text-muted-foreground">Notification lors de l'ajout d'un nouveau cas</p>
                   </div>
-                  <Switch checked={newCaseAlerts} onCheckedChange={setNewCaseAlerts} />
+                  <Controller
+                    name="newCaseAlerts"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -319,7 +339,13 @@ export default function SettingsPage() {
                     <p className="font-medium">Mise à Jour de Cas</p>
                     <p className="text-sm text-muted-foreground">Notification lors de la modification d'un cas</p>
                   </div>
-                  <Switch checked={caseUpdateAlerts} onCheckedChange={setCaseUpdateAlerts} />
+                  <Controller
+                    name="caseUpdateAlerts"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -327,7 +353,13 @@ export default function SettingsPage() {
                     <p className="font-medium">Rappels</p>
                     <p className="text-sm text-muted-foreground">Rappels pour les tâches en attente</p>
                   </div>
-                  <Switch checked={reminderAlerts} onCheckedChange={setReminderAlerts} />
+                  <Controller
+                    name="reminderAlerts"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -335,22 +367,34 @@ export default function SettingsPage() {
                     <p className="font-medium">Rapports</p>
                     <p className="text-sm text-muted-foreground">Notification lors de la génération de rapports</p>
                   </div>
-                  <Switch checked={reportAlerts} onCheckedChange={setReportAlerts} />
+                  <Controller
+                    name="reportAlerts"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Fréquence des Emails</Label>
-                <Select value={emailFrequency} onValueChange={setEmailFrequency}>
-                  <SelectTrigger className="w-full sm:w-[250px]">
-                    <SelectValue placeholder="Sélectionner la fréquence" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="realtime">Temps réel</SelectItem>
-                    <SelectItem value="daily">Quotidien</SelectItem>
-                    <SelectItem value="weekly">Hebdomadaire</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="emailFrequency"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full sm:w-[250px]">
+                        <SelectValue placeholder="Sélectionner la fréquence" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="realtime">Temps réel</SelectItem>
+                        <SelectItem value="daily">Quotidien</SelectItem>
+                        <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -377,24 +421,36 @@ export default function SettingsPage() {
                     Ajoutez une couche de sécurité supplémentaire à votre compte
                   </p>
                 </div>
-                <Switch checked={twoFactorAuth} onCheckedChange={setTwoFactorAuth} />
+                <Controller
+                  name="twoFactorAuth"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
 
               <Separator />
 
               <div className="space-y-2">
                 <Label>Expiration de Session</Label>
-                <Select value={sessionTimeout} onValueChange={setSessionTimeout}>
-                  <SelectTrigger className="w-full sm:w-[250px]">
-                    <SelectValue placeholder="Sélectionner le délai" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 heure</SelectItem>
-                    <SelectItem value="120">2 heures</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="sessionTimeout"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={String(field.value)} onValueChange={(v) => field.onChange(Number(v))}>
+                      <SelectTrigger className="w-full sm:w-[250px]">
+                        <SelectValue placeholder="Sélectionner le délai" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">1 heure</SelectItem>
+                        <SelectItem value="120">2 heures</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <Separator />
@@ -445,7 +501,13 @@ export default function SettingsPage() {
                     Déplier la barre latérale au survol de la souris
                   </p>
                 </div>
-                <Switch checked={sidebarHover} onCheckedChange={setSidebarHover} />
+                <Controller
+                  name="sidebarHover"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
 
               <Separator />
@@ -457,7 +519,13 @@ export default function SettingsPage() {
                     Réduire l'espacement pour afficher plus de contenu
                   </p>
                 </div>
-                <Switch checked={compactMode} onCheckedChange={setCompactMode} />
+                <Controller
+                  name="compactMode"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
 
               <Separator />

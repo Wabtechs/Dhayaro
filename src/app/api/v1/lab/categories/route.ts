@@ -4,6 +4,7 @@ import { labCategories } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
 import { apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
+import { parseJsonBody, labCategorySchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,11 +40,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['ADMIN', 'LABORATORY'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.name) {
-      return apiError(400, 'name is required')
-    }
+    const parsed = await parseJsonBody(request, labCategorySchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const now = new Date()
 

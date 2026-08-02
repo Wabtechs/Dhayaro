@@ -6,16 +6,17 @@ import { getDb } from '@/lib/db'
 import { auditHistory } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
 import { eq, desc, sql } from 'drizzle-orm'
+import { parseJsonBody, auditFoncUpdateSchema, auditFoncNoteSchema } from '@/lib/api-schemas'
 
 const STATIC_DATA = {
-  score: 94,
-  previousScore: 90,
+  score: 82,
+  previousScore: 94,
   lastUpdated: '2026-07-30',
   summary: {
     total: 78,
-    completed: 56,
+    completed: 64,
     inProgress: 2,
-    pending: 20,
+    pending: 12,
   },
   categories: [
     {
@@ -90,7 +91,7 @@ const STATIC_DATA = {
         { id: 'A-05', title: 'Auto-refresh dashboard', description: 'refetchInterval + staleTime ajoutés', status: 'completed', module: 'Dashboard' },
         { id: 'A-06', title: 'Préférences persistées', description: 'Stockage et récupération des préférences (API + UI Settings)', status: 'completed', module: 'Settings' },
         { id: 'A-07', title: 'Notifications marquage lu', description: 'Marquage comme lues au clic (API + hooks + store)', status: 'completed', module: 'Notifications' },
-        { id: 'A-08', title: 'Discharge outcome modifiable', description: 'Champ modifiable depuis l\'UI', status: 'pending', module: 'Hospitalisation' },
+        { id: 'A-08', title: 'Discharge outcome modifiable', description: 'Bouton Modifier sur épisodes sortis + dialog édition', status: 'completed', module: 'Hospitalisation' },
         { id: 'A-09', title: 'Recherche file attente', description: 'Pagination serveur avec recherche ILIKE', status: 'completed', module: 'File attente' },
         { id: 'A-10', title: 'Fuseau horaire local', description: 'Africa/Lubumbashi pour les dates', status: 'completed', module: 'Global' },
         { id: 'A-11', title: 'Limite uploads JSON', description: 'Helper validateJsonBody + MAX_JSON_BYTES (512 KB)', status: 'in_progress', module: 'API' },
@@ -111,10 +112,10 @@ const STATIC_DATA = {
         { id: 'UX-04', title: 'Filtre par date', description: 'Sur toutes les listes', status: 'pending', module: 'Global' },
         { id: 'UX-05', title: 'Toast actions réussies', description: 'Notifications lors des actions (useToast + CRUD)', status: 'completed', module: 'Global' },
         { id: 'UX-06', title: 'Nombre total d\'éléments', description: 'Affiché sur 18 vues listes', status: 'completed', module: 'Global' },
-        { id: 'UX-07', title: 'Bouton Imprimer', description: 'Fonctionnel sur les fiches', status: 'pending', module: 'Documents' },
+        { id: 'UX-07', title: 'Bouton Imprimer', description: '6 vues + fiche-layout + CSS print', status: 'completed', module: 'Documents' },
         { id: 'UX-08', title: 'Libellés dashboard', description: '11 rôles avec libellés français explicites', status: 'completed', module: 'Dashboard' },
-        { id: 'UX-09', title: 'Sidebar responsive', description: 'Drawer sur mobile', status: 'pending', module: 'Layout' },
-        { id: 'UX-10', title: 'Raccourcis clavier', description: 'Ctrl+N nouveau patient, etc.', status: 'pending', module: 'Global' },
+        { id: 'UX-09', title: 'Sidebar responsive', description: 'Sheet mobile + Zustand toggle + hamburger', status: 'completed', module: 'Layout' },
+        { id: 'UX-10', title: 'Raccourcis clavier', description: 'Cmd+K palette + Ctrl+N nouveau patient (app-shell)', status: 'completed', module: 'Global' },
       ],
     },
     {
@@ -144,8 +145,8 @@ const STATIC_DATA = {
         { id: 'S-01', title: 'Refresh token httpOnly', description: 'Cookie sécurisé contre XSS', status: 'completed', module: 'Auth' },
         { id: 'S-02', title: 'Rate limiting général', description: 'Sur toutes les API', status: 'pending', module: 'Global' },
         { id: 'S-03', title: 'Validation UUID systématique', description: 'Toutes les routes [id] + body fields', status: 'completed', module: 'Global' },
-        { id: 'S-04', title: 'Configuration CORS', description: 'Pour production', status: 'pending', module: 'Global' },
-        { id: 'S-05', title: 'Headers sécurité', description: 'CSP, X-Frame-Options', status: 'pending', module: 'Global' },
+        { id: 'S-04', title: 'Configuration CORS', description: 'Middleware headers + OPTIONS préflight', status: 'completed', module: 'Global' },
+        { id: 'S-05', title: 'Headers sécurité', description: 'X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy (middleware)', status: 'completed', module: 'Global' },
         { id: 'S-06', title: 'Limite payloads JSONB', description: 'Protection DoS', status: 'pending', module: 'Global' },
         { id: 'S-07', title: 'Journalisation échecs', description: 'Tentatives échouées', status: 'pending', module: 'Auth' },
         { id: 'S-08', title: 'Expiration session', description: 'Après inactivité', status: 'pending', module: 'Auth' },
@@ -158,9 +159,9 @@ const STATIC_DATA = {
       icon: 'performance',
       items: [
         { id: 'P-01', title: 'Pagination serveur généralisée', description: 'Toutes les listes', status: 'completed', module: 'Global' },
-        { id: 'P-02', title: 'Indexation DB', description: 'Champs WHERE/JOIN indexés', status: 'pending', module: 'Base de données' },
+        { id: 'P-02', title: 'Indexation DB', description: '76 indexes sur 22 tables (schema.ts)', status: 'completed', module: 'Base de données' },
         { id: 'P-03', title: 'Cache TanStack Query', description: 'staleTime et gcTime optimisés (providers + hooks clés)', status: 'completed', module: 'Global' },
-        { id: 'P-04', title: 'Lazy loading graphiques', description: 'Composants lourds différés', status: 'pending', module: 'Dashboard' },
+        { id: 'P-04', title: 'Lazy loading graphiques', description: 'RechartsChart chargé via next/dynamic (dashboard, analytics, research)', status: 'completed', module: 'Dashboard' },
         { id: 'P-05', title: 'Compression réponses', description: 'Compression API', status: 'pending', module: 'Global' },
         { id: 'P-06', title: 'Optimisation Drizzle', description: 'SELECT ciblés', status: 'pending', module: 'Base de données' },
         { id: 'P-07', title: 'Paginer seed data', description: 'Éviter OOM', status: 'pending', module: 'Base de données' },
@@ -168,6 +169,7 @@ const STATIC_DATA = {
     },
   ],
   changelog: [
+    { date: '2026-07-30', version: 'Sprint 7', items: ['A-08', 'UX-07', 'UX-09', 'UX-10', 'S-04', 'S-05', 'P-02', 'P-04'] },
     { date: '2026-07-30', version: 'Sprint 6', items: ['A-02', 'A-04', 'A-06', 'A-07', 'A-11', 'A-12', 'A-13', 'A-14', 'UX-01', 'UX-05', 'UX-06', 'UX-08', 'S-03', 'P-03'] },
     { date: '2026-07-30', version: 'Sprint 5', items: ['C-09', 'M-08', 'M-09', 'M-10', 'D-01', 'D-02', 'D-03', 'D-04'] },
     { date: '2026-07-29', version: 'Sprint 3', items: ['B-04', 'C-01', 'C-03', 'C-08', 'M-05', 'M-06', 'M-07', 'A-03', 'A-05', 'A-09', 'A-10', 'S-01', 'P-01'] },
@@ -227,7 +229,7 @@ export async function GET() {
     }
   } catch {}
 
-  let categories = STATIC_DATA.categories.map(cat => ({
+  const categories = STATIC_DATA.categories.map(cat => ({
     ...cat,
     items: cat.items.map(item => ({
       ...item,
@@ -310,20 +312,9 @@ export async function PUT(request: NextRequest) {
   const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
   if ('error' in auth) return auth.error
 
-  let body: { item_id?: string; status?: string; note?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ detail: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  const { item_id, status, note } = body
-  if (!item_id || !status) {
-    return NextResponse.json({ detail: 'item_id and status are required' }, { status: 400 })
-  }
-  if (!['completed', 'in_progress', 'pending'].includes(status)) {
-    return NextResponse.json({ detail: 'Invalid status' }, { status: 400 })
-  }
+  const parsed = await parseJsonBody(request, auditFoncUpdateSchema)
+  if (parsed.ok === false) return parsed.error
+  const { item_id, status, note } = parsed.body
 
   const staticMap = buildCategoryMap()
   const staticItem = staticMap.get(item_id)
@@ -364,17 +355,9 @@ export async function POST(request: NextRequest) {
   const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN'])
   if ('error' in auth) return auth.error
 
-  let body: { note?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ detail: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  const { note } = body
-  if (!note || !note.trim()) {
-    return NextResponse.json({ detail: 'note is required' }, { status: 400 })
-  }
+  const parsed = await parseJsonBody(request, auditFoncNoteSchema)
+  if (parsed.ok === false) return parsed.error
+  const { note } = parsed.body
 
   try {
     const db = getDb()

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { checkRateLimit, getRateLimitKey, cleanupRateLimit } from '@/lib/rate-limit'
+import { parseJsonBody, authLoginSchema } from '@/lib/api-schemas'
 
 const LOGIN_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
 
@@ -22,16 +23,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
-    const { email, password } = body
-
-    if (!email || !password) {
-      return NextResponse.json({ detail: 'Email and password are required' }, { status: 400 })
-    }
-
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      return NextResponse.json({ detail: 'Invalid input format' }, { status: 400 })
-    }
+    const parsed = await parseJsonBody(request, authLoginSchema)
+    if (parsed.ok === false) return parsed.error
+    const { email, password } = parsed.body
 
     const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
     if (rows.length === 0) {

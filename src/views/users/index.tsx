@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, Controller, type FieldError, type Resolver } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
+import { userCreateSchema, userEditSchema, toUserPayload, USER_ROLES, type UserCreateValues, type UserEditValues } from '@/lib/schemas'
 import {
   Search,
   Plus,
@@ -47,7 +50,6 @@ import {
 import { useUsersData, useFacilitiesData, useUpdateUser, useDeleteUser } from '@/hooks/use-data'
 import { api } from '@/services/api'
 import { formatDate, getInitials } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/types'
@@ -88,6 +90,23 @@ const roleLabels: Record<string, string> = {
   nurse: 'Infirmier',
   accountant: 'Comptable',
   archivist: 'Archiviste',
+}
+
+const CREATE_ROLE_OPTIONS: Array<(typeof USER_ROLES)[number]> = [
+  'admin', 'doctor', 'nurse', 'receptionist', 'specialist',
+  'laboratory', 'pharmacist', 'accountant', 'archivist',
+]
+
+const EDIT_ROLE_OPTIONS: Array<(typeof USER_ROLES)[number]> = [
+  'super_admin', 'admin', 'receptionist', 'doctor', 'specialist',
+  'laboratory', 'pharmacist', 'nurse', 'accountant', 'archivist',
+]
+
+function FormFieldError({ error }: { error: FieldError | FieldError[] | undefined }) {
+  if (!error) return null
+  const m = 'message' in error ? error.message : error[0]?.message
+  if (!m) return null
+  return <p className="text-xs text-destructive">{m}</p>
 }
 
 function getUserDisplayName(u: Record<string, unknown>): string {
@@ -141,18 +160,18 @@ export default function Users() {
   const deleteUser = useDeleteUser()
   const facilitiesList = (facilitiesData?.items ?? []) as FacilityItem[]
 
-  const [newName, setNewName] = useState('')
-  const [newEmail, setNewEmail] = useState('')
-  const [newRole, setNewRole] = useState<User['role']>('doctor')
-  const [newFacility, setNewFacility] = useState('')
-  const [newPhone, setNewPhone] = useState('')
   const [newDepartment, setNewDepartment] = useState('')
-  const [newPassword, setNewPassword] = useState('')
 
-  const [editName, setEditName] = useState('')
-  const [editEmail, setEditEmail] = useState('')
-  const [editRole, setEditRole] = useState<User['role']>('doctor')
-  const [editFacility, setEditFacility] = useState('')
+  const createForm = useForm<UserCreateValues>({
+    resolver: zodResolver(userCreateSchema) as Resolver<UserCreateValues>,
+    defaultValues: { name: '', email: '', role: 'doctor', facility: '', phone: '', password: '' },
+  })
+
+  const editForm = useForm<UserEditValues>({
+    resolver: zodResolver(userEditSchema) as Resolver<UserEditValues>,
+    defaultValues: { name: '', email: '', role: 'doctor', facility: '', phone: '' },
+  })
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -217,91 +236,44 @@ export default function Users() {
   const totalCount = usersData?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / 10))
 
-  const ROLE_MAP: Record<User['role'], string> = {
-    super_admin: 'SUPER_ADMIN',
-    admin: 'ADMIN',
-    receptionist: 'RECEPTIONIST',
-    doctor: 'DOCTOR',
-    specialist: 'SPECIALIST',
-    laboratory: 'LABORATORY',
-    pharmacist: 'PHARMACIST',
-    nurse: 'NURSE',
-    accountant: 'ACCOUNTANT',
-    archivist: 'ARCHIVIST',
-    patient: 'PATIENT',
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const targetRole = newRole
-    if (!MULTI_FACILITY_ROLES.has(targetRole) && !sanitizeUuid(newFacility)) {
-      toast({ title: 'Erreur', description: 'Un établissement est requis pour ce rôle.', variant: 'destructive' })
-      return
-    }
+  const onSubmitCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
-      const nameParts = newName.trim().split(' ')
-      const firstname = nameParts[0] || newName
-      const lastname = nameParts.slice(1).join(' ') || newName
-      await api.post('/users', {
-        firstname,
-        lastname,
-        email: newEmail,
-        password: newPassword,
-        role: ROLE_MAP[newRole] || 'DOCTOR',
-        facilityId: sanitizeUuid(newFacility) || null,
-        phone: newPhone || undefined,
-      }, token)
+      await api.post('/users', toUserPayload(values, true), token)
       await queryClient.invalidateQueries({ queryKey: ['users'] })
-      toast({ title: 'Utilisateur créé', description: `${newName} a été ajouté.` })
+      toast({ title: 'Utilisateur créé', description: `${values.name} a été ajouté.` })
       setDialogOpen(false)
-      setNewName('')
-      setNewEmail('')
-      setNewRole('doctor')
-      setNewFacility('')
-      setNewPhone('')
+      createForm.reset()
       setNewDepartment('')
-      setNewPassword('')
     } catch {
       toast({ title: 'Erreur', description: "Impossible de créer l'utilisateur.", variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEditDialog = (user: User) => {
     setEditingUser(user)
-    setEditName(getUserDisplayName(user as unknown as Record<string, unknown>))
-    setEditEmail(user.email)
-    setEditRole(user.role)
-    setEditFacility((user as unknown as Record<string, unknown>).facilityId as string || '')
+    editForm.reset({
+      name: getUserDisplayName(user as unknown as Record<string, unknown>),
+      email: user.email || '',
+      role: user.role || 'doctor',
+      facility: ((user as unknown as Record<string, unknown>).facilityId as string) || '',
+      phone: user.phone || '',
+    })
     setEditDialogOpen(true)
   }
 
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmitUpdate = editForm.handleSubmit(async (values) => {
     if (!editingUser) return
-    if (!MULTI_FACILITY_ROLES.has(editRole) && !sanitizeUuid(editFacility)) {
-      toast({ title: 'Erreur', description: 'Un établissement est requis pour ce rôle.', variant: 'destructive' })
-      return
-    }
     setSaving(true)
     try {
-      const nameParts = editName.trim().split(' ')
-      const firstname = nameParts[0] || editName
-      const lastname = nameParts.slice(1).join(' ') || editName
       await updateUser.mutateAsync({
         id: editingUser.id,
-        data: {
-          firstname,
-          lastname,
-          email: editEmail,
-          role: ROLE_MAP[editRole] || 'DOCTOR',
-          facilityId: sanitizeUuid(editFacility) || null,
-        },
+        data: toUserPayload(values, false) as Record<string, unknown>,
       })
-      toast({ title: 'Utilisateur mis à jour', description: `${editName} a été modifié.` })
+      toast({ title: 'Utilisateur mis à jour', description: `${values.name} a été modifié.` })
       setEditDialogOpen(false)
       setEditingUser(null)
     } catch {
@@ -309,7 +281,7 @@ export default function Users() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = async () => {
     if (!deletingUser) return
@@ -391,83 +363,84 @@ export default function Users() {
                 Ajoutez un nouvel utilisateur à la plateforme.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={onSubmitCreate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="user-name">Nom complet</Label>
                 <Input
                   id="user-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                  {...createForm.register('name')}
                   placeholder="Dr. Jean Dupont"
-                  required
                 />
+                <FormFieldError error={createForm.formState.errors.name} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="user-email">Email</Label>
                 <Input
                   id="user-email"
                   type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
+                  {...createForm.register('email')}
                   placeholder="jean.dupont@dhayaro.cd"
-                  required
                 />
+                <FormFieldError error={createForm.formState.errors.email} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="user-password">Mot de passe</Label>
                 <Input
                   id="user-password"
                   type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  {...createForm.register('password')}
                   placeholder="••••••••"
-                  required
                 />
+                <FormFieldError error={createForm.formState.errors.password} />
               </div>
               <div className="space-y-2">
                 <Label>Rôle</Label>
-                <Select
-                  value={newRole}
-                  onValueChange={(v) => setNewRole(v as User['role'])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="doctor">Médecin</SelectItem>
-                    <SelectItem value="nurse">Infirmier</SelectItem>
-                    <SelectItem value="receptionist">Réceptionniste</SelectItem>
-                    <SelectItem value="specialist">Spécialiste</SelectItem>
-                    <SelectItem value="laboratory">Laborantin</SelectItem>
-                    <SelectItem value="pharmacist">Pharmacien</SelectItem>
-                    <SelectItem value="accountant">Comptable</SelectItem>
-                    <SelectItem value="archivist">Archiviste</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="role"
+                  control={createForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CREATE_ROLE_OPTIONS.map((r) => (
+                          <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormFieldError error={createForm.formState.errors.role} />
               </div>
               <div className="space-y-2">
-                <Label>Établissement {!MULTI_FACILITY_ROLES.has(newRole) && <span className="text-destructive">*</span>}</Label>
-                <Select value={newFacility} onValueChange={setNewFacility}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un établissement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilitiesList.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Établissement {!MULTI_FACILITY_ROLES.has(createForm.watch('role')) && <span className="text-destructive">*</span>}</Label>
+                <Controller
+                  name="facility"
+                  control={createForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un établissement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilitiesList.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>
+                            {f.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormFieldError error={createForm.formState.errors.facility} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="user-phone">Téléphone</Label>
                   <Input
                     id="user-phone"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
+                    {...createForm.register('phone')}
                     placeholder="+213 ..."
                   />
                 </div>
@@ -503,65 +476,67 @@ export default function Users() {
                 Modifiez les informations de l&apos;utilisateur.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleUpdateUser} className="space-y-4">
+            <form onSubmit={onSubmitUpdate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-user-name">Nom complet</Label>
                 <Input
                   id="edit-user-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
+                  {...editForm.register('name')}
                   placeholder="Dr. Jean Dupont"
-                  required
                 />
+                <FormFieldError error={editForm.formState.errors.name} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-user-email">Email</Label>
                 <Input
                   id="edit-user-email"
                   type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
+                  {...editForm.register('email')}
                   placeholder="jean.dupont@dhayaro.cd"
-                  required
                 />
+                <FormFieldError error={editForm.formState.errors.email} />
               </div>
               <div className="space-y-2">
                 <Label>Rôle</Label>
-                <Select
-                  value={editRole}
-                  onValueChange={(v) => setEditRole(v as User['role'])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="receptionist">Réceptionniste</SelectItem>
-                    <SelectItem value="doctor">Médecin</SelectItem>
-                    <SelectItem value="specialist">Spécialiste</SelectItem>
-                    <SelectItem value="laboratory">Laborantin</SelectItem>
-                    <SelectItem value="pharmacist">Pharmacien</SelectItem>
-                    <SelectItem value="nurse">Infirmier</SelectItem>
-                    <SelectItem value="accountant">Comptable</SelectItem>
-                    <SelectItem value="archivist">Archiviste</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="role"
+                  control={editForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EDIT_ROLE_OPTIONS.map((r) => (
+                          <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormFieldError error={editForm.formState.errors.role} />
               </div>
               <div className="space-y-2">
-                <Label>Établissement {!MULTI_FACILITY_ROLES.has(editRole) && <span className="text-destructive">*</span>}</Label>
-                <Select value={editFacility} onValueChange={setEditFacility}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un établissement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilitiesList.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Établissement {!MULTI_FACILITY_ROLES.has(editForm.watch('role')) && <span className="text-destructive">*</span>}</Label>
+                <Controller
+                  name="facility"
+                  control={editForm.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un établissement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilitiesList.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>
+                            {f.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormFieldError error={editForm.formState.errors.facility} />
               </div>
               <DialogFooter>
                 <Button

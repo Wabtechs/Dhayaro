@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseJsonBody, documentCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -85,11 +86,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE', 'ARCHIVIST', 'RECEPTIONIST'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.title || !body.documentType) {
-      return apiError(400, 'title and documentType are required')
-    }
+    const parsed = await parseJsonBody(request, documentCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const now = new Date()
     const episodeId = sanitizeUuid(body.episodeId)

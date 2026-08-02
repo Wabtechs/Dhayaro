@@ -52,6 +52,9 @@ import { useFacilitiesData, useUpdateFacility, useDeleteFacility } from '@/hooks
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { facilityCreateSchema, facilityEditSchema, toFacilityPayload, type FacilityCreateValues, type FacilityEditValues } from '@/lib/schemas'
 import type { Facility } from '@/types'
 
 interface FacilityItem extends Facility {
@@ -94,92 +97,55 @@ export default function Facilities() {
   const displayItems = items.filter((f) => typeFilter === 'all' || f.type === typeFilter)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newName, setNewName] = useState('')
-  const [newType, setNewType] = useState<Facility['type']>('hospital')
-  const [newAddress, setNewAddress] = useState('')
-  const [newCity, setNewCity] = useState('')
-  const [newPhone, setNewPhone] = useState('')
-  const [newEmail, setNewEmail] = useState('')
-  const [newBedCount, setNewBedCount] = useState('')
+  const createForm = useForm<FacilityCreateValues>({
+    resolver: zodResolver(facilityCreateSchema),
+    defaultValues: { name: '', type: 'hospital', address: '', city: '', phone: '', email: '', bedCount: '', code: '' },
+  })
+  const editForm = useForm<FacilityEditValues>({
+    resolver: zodResolver(facilityEditSchema),
+    defaultValues: { name: '', type: 'hospital', address: '', city: '', phone: '', email: '', bedCount: '' },
+  })
 
-  const [editName, setEditName] = useState('')
-  const [editType, setEditType] = useState<Facility['type']>('hospital')
-  const [editAddress, setEditAddress] = useState('')
-  const [editCity, setEditCity] = useState('')
-  const [editPhone, setEditPhone] = useState('')
-  const [editEmail, setEditEmail] = useState('')
-  const [editBedCount, setEditBedCount] = useState('')
-
-  const TYPE_MAP: Record<Facility['type'], string> = {
-    hospital: 'HOSPITAL',
-    clinic: 'CLINIC',
-    laboratory: 'LABORATORY',
-    pharmacy: 'PHARMACY',
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
-      const code = newName.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 30) + '-' + Date.now().toString(36)
-      await api.post('/facilities', {
-        name: newName,
-        code,
-        facilityType: TYPE_MAP[newType],
-        address: newAddress,
-        city: newCity,
-        phone: newPhone,
-        email: newEmail,
-        bedCount: parseInt(newBedCount) || 0,
-      }, token)
+      const code = values.name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 30) + '-' + Date.now().toString(36)
+      await api.post('/facilities', toFacilityPayload({ ...values, code }, true), token)
       await queryClient.invalidateQueries({ queryKey: ['facilities'] })
-      toast({ title: 'Établissement créé', description: `${newName} a été ajouté avec succès.` })
+      toast({ title: 'Établissement créé', description: `${values.name} a été ajouté avec succès.` })
       setDialogOpen(false)
-      setNewName('')
-      setNewType('hospital')
-      setNewAddress('')
-      setNewCity('')
-      setNewPhone('')
-      setNewEmail('')
-      setNewBedCount('')
+      createForm.reset()
     } catch {
       toast({ title: 'Erreur', description: "Impossible de créer l'établissement.", variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEditDialog = (facility: FacilityItem) => {
     setEditingFacility(facility)
-    setEditName((facility.name as string) || '')
-    setEditType(((facility.type as string) || 'hospital') as Facility['type'])
-    setEditAddress((facility.address as string) || '')
-    setEditCity((facility.city as string) || '')
-    setEditPhone((facility.phone as string) || '')
-    setEditEmail((facility.email as string) || '')
-    setEditBedCount(String(facility.bedCount ?? ''))
+    editForm.reset({
+      name: (facility.name as string) || '',
+      type: ((facility.type as string) || 'hospital') as FacilityEditValues['type'],
+      address: (facility.address as string) || '',
+      city: (facility.city as string) || '',
+      phone: (facility.phone as string) || '',
+      email: (facility.email as string) || '',
+      bedCount: String(facility.bedCount ?? ''),
+    })
     setEditDialogOpen(true)
   }
 
-  const handleUpdateFacility = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     if (!editingFacility) return
     setSaving(true)
     try {
       await updateFacility.mutateAsync({
         id: editingFacility.id as string,
-        data: {
-          name: editName,
-          facilityType: TYPE_MAP[editType],
-          address: editAddress,
-          city: editCity,
-          phone: editPhone,
-          email: editEmail,
-          bedCount: parseInt(editBedCount) || 0,
-        },
+        data: toFacilityPayload(values),
       })
-      toast({ title: 'Établissement mis à jour', description: `${editName} a été modifié.` })
+      toast({ title: 'Établissement mis à jour', description: `${values.name} a été modifié.` })
       setEditDialogOpen(false)
       setEditingFacility(null)
     } catch {
@@ -187,7 +153,7 @@ export default function Facilities() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDeleteFacility = (facility: Record<string, unknown>) => {
     const name = (facility.name as string) || 'cet établissement'
@@ -268,52 +234,52 @@ export default function Facilities() {
                 Ajoutez un nouvel établissement de santé à la plateforme.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={onCreate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fac-name">Nom</Label>
                 <Input
                   id="fac-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
                   placeholder="Nom de l'établissement"
-                  required
+                  {...createForm.register('name')}
                 />
+                {createForm.formState.errors.name && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.name.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select
-                  value={newType}
-                  onValueChange={(v) => setNewType(v as Facility['type'])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hospital">Hôpital</SelectItem>
-                    <SelectItem value="clinic">Clinique</SelectItem>
-                    <SelectItem value="laboratory">Laboratoire</SelectItem>
-                    <SelectItem value="pharmacy">Pharmacie</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={createForm.control}
+                  name="type"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hospital">Hôpital</SelectItem>
+                        <SelectItem value="clinic">Clinique</SelectItem>
+                        <SelectItem value="laboratory">Laboratoire</SelectItem>
+                        <SelectItem value="pharmacy">Pharmacie</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fac-address">Adresse</Label>
                 <Input
                   id="fac-address"
-                  value={newAddress}
-                  onChange={(e) => setNewAddress(e.target.value)}
                   placeholder="Adresse complète"
-                  required
+                  {...createForm.register('address')}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fac-city">Ville</Label>
                 <Input
                   id="fac-city"
-                  value={newCity}
-                  onChange={(e) => setNewCity(e.target.value)}
                   placeholder="Ville"
-                  required
+                  {...createForm.register('city')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -321,9 +287,8 @@ export default function Facilities() {
                   <Label htmlFor="fac-phone">Téléphone</Label>
                   <Input
                     id="fac-phone"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
                     placeholder="+213 ..."
+                    {...createForm.register('phone')}
                   />
                 </div>
                 <div className="space-y-2">
@@ -331,10 +296,12 @@ export default function Facilities() {
                   <Input
                     id="fac-email"
                     type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="contact@..."
+                    {...createForm.register('email')}
                   />
+                  {createForm.formState.errors.email && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.email.message}</p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
@@ -342,10 +309,9 @@ export default function Facilities() {
                 <Input
                   id="fac-beds"
                   type="number"
-                  value={newBedCount}
-                  onChange={(e) => setNewBedCount(e.target.value)}
                   placeholder="0"
                   min={0}
+                  {...createForm.register('bedCount')}
                 />
               </div>
               <DialogFooter>
@@ -369,50 +335,52 @@ export default function Facilities() {
                 Modifiez les informations de l&apos;établissement.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleUpdateFacility} className="space-y-4">
+            <form onSubmit={onUpdate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-fac-name">Nom</Label>
                 <Input
                   id="edit-fac-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
                   placeholder="Nom de l'établissement"
-                  required
+                  {...editForm.register('name')}
                 />
+                {editForm.formState.errors.name && (
+                  <p className="text-xs text-destructive">{editForm.formState.errors.name.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select
-                  value={editType}
-                  onValueChange={(v) => setEditType(v as Facility['type'])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hospital">Hôpital</SelectItem>
-                    <SelectItem value="clinic">Clinique</SelectItem>
-                    <SelectItem value="laboratory">Laboratoire</SelectItem>
-                    <SelectItem value="pharmacy">Pharmacie</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={editForm.control}
+                  name="type"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hospital">Hôpital</SelectItem>
+                        <SelectItem value="clinic">Clinique</SelectItem>
+                        <SelectItem value="laboratory">Laboratoire</SelectItem>
+                        <SelectItem value="pharmacy">Pharmacie</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-fac-address">Adresse</Label>
                 <Input
                   id="edit-fac-address"
-                  value={editAddress}
-                  onChange={(e) => setEditAddress(e.target.value)}
                   placeholder="Adresse complète"
+                  {...editForm.register('address')}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-fac-city">Ville</Label>
                 <Input
                   id="edit-fac-city"
-                  value={editCity}
-                  onChange={(e) => setEditCity(e.target.value)}
                   placeholder="Ville"
+                  {...editForm.register('city')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -420,9 +388,8 @@ export default function Facilities() {
                   <Label htmlFor="edit-fac-phone">Téléphone</Label>
                   <Input
                     id="edit-fac-phone"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
                     placeholder="+213 ..."
+                    {...editForm.register('phone')}
                   />
                 </div>
                 <div className="space-y-2">
@@ -430,10 +397,12 @@ export default function Facilities() {
                   <Input
                     id="edit-fac-email"
                     type="email"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
                     placeholder="contact@..."
+                    {...editForm.register('email')}
                   />
+                  {editForm.formState.errors.email && (
+                    <p className="text-xs text-destructive">{editForm.formState.errors.email.message}</p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
@@ -441,10 +410,9 @@ export default function Facilities() {
                 <Input
                   id="edit-fac-beds"
                   type="number"
-                  value={editBedCount}
-                  onChange={(e) => setEditBedCount(e.target.value)}
                   placeholder="0"
                   min={0}
+                  {...editForm.register('bedCount')}
                 />
               </div>
               <DialogFooter>

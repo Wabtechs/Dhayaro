@@ -1,27 +1,28 @@
 import { useState } from 'react'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Logo } from '@/components/ui/logo'
+import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/schemas'
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const { register, watch, handleSubmit, formState: { errors } } = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  })
+  const email = watch('email')
+
+  const onSubmit = handleSubmit(async () => {
     setError('')
-
-    if (!email.trim()) {
-      setError('Veuillez entrer votre adresse email')
-      return
-    }
-
     setLoading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -31,7 +32,7 @@ export default function ForgotPassword() {
     } finally {
       setLoading(false)
     }
-  }
+  })
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -78,7 +79,7 @@ export default function ForgotPassword() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={onSubmit} className="space-y-5">
                   {error && (
                     <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
                       {error}
@@ -93,11 +94,13 @@ export default function ForgotPassword() {
                         id="email"
                         type="email"
                         placeholder="votre@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
+                        {...register('email')}
                       />
                     </div>
+                    {errors.email && (
+                      <p className="text-xs text-destructive">{errors.email.message}</p>
+                    )}
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>

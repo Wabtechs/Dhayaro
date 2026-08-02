@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   TestTube,
   Search,
@@ -67,13 +69,11 @@ import {
   useDeleteLabExam,
   useLabCategoriesData,
   usePatientsData,
-  useUsersData,
-  useConsultationsData,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
-import { sanitizeUuid } from '@/lib/validation'
+import { labExamSchema, labExamEditSchema, toLabExamPayload, LAB_EXAM_STATUSES, type LabExamValues, type LabExamEditValues } from '@/lib/schemas'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MedicalPreviewDialog, type PreviewData } from '@/components/medical-preview-dialog'
 
@@ -119,17 +119,6 @@ interface PatientItem {
   [key: string]: unknown
 }
 
-interface UserItem {
-  id: string
-  name?: string
-  role?: string
-  firstname?: string
-  firstName?: string
-  lastname?: string
-  lastName?: string
-  [key: string]: unknown
-}
-
 interface CategoryItem {
   id: string
   name: string
@@ -160,8 +149,6 @@ export default function LaboratoryView() {
   const { data, isLoading } = useLabExamsData(searchParams)
 
   const { data: patientsData } = usePatientsData()
-  const { data: usersData } = useUsersData()
-  const { data: consultationsData } = useConsultationsData()
   const { data: categoriesData } = useLabCategoriesData()
 
   const createLabExam = useCreateLabExam()
@@ -169,11 +156,7 @@ export default function LaboratoryView() {
   const deleteLabExam = useDeleteLabExam()
 
   const patientsList = (patientsData?.items ?? []) as PatientItem[]
-  const usersList = (usersData?.items ?? []) as UserItem[]
-  const consultationsList = (consultationsData?.items ?? []) as Array<{ id: string; consultationNumber?: string; [key: string]: unknown }>
   const categoriesList = (categoriesData?.items ?? []) as CategoryItem[]
-  const labTechnicians = usersList.filter((u) => u.role === 'laboratory')
-  const doctorsList = usersList.filter((u) => u.role === 'doctor')
 
   const items = (data?.items ?? []) as LabExamItem[]
   const totalCount = data?.total ?? 0
@@ -186,48 +169,30 @@ export default function LaboratoryView() {
   const [editingExam, setEditingExam] = useState<LabExamItem | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ description: string; callback: () => void } | null>(null)
-  const [newExam, setNewExam] = useState({
-    patientId: '',
-    doctorId: '',
-    categoryId: '',
-    examName: '',
-    clinicalIndication: '',
-    consultationId: '',
+  const createForm = useForm<LabExamValues>({
+    resolver: zodResolver(labExamSchema),
+    defaultValues: { patientId: '', categoryId: '', examName: '', clinicalIndication: '', results: '' },
+  })
+  const editForm = useForm<LabExamEditValues>({
+    resolver: zodResolver(labExamEditSchema),
+    defaultValues: { categoryId: '', labTechnicianId: '', examName: '', clinicalIndication: '', status: 'REQUESTED', results: '', resultNotes: '' },
   })
 
-  const [editForm, setEditForm] = useState({
-    examName: '',
-    categoryId: '',
-    clinicalIndication: '',
-    status: 'REQUESTED' as string,
-    resultNotes: '',
-    results: '{}',
-    labTechnicianId: '',
-    doctorId: '',
-  })
-
-  const handleCreate = async () => {
+  const onCreate = createForm.handleSubmit(async (values) => {
     setCreating(true)
     try {
-      await createLabExam.mutateAsync({
-        patientId: sanitizeUuid(newExam.patientId),
-        doctorId: sanitizeUuid(newExam.doctorId) || undefined,
-        categoryId: sanitizeUuid(newExam.categoryId) || undefined,
-        examName: newExam.examName,
-        clinicalIndication: newExam.clinicalIndication || null,
-        consultationId: sanitizeUuid(newExam.consultationId) || undefined,
-      })
+      await createLabExam.mutateAsync(toLabExamPayload(values))
       await queryClient.invalidateQueries({ queryKey: ['lab-exams'] })
-      toast({ title: 'Examen créé', description: `"${newExam.examName}" a été enregistré.` })
+      toast({ title: 'Examen créé', description: `"${values.examName}" a été enregistré.` })
       setDialogOpen(false)
-      setNewExam({ patientId: '', doctorId: '', categoryId: '', examName: '', clinicalIndication: '', consultationId: '' })
+      createForm.reset()
       setCurrentPage(1)
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de créer l\'examen.', variant: 'destructive' })
     } finally {
       setCreating(false)
     }
-  }
+  })
 
   const openEdit = (exam: LabExamItem) => {
     setEditingExam(exam)
@@ -238,42 +203,25 @@ export default function LaboratoryView() {
         return '{}'
       }
     })()
-    setEditForm({
-      examName: (exam.examName as string) || '',
-      categoryId: (exam.categoryId as string) || '',
-      clinicalIndication: (exam.clinicalIndication as string) || '',
-      status: (exam.status as string) || 'REQUESTED',
-      resultNotes: (exam.resultNotes as string) || '',
+    editForm.reset({
+      categoryId: String(exam.categoryId ?? ''),
+      labTechnicianId: String(exam.labTechnicianId ?? ''),
+      examName: String(exam.examName ?? ''),
+      clinicalIndication: String(exam.clinicalIndication ?? ''),
+      status: (LAB_EXAM_STATUSES as readonly string[]).includes(exam.status as string) ? (exam.status as LabExamEditValues['status']) : 'REQUESTED',
       results: parsedResults,
-      labTechnicianId: (exam.labTechnicianId as string) || '',
-      doctorId: (exam.doctorId as string) || '',
+      resultNotes: String(exam.resultNotes ?? ''),
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async () => {
+  const onUpdate = editForm.handleSubmit(async (values) => {
     if (!editingExam) return
     setSaving(true)
     try {
-      const parsedResults = (() => {
-        try {
-          return editForm.results ? JSON.parse(editForm.results) : {}
-        } catch {
-          return {}
-        }
-      })() as Record<string, unknown>
       await updateLabExam.mutateAsync({
         id: editingExam.id as string,
-        data: {
-          examName: editForm.examName,
-          doctorId: sanitizeUuid(editForm.doctorId) || undefined,
-          categoryId: sanitizeUuid(editForm.categoryId) || undefined,
-          clinicalIndication: editForm.clinicalIndication || null,
-          status: editForm.status,
-          resultNotes: editForm.resultNotes || null,
-          results: parsedResults,
-          labTechnicianId: sanitizeUuid(editForm.labTechnicianId) || undefined,
-        },
+        data: toLabExamPayload(values),
       })
       toast({ title: 'Examen mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -283,7 +231,7 @@ export default function LaboratoryView() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleDelete = (exam: LabExamItem) => {
     setConfirmDelete({
@@ -331,88 +279,82 @@ export default function LaboratoryView() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Patient *</label>
-                  <Select value={newExam.patientId} onValueChange={(v) => setNewExam({ ...newExam, patientId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Médecin *</label>
-                  <Select value={newExam.doctorId} onValueChange={(v) => setNewExam({ ...newExam, doctorId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un médecin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctorsList.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.firstName || d.lastName ? `${d.firstName || ''} ${d.lastName || ''}`.trim() : d.id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="patientId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patientsList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {createForm.formState.errors.patientId && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.patientId.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Catégorie</label>
-                  <Select value={newExam.categoryId} onValueChange={(v) => setNewExam({ ...newExam, categoryId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoriesList.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={createForm.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une catégorie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoriesList.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Examen *</label>
                 <Input
                   placeholder="Nom de l'examen"
-                  value={newExam.examName}
-                  onChange={(e) => setNewExam({ ...newExam, examName: e.target.value })}
+                  {...createForm.register('examName')}
                 />
+                {createForm.formState.errors.examName && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.examName.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Indication clinique</label>
                 <Textarea
                   placeholder="Indication clinique"
-                  rows={3}
-                  value={newExam.clinicalIndication}
-                  onChange={(e) => setNewExam({ ...newExam, clinicalIndication: e.target.value })}
+                  rows={2}
+                  {...createForm.register('clinicalIndication')}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Consultation</label>
-                <Select value={newExam.consultationId} onValueChange={(v) => setNewExam({ ...newExam, consultationId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une consultation (optionnel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {consultationsList.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {String(c.consultationNumber || c.id)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Résultats (JSON)</label>
+                <Textarea
+                  rows={4}
+                  {...createForm.register('results')}
+                  placeholder={'{\n  "valeur": "..."\n}'}
+                />
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="button" disabled={creating || !newExam.patientId || !newExam.examName} onClick={handleCreate}>
+              <Button type="button" disabled={creating} onClick={onCreate}>
                 {creating ? 'Création...' : 'Créer l\'examen'}
               </Button>
             </DialogFooter>
@@ -669,92 +611,54 @@ export default function LaboratoryView() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Examen *</label>
               <Input
-                value={editForm.examName}
-                onChange={(e) => setEditForm({ ...editForm, examName: e.target.value })}
+                {...editForm.register('examName')}
               />
+              {editForm.formState.errors.examName && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.examName.message}</p>
+              )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Catégorie</label>
-              <Select value={editForm.categoryId} onValueChange={(v) => setEditForm({ ...editForm, categoryId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesList.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Médecin *</label>
-              <Select value={editForm.doctorId} onValueChange={(v) => setEditForm({ ...editForm, doctorId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un médecin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctorsList.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Statut</label>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LAB_EXAM_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{statusConfig[s]?.label || s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Indication clinique</label>
               <Textarea
                 rows={2}
-                value={editForm.clinicalIndication}
-                onChange={(e) => setEditForm({ ...editForm, clinicalIndication: e.target.value })}
+                {...editForm.register('clinicalIndication')}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Statut</label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="REQUESTED">Demandé</SelectItem>
-                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Technicien de laboratoire</label>
-              <Select value={editForm.labTechnicianId} onValueChange={(v) => setEditForm({ ...editForm, labTechnicianId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un technicien (optionnel)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labTechnicians.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : u.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Résultats (JSON)</label>
               <Textarea
                 rows={4}
-                value={editForm.results}
-                onChange={(e) => setEditForm({ ...editForm, results: e.target.value })}
+                {...editForm.register('results')}
                 placeholder={'{\n  "valeur": "..."\n}'}
               />
+              {editForm.formState.errors.results && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.results.message}</p>
+              )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notes résultat</label>
+              <label className="text-sm font-medium">Notes de résultat</label>
               <Textarea
                 rows={2}
-                value={editForm.resultNotes}
-                onChange={(e) => setEditForm({ ...editForm, resultNotes: e.target.value })}
+                {...editForm.register('resultNotes')}
               />
             </div>
           </div>
@@ -762,7 +666,7 @@ export default function LaboratoryView() {
             <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
               Annuler
             </Button>
-            <Button type="button" disabled={saving} onClick={handleUpdate}>
+            <Button type="button" disabled={saving} onClick={onUpdate}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>

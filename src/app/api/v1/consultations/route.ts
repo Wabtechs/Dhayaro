@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { parseJsonBody, consultationCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -90,20 +91,12 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'NURSE'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, consultationCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const patientId = sanitizeUuid(body.patientId)
     const doctorId = sanitizeUuid(body.doctorId)
-
-    if (!patientId) {
-      return apiError(400, 'patientId is required and must be a valid UUID')
-    }
-    if (!doctorId) {
-      return apiError(400, 'doctorId is required and must be a valid UUID')
-    }
-    if (!body.motif) {
-      return apiError(400, 'motif is required')
-    }
 
     const db = getDb()
 

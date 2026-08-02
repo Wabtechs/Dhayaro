@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseJsonBody, patientCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,11 +59,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST'])
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
-
-    if (!body.firstname || !body.lastname || !body.sex || !body.dateOfBirth) {
-      return apiError(400, 'firstname, lastname, sex, and dateOfBirth are required')
-    }
+    const parsed = await parseJsonBody(request, patientCreateSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     const patientUuid = body.patientUuid || crypto.randomUUID()
     const { facilityId } = enforceFacilityAccess(body, auth)

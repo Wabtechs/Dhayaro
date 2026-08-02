@@ -5,13 +5,16 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
+import { parseJsonBody, notificationsReadSchema } from '@/lib/api-schemas'
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
 
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, notificationsReadSchema)
+    if (parsed.ok === false) return parsed.error
+    const body = parsed.body
 
     if (!body.ids && !body.all) {
       return apiError(400, 'ids array or all=true is required')

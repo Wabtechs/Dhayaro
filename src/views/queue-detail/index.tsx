@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
   Calendar,
@@ -57,6 +59,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
+import { queueEditSchema, toQueueEditPayload, PRIORITIES, QUEUE_STATUSES, type QueueEditValues } from '@/lib/schemas'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   WAITING: { label: 'En attente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
@@ -92,11 +95,9 @@ export default function QueueDetailPage() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({
-    priority: 'NORMAL',
-    assignedDoctorId: '',
-    notes: '',
-    status: 'WAITING',
+  const editForm = useForm<QueueEditValues>({
+    resolver: zodResolver(queueEditSchema),
+    defaultValues: { priority: 'NORMAL', assignedDoctorId: '', notes: '', status: 'WAITING' },
   })
 
   if (isLoading) {
@@ -220,27 +221,21 @@ export default function QueueDetailPage() {
   }
 
   const openEditDialog = () => {
-    setEditForm({
-      priority,
+    editForm.reset({
+      priority: priority as QueueEditValues['priority'],
       assignedDoctorId,
       notes,
-      status,
+      status: status as QueueEditValues['status'],
     })
     setEditDialogOpen(true)
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onUpdate = editForm.handleSubmit(async (values) => {
     setSaving(true)
     try {
       await updateQueue.mutateAsync({
         id: queueId,
-        data: {
-          priority: editForm.priority,
-          assignedDoctorId: editForm.assignedDoctorId || null,
-          notes: editForm.notes || null,
-          status: editForm.status,
-        },
+        data: toQueueEditPayload(values),
       })
       toast({ title: 'Ticket mis à jour', description: 'Les modifications ont été enregistrées.' })
       setEditDialogOpen(false)
@@ -249,7 +244,7 @@ export default function QueueDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
+  })
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -450,57 +445,77 @@ export default function QueueDetailPage() {
               Modifiez les détails du ticket ci-dessous.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={onUpdate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="priority">Priorité</Label>
-              <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Faible</SelectItem>
-                  <SelectItem value="NORMAL">Normal</SelectItem>
-                  <SelectItem value="HIGH">Élevée</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="priority"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="priority">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p}>{priorityConfig[p]?.label || p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.priority && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.priority.message}</p>
+              )}
             </div>
             {can('queue:assign') && (
             <div className="space-y-2">
               <Label htmlFor="assignedDoctor">Médecin assigné</Label>
-              <Select value={editForm.assignedDoctorId} onValueChange={(v) => setEditForm({ ...editForm, assignedDoctorId: v })}>
-                <SelectTrigger id="assignedDoctor">
-                  <SelectValue placeholder="Sélectionner un médecin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctorUsers.map((u: Record<string, unknown>) => (
-                    <SelectItem key={u.id as string} value={u.id as string}>
-                      {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="assignedDoctorId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="assignedDoctor">
+                      <SelectValue placeholder="Sélectionner un médecin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctorUsers.map((u: Record<string, unknown>) => (
+                        <SelectItem key={u.id as string} value={u.id as string}>
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
-              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WAITING">En attente</SelectItem>
-                  <SelectItem value="WITH_DOCTOR">Chez le médecin</SelectItem>
-                  <SelectItem value="WITH_LAB">Au laboratoire</SelectItem>
-                  <SelectItem value="WITH_PHARMACY">À la pharmacie</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUEUE_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{statusConfig[s]?.label || s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {editForm.formState.errors.status && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.status.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" rows={3} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+              <Textarea id="notes" rows={3} {...editForm.register('notes')} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>
