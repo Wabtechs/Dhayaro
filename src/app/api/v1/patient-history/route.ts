@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       performedBy: body.performedBy || null,
       performedByName: body.performedByName || null,
       metadata: body.metadata || {},
-      createdAt: now,
-    }).returning()
+createdAt: now,
+      } as any).returning()
 
     await logAudit(auth.user, 'CREATE', 'patient_history', row.id, { patientId: row.patientId, eventType: row.eventType })
 

@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
       services: body.services ?? ['LABORATORY', 'PHARMACY', 'IMAGERY', 'HOSPITALIZATION', 'RECEPTION', 'ADMINISTRATION'],
       isActive: true,
       facilityId: facilityId || null,
-      createdAt: now,
-      updatedAt: now,
-    }).returning()
+createdAt: now,
+        updatedAt: now,
+      } as any).returning()
 
     await logAudit(auth.user, 'CREATE', 'notification_preference', row.id, { userId: row.userId })
 

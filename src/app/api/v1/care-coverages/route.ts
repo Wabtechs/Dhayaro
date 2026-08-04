@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       isActive: true,
       createdAt: now,
       updatedAt: now,
-    }).returning()
+    } as any).returning()
 
     await logAudit(auth.user, 'CREATE', 'care_coverage', row.id, { patientId: row.patientId, coverageType: row.coverageType })
 

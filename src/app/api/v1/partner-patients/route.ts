@@ -119,9 +119,9 @@ export async function POST(request: NextRequest) {
       status: body.status || 'ACTIVE',
       notes: body.notes || null,
       isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    }).returning()
+createdAt: now,
+        updatedAt: now,
+      } as any).returning()
 
     await logAudit(auth.user, 'CREATE', 'partner_patient', row.id, { partnerId: row.partnerId, patientId: row.patientId })
 
