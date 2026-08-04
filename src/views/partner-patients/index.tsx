@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { partnerPatientCreateSchema, type PartnerPatientCreateValues } from '@/lib/schemas'
 import { Search, Plus, Users, Building2, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
@@ -108,7 +108,7 @@ export default function PartnerPatientsPage() {
 
   const createForm = useForm<PartnerPatientCreateValues>({
     resolver: zodResolver(partnerPatientCreateSchema),
-    defaultValues: { status: 'ACTIVE' },
+    defaultValues: { partnerId: '', patientId: '' },
   })
 
   const params = new URLSearchParams()

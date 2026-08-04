@@ -219,7 +219,7 @@ function buildPayload(f: ItemFormState): Record<string, unknown> {
     state: f.state,
     status: f.status,
   }
-  const optionalStrings: Array<keyof ItemFormState> = [
+  const optionalStrings = [
     'manufacturer',
     'brand',
     'model',
@@ -234,9 +234,10 @@ function buildPayload(f: ItemFormState): Record<string, unknown> {
     'retirementDate',
     'description',
     'comments',
-  ]
+  ] as const
+  const formAny = f as unknown as Record<string, unknown>
   for (const key of optionalStrings) {
-    if (f[key]) payload[key] = f[key]
+    if (formAny[key]) payload[key] = formAny[key]
   }
   if (f.categoryId) payload.categoryId = f.categoryId
   if (f.purchasePrice !== '') payload.purchasePrice = Number(f.purchasePrice)

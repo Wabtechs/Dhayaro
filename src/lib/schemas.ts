@@ -705,6 +705,7 @@ export const partnerPatientCreateSchema = z.object({
   remainingAmount: z.number().optional(),
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
+  status: z.enum(COVERAGE_STATUSES).optional(),
   notes: z.string().optional(),
 })
 export type PartnerPatientCreateValues = z.infer<typeof partnerPatientCreateSchema>

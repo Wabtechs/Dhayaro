@@ -448,7 +448,7 @@ export default function DocumentsView() {
                         <SelectItem value="none">Aucune</SelectItem>
                         {consultationsList.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
-                            {String(c.consultationNumber || c.id)}
+                            {String(c.consultationNumber || 'N/A')}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -766,7 +766,7 @@ export default function DocumentsView() {
                         <SelectItem value="none">Aucune</SelectItem>
                         {consultationsList.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
-                            {String(c.consultationNumber || c.id)}
+                            {String(c.consultationNumber || 'N/A')}
                           </SelectItem>
                         ))}
                       </SelectContent>

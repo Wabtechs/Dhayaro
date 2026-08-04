@@ -52,6 +52,7 @@ const CHART_COLORS = [
 interface DashboardChartPoint {
   name: string
   value: number
+  [key: string]: string | number
 }
 
 interface DashboardAlert {
@@ -124,7 +125,7 @@ export default function EquipmentDashboardView() {
     )
   }
 
-  const dashboard = data as DashboardData | undefined
+  const dashboard = data as unknown as DashboardData | undefined
   const stats = dashboard?.stats ?? {}
   const charts = dashboard?.charts ?? {}
   const alerts = dashboard?.alerts ?? []

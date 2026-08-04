@@ -367,7 +367,7 @@ export default function AuditLogPage() {
             <SelectItem value="all">Tous les utilisateurs</SelectItem>
             {users.map((u) => (
               <SelectItem key={u.id as string} value={u.id as string}>
-                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
+                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
               </SelectItem>
             ))}
           </SelectContent>

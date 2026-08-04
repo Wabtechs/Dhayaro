@@ -112,7 +112,7 @@ function FormFieldError({ error }: { error: FieldError | FieldError[] | undefine
 function getUserDisplayName(u: Record<string, unknown>): string {
   const first = (u.firstName || u.firstname || '') as string
   const last = (u.lastName || u.lastname || '') as string
-  return `${first} ${last}`.trim() || (u.email as string) || (u.id as string)
+  return `${first} ${last}`.trim() || (u.email as string) || '—'
 }
 
 const roleBadgeColors: Record<string, string> = {

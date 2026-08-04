@@ -421,7 +421,7 @@ export default function ClinicalCasesPage() {
                             .filter((u) => u.role === 'doctor')
                             .map((u) => (
                               <SelectItem key={u.id} value={u.id}>
-                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -582,7 +582,7 @@ export default function ClinicalCasesPage() {
                             .filter((u) => u.role === 'doctor')
                             .map((u) => (
                               <SelectItem key={u.id} value={u.id}>
-                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                                {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                               </SelectItem>
                             ))}
                           </SelectContent>

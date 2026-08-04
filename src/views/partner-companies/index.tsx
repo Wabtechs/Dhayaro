@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { partnerCompanyCreateSchema, type PartnerCompanyCreateValues } from '@/lib/schemas'
 import { Search, Plus, Building2, Phone, Mail, Globe, MoreHorizontal, Edit, Trash2, Shield } from 'lucide-react'

@@ -590,6 +590,7 @@ export const partnerPatientCreateSchema = z.object({
   remainingAmount: optNum,
   validFrom: optStr,
   validUntil: optStr,
+  status: z.enum(COVERAGE_STATUSES).optional(),
   notes: optStr,
   facilityId: optUuid,
 })

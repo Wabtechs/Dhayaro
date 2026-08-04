@@ -499,7 +499,7 @@ export default function DocumentDetailPage() {
                         <SelectItem value="none">Aucune</SelectItem>
                         {consultationItems.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
-                            {String(c.consultationNumber || c.id)}
+                            {String(c.consultationNumber || 'N/A')}
                           </SelectItem>
                         ))}
                       </SelectContent>

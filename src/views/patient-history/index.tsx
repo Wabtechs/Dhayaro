@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { patientHistoryCreateSchema, type PatientHistoryCreateValues } from '@/lib/schemas'
 import { Search, Plus, Activity, FileText, Clock, User, MoreHorizontal, Edit, Trash2 } from 'lucide-react'

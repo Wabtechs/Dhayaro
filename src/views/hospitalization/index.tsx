@@ -21,6 +21,7 @@ import { useCareEpisodesData, usePatientsData, useCreateCareEpisode, useUpdateCa
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { formatDate } from '@/lib/utils'
 
 const episodeStatusConfig: Record<string, { label: string; color: string }> = {

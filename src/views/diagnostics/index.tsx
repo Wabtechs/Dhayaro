@@ -352,7 +352,7 @@ export default function DiagnosticsView() {
                         <SelectContent>
                           {consultationsList.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.consultationNumber || c.id}
+                              {c.consultationNumber || 'N/A'}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -742,7 +742,7 @@ export default function DiagnosticsView() {
                     <SelectContent>
                       {doctorsList.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
-                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                         </SelectItem>
                       ))}
                     </SelectContent>

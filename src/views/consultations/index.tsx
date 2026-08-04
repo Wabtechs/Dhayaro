@@ -341,7 +341,7 @@ export default function ConsultationsView() {
                         <SelectContent>
                           {usersList.filter((u) => (u.role === 'doctor' || u.role === 'specialist') && u.isActive !== false).map((u) => (
                             <SelectItem key={u.id} value={u.id}>
-                              {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                              {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -539,7 +539,7 @@ export default function ConsultationsView() {
                         onClick={() => router.push(`/consultations/${item.id}`)}
                       >
                         <TableCell className="font-mono text-sm">
-                          {String(item.consultationNumber || item.id || '—')}
+                          {String(item.consultationNumber || '—')}
                         </TableCell>
                         <TableCell className="font-medium">
                           {String(item.patientName || item.patient || '—')}
@@ -705,7 +705,7 @@ export default function ConsultationsView() {
                     <SelectContent>
                       {usersList.filter((u) => (u.role === 'doctor' || u.role === 'specialist') && u.isActive !== false).map((u) => (
                         <SelectItem key={u.id} value={u.id}>
-                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                         </SelectItem>
                       ))}
                     </SelectContent>

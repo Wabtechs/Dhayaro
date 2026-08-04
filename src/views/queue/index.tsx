@@ -322,7 +322,7 @@ export default function QueueView() {
                         <SelectContent>
                           {consultationsList.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {String(c.consultationNumber || c.id)}
+                              {String(c.consultationNumber || 'N/A')}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -344,7 +344,7 @@ export default function QueueView() {
                       <SelectContent>
                         {doctorUsers.map((u) => (
                           <SelectItem key={u.id} value={u.id}>
-                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -492,8 +492,8 @@ export default function QueueView() {
                         className="cursor-pointer"
                         onClick={() => router.push(`/queue/${item.id}`)}
                       >
-                        <TableCell className="font-mono text-sm">
-                          {String(item.ticketNumber || item.id || '—')}
+<TableCell className="font-mono text-sm">
+                          {item.ticketNumber || 'N/A'}
                         </TableCell>
                         <TableCell className="font-medium">{patientName}</TableCell>
                         <TableCell>
@@ -619,7 +619,7 @@ export default function QueueView() {
                     <SelectContent>
                         {doctorUsers.map((u) => (
                           <SelectItem key={u.id} value={u.id}>
-                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : u.id}
+                            {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                           </SelectItem>
                         ))}
                     </SelectContent>

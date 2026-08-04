@@ -120,7 +120,7 @@ export default function CareCoveragesPage() {
 
   const createForm = useForm<CareCoverageCreateValues>({
     resolver: zodResolver(careCoverageCreateSchema),
-    defaultValues: { patientId: '', coverageType: 'PERSONAL', status: 'ACTIVE' },
+    defaultValues: { patientId: '', coverageType: 'PERSONAL' },
   })
 
   const params = new URLSearchParams()

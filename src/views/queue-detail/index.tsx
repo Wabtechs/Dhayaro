@@ -482,7 +482,7 @@ export default function QueueDetailPage() {
                     <SelectContent>
                       {doctorUsers.map((u: Record<string, unknown>) => (
                         <SelectItem key={u.id as string} value={u.id as string}>
-                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : (u.id as string)}
+                          {u.firstName || u.firstname || u.lastName || u.lastname ? `${u.firstName || u.firstname || ''} ${u.lastName || u.lastname || ''}`.trim() : '—'}
                         </SelectItem>
                       ))}
                     </SelectContent>
