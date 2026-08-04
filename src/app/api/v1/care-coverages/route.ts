@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
 
     if (patientId) conditions.push(eq(careCoverages.patientId, patientId))
-    if (coverageType) conditions.push(eq(careCoverages.coverageType, coverageType as string))
-    if (status) conditions.push(eq(careCoverages.status, status as string))
+    if (coverageType) conditions.push(eq(careCoverages.coverageType, coverageType as 'PERSONAL' | 'INSURANCE' | 'MUTUAL' | 'COMPANY' | 'NGO' | 'GOVERNMENT' | 'HEALTH_PROJECT' | 'PARTNER' | 'FREE' | 'OTHER'))
+    if (status) conditions.push(eq(careCoverages.status, status as 'ACTIVE' | 'EXPIRED' | 'SUSPENDED'))
 
     const facilityFilter = addFacilityFilter(careCoverages.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     const status = searchParams.get('status')
-    if (status) conditions.push(eq(partnerCompanies.contractStatus, status as string))
+    if (status) conditions.push(eq(partnerCompanies.contractStatus, status as 'ACTIVE' | 'EXPIRED' | 'SUSPENDED'))
 
     const facilityFilter = addFacilityFilter(partnerCompanies.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)

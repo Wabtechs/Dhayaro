@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (partnerId) conditions.push(eq(partnerPatients.partnerId, partnerId))
     if (patientId) conditions.push(eq(partnerPatients.patientId, patientId))
-    if (status) conditions.push(eq(partnerPatients.status, status as string))
+    if (status) conditions.push(eq(partnerPatients.status, status as 'ACTIVE' | 'EXPIRED' | 'SUSPENDED'))
 
     const facilityFilter = addFacilityFilter(partnerPatients.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)
