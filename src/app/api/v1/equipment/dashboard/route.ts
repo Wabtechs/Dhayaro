@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         .where(compactAnd(addFacilityFilter(spareParts.facilityId, auth, searchParams))),
       getDb().select({ value: count() }).from(sparePartInventory)
         .where(compactAnd(
-          sql`${sparePartInventory.quantity} <= ${sparePartInventory.minStock}`,
+          sql`${sparePartInventory.quantity} <= ${sparePartInventory.minThreshold}`,
           addFacilityFilter(sparePartInventory.facilityId, auth, searchParams),
         )),
       getDb().select({ value: count() }).from(medicalSupplies)
