@@ -72,6 +72,10 @@ export const ENTITY_TYPES = ['CONSULTATION', 'DIAGNOSTIC', 'TREATMENT', 'LAB_EXA
 
 export const EPISODE_STATUSES = ['ADMITTED', 'HOSPITALIZED', 'DISCHARGED', 'ARCHIVED'] as const
 
+export const CARE_COVERAGE_TYPES = ['PERSONAL', 'INSURANCE', 'MUTUAL', 'COMPANY', 'NGO', 'GOVERNMENT', 'HEALTH_PROJECT', 'PARTNER', 'FREE', 'OTHER'] as const
+
+export const COVERAGE_STATUSES = ['ACTIVE', 'EXPIRED', 'SUSPENDED'] as const
+
 export const AVAILABILITY = ['AVAILABLE', 'ON_LEAVE', 'OFF_DUTY'] as const
 
 export const loginSchema = z.object({
@@ -653,3 +657,74 @@ export const toProfilePayload = (v: ProfileValues) => {
     department: v.department,
   }
 }
+
+export const careCoverageCreateSchema = z.object({
+  patientId: z.string().min(1, 'Veuillez sélectionner un patient'),
+  coverageType: z.enum(CARE_COVERAGE_TYPES),
+  organization: z.string().optional(),
+  contractNumber: z.string().optional(),
+  coverageRate: z.number().optional(),
+  coverageCeiling: z.number().optional(),
+  remainingAmount: z.number().optional(),
+  validFrom: z.string().optional(),
+  validUntil: z.string().optional(),
+  justification: z.string().optional(),
+})
+export type CareCoverageCreateValues = z.infer<typeof careCoverageCreateSchema>
+
+export const partnerCompanyCreateSchema = z.object({
+  code: z.string().min(1, 'Le code est requis'),
+  name: z.string().min(1, 'Le nom est requis'),
+  sector: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.email().optional().or(z.literal('')),
+  website: z.string().optional(),
+  contactName: z.string().optional(),
+  contactFunction: z.string().optional(),
+  contactPhone: z.string().optional(),
+  contactEmail: z.email().optional().or(z.literal('')),
+  contractNumber: z.string().optional(),
+  contractStartDate: z.string().optional(),
+  contractEndDate: z.string().optional(),
+  contractStatus: z.enum(COVERAGE_STATUSES).optional(),
+  coverageRate: z.number().optional(),
+  annualCeiling: z.number().optional(),
+  notes: z.string().optional(),
+})
+export type PartnerCompanyCreateValues = z.infer<typeof partnerCompanyCreateSchema>
+
+export const partnerPatientCreateSchema = z.object({
+  partnerId: z.string().min(1, 'Veuillez sélectionner une entreprise'),
+  patientId: z.string().min(1, 'Veuillez sélectionner un patient'),
+  contractNumber: z.string().optional(),
+  coverageRate: z.number().optional(),
+  annualCeiling: z.number().optional(),
+  remainingAmount: z.number().optional(),
+  validFrom: z.string().optional(),
+  validUntil: z.string().optional(),
+  notes: z.string().optional(),
+})
+export type PartnerPatientCreateValues = z.infer<typeof partnerPatientCreateSchema>
+
+export const patientHistoryCreateSchema = z.object({
+  patientId: z.string().min(1, 'Veuillez sélectionner un patient'),
+  episodeId: z.string().optional(),
+  eventType: z.string().min(1, 'Le type d\'événement est requis'),
+  title: z.string().min(1, 'Le titre est requis'),
+  description: z.string().optional(),
+  performedBy: z.string().optional(),
+  performedByName: z.string().optional(),
+})
+export type PatientHistoryCreateValues = z.infer<typeof patientHistoryCreateSchema>
+
+export const notificationPreferenceCreateSchema = z.object({
+  userId: z.string().min(1, 'Veuillez sélectionner un utilisateur'),
+  soundEnabled: z.boolean().optional(),
+  volume: z.number().optional(),
+  notificationTypes: z.array(z.string()).optional(),
+  services: z.array(z.string()).optional(),
+})
+export type NotificationPreferenceCreateValues = z.infer<typeof notificationPreferenceCreateSchema>

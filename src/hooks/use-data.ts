@@ -1174,3 +1174,38 @@ export function useDeleteTherapeuticProtocol() {
     },
   });
 }
+
+export function useCareCoveragesData(params?: string) {
+  return useQuery({
+    queryKey: ['care-coverages', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/care-coverages${params ? '?' + params : ''}`),
+  });
+}
+
+export function usePartnerCompaniesData(params?: string) {
+  return useQuery({
+    queryKey: ['partner-companies', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/partner-companies${params ? '?' + params : ''}`),
+  });
+}
+
+export function usePartnerPatientsData(params?: string) {
+  return useQuery({
+    queryKey: ['partner-patients', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/partner-patients${params ? '?' + params : ''}`),
+  });
+}
+
+export function usePatientHistoryData(params?: string) {
+  return useQuery({
+    queryKey: ['patient-history', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/patient-history${params ? '?' + params : ''}`),
+  });
+}
+
+export function useNotificationPreferencesData(params?: string) {
+  return useQuery({
+    queryKey: ['notification-preferences', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/notification-preferences${params ? '?' + params : ''}`),
+  });
+}

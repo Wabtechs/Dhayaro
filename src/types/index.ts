@@ -450,3 +450,102 @@ export interface SimilarCaseResult {
   treatment: string
   outcome: string
 }
+
+export interface CareCoverage {
+  id: string
+  facilityId?: string
+  patientId: string
+  coverageType: string
+  organization?: string
+  contractNumber?: string
+  coverageRate?: number
+  coverageCeiling?: number
+  remainingAmount?: number
+  validFrom?: string
+  validUntil?: string
+  status: string
+  justification?: string
+  isActive: boolean
+  patientFirstname?: string
+  patientLastname?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PartnerCompany {
+  id: string
+  facilityId?: string
+  code: string
+  name: string
+  sector?: string
+  address?: string
+  city?: string
+  country?: string
+  phone?: string
+  email?: string
+  website?: string
+  contactName?: string
+  contactFunction?: string
+  contactPhone?: string
+  contactEmail?: string
+  contractNumber?: string
+  contractStartDate?: string
+  contractEndDate?: string
+  contractStatus: string
+  coverageRate?: number
+  annualCeiling?: number
+  notes?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PartnerPatient {
+  id: string
+  facilityId?: string
+  partnerId: string
+  patientId: string
+  contractNumber?: string
+  coverageRate?: number
+  status: string
+  notes?: string
+  partnerName?: string
+  patientFirstname?: string
+  patientLastname?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PatientHistoryEntry {
+  id: string
+  facilityId?: string
+  patientId: string
+  episodeId?: string
+  eventType: string
+  title: string
+  description?: string
+  performedByName?: string
+  outcome?: string
+  followUpDate?: string
+  facilityName?: string
+  patientFirstname?: string
+  patientLastname?: string
+  episodeTitle?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NotificationPreference {
+  id: string
+  userId: string
+  soundEnabled: boolean
+  volume: number
+  notificationTypes: string[]
+  services: string[]
+  isActive: boolean
+  userFirstname?: string
+  userLastname?: string
+  userEmail?: string
+  createdAt: string
+  updatedAt: string
+}

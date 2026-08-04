@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { admitSchema, dischargeSchema, toDischargePayload, type AdmitValues, type DischargeValues } from '@/lib/schemas'
 import {
-  Search, ChevronLeft, ChevronRight, DoorOpen, LogOut, Plus,
+  Search, ChevronLeft, ChevronRight, DoorOpen, LogOut, Plus, AlertTriangle, Clock, UserCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,6 +87,9 @@ export default function HospitalizationView() {
   const [editDischargeItem, setEditDischargeItem] = useState<EpisodeItem | null>(null)
   const [editingDischarge, setEditingDischarge] = useState(false)
 
+  const [confirmDischargeOpen, setConfirmDischargeOpen] = useState(false)
+  const [pendingDischargeItem, setPendingDischargeItem] = useState<EpisodeItem | null>(null)
+
   const admitForm = useForm<AdmitValues>({
     resolver: zodResolver(admitSchema),
     defaultValues: { patientId: '', admitReason: '' },
@@ -111,6 +114,19 @@ export default function HospitalizationView() {
     setDischargeOpen(true)
   }
 
+  const openConfirmDischarge = (item: EpisodeItem) => {
+    setPendingDischargeItem(item)
+    setConfirmDischargeOpen(true)
+  }
+
+  const handleConfirmDischarge = async () => {
+    if (!pendingDischargeItem) return
+    setConfirmDischargeOpen(false)
+    setDischargeItem(pendingDischargeItem)
+    setDischargeOpen(true)
+    setPendingDischargeItem(null)
+  }
+
   const handleAdmit = admitForm.handleSubmit(async (values) => {
     setAdmitting(true)
     try {
@@ -133,15 +149,24 @@ export default function HospitalizationView() {
     if (!dischargeItem) return
     setDischarging(true)
     try {
+      const admitDate = dischargeItem.admitDate ? new Date(dischargeItem.admitDate) : new Date()
+      const dischargeDate = new Date()
+      const durationDays = Math.ceil((dischargeDate.getTime() - admitDate.getTime()) / (24 * 60 * 60 * 1000))
+
       await updateEpisode.mutateAsync({
         id: dischargeItem.id,
         data: {
           ...toDischargePayload(values),
-          dischargeDate: new Date().toISOString(),
-          dischargeSummary: { summary: values.summary, date: new Date().toISOString() },
+          dischargeDate: dischargeDate.toISOString(),
+          dischargeSummary: {
+            summary: values.summary,
+            date: dischargeDate.toISOString(),
+            durationDays,
+            dischargeBy: 'Médecin responsable',
+          },
         },
       })
-      toast({ title: 'Succès', description: 'Patient sorti avec succès.' })
+      toast({ title: 'Succès', description: `Patient sorti avec succès. Durée d'hospitalisation : ${durationDays} jour(s).` })
       setDischargeOpen(false)
       setDischargeItem(null)
     } catch {
@@ -233,6 +258,7 @@ export default function HospitalizationView() {
                 <TableHead>Patient</TableHead>
                 <TableHead>Motif admission</TableHead>
                 <TableHead>Date admission</TableHead>
+                <TableHead>Durée</TableHead>
                 <TableHead>Statut</TableHead>
                 {tab === 'discharged' && <TableHead>Issue</TableHead>}
                 <TableHead className="text-right">Action</TableHead>
@@ -258,6 +284,14 @@ export default function HospitalizationView() {
               ) : (
                 allItems.map((item) => {
                   const sc = episodeStatusConfig[item.status || ''] || { label: item.status || '—', color: '' }
+                  const admitDate = item.admitDate ? new Date(item.admitDate) : null
+                  const dischargeDate = item.dischargeDate ? new Date(item.dischargeDate) : null
+                  const durationDays = admitDate && dischargeDate
+                    ? Math.ceil((dischargeDate.getTime() - admitDate.getTime()) / (24 * 60 * 60 * 1000))
+                    : admitDate
+                      ? Math.ceil((new Date().getTime() - admitDate.getTime()) / (24 * 60 * 60 * 1000))
+                      : null
+
                   return (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.episodeNumber || '—'}</TableCell>
@@ -266,6 +300,14 @@ export default function HospitalizationView() {
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">{item.admitReason || '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{item.admitDate ? formatDate(item.admitDate) : '—'}</TableCell>
+                      <TableCell>
+                        {durationDays !== null ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span>{durationDays} jour(s)</span>
+                          </div>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell><Badge className={sc.color}>{sc.label}</Badge></TableCell>
                       {tab === 'discharged' && (
                         <TableCell>
@@ -274,7 +316,7 @@ export default function HospitalizationView() {
                       )}
                       <TableCell className="text-right">
                         {tab === 'hospitalized' && (
-                          <Button size="sm" variant="outline" onClick={() => openDischarge(item)} disabled={!can('episodes:edit')}>
+                          <Button size="sm" variant="outline" onClick={() => openConfirmDischarge(item)} disabled={!can('episodes:edit')}>
                             <LogOut className="h-4 w-4 mr-1" /> Sortie
                           </Button>
                         )}
@@ -350,10 +392,29 @@ export default function HospitalizationView() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
+</DialogContent>
+        </Dialog>
 
-      <Dialog open={dischargeOpen} onOpenChange={setDischargeOpen}>
+        <AlertDialog open={confirmDischargeOpen} onOpenChange={setConfirmDischargeOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la sortie</AlertDialogTitle>
+              <AlertDialogDescription>
+                {pendingDischargeItem
+                  ? `Êtes-vous sûr de vouloir sortir le patient ${pendingDischargeItem.patientFirstname || ''} ${pendingDischargeItem.patientLastname || ''} ?`
+                  : 'Êtes-vous sûr de vouloir procéder à la sortie de ce patient ?'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDischarge}>
+                Confirmer la sortie
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog open={dischargeOpen} onOpenChange={setDischargeOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Sortie du patient</DialogTitle>

@@ -45,6 +45,11 @@ import {
   Activity,
   DoorOpen,
   BookMarked,
+  ShieldCheck,
+  Building,
+  Handshake,
+  UserCog as UserCogIcon,
+  Clock,
 } from 'lucide-react'
 
 interface NavItem {
@@ -89,6 +94,14 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    label: 'PRISE EN CHARGE',
+    items: [
+      { label: 'Prises en charge', icon: ShieldCheck, href: '/care-coverages', permission: 'patients:list' },
+      { label: 'Entreprises partenaires', icon: Building, href: '/partner-companies', permission: 'patients:list' },
+      { label: 'Patients partenaires', icon: Handshake, href: '/partner-patients', permission: 'patients:list' },
+    ],
+  },
+  {
     label: 'ÉPISODES',
     items: [
       { label: 'Hospitalisation', icon: DoorOpen, href: '/hospitalization', permission: 'episodes:list' },
@@ -107,6 +120,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Documents', icon: FileText, href: '/documents', permission: 'documents:list' },
       { label: 'Archives', icon: Archive, href: '/archives', permission: 'archives:list' },
+      { label: 'Historique patients', icon: Clock, href: '/patient-history', permission: 'archives:list' },
     ],
   },
   {
@@ -114,6 +128,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Rapports', icon: FileBarChart, href: '/reports', permission: 'reports:read' },
       { label: 'Notifications', icon: Bell, href: '/notifications', permission: 'notifications:list' },
+      { label: 'Préférences', icon: Settings, href: '/notification-preferences', permission: 'notifications:manage' },
     ],
   },
   {

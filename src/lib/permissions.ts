@@ -26,6 +26,15 @@ export type Permission =
   | 'clinical-decision:read'
   | 'triage:list' | 'triage:manage'
   | 'pharmacy:list' | 'pharmacy:dispense'
+  | 'equipment:view' | 'equipment:create' | 'equipment:update' | 'equipment:delete'
+  | 'equipment:assign' | 'equipment:transfer' | 'equipment:maintenance' | 'equipment:audit' | 'equipment:report'
+  | 'supplies:view' | 'supplies:manage'
+  | 'stock:view' | 'stock:manage'
+  | 'care-coverages:list' | 'care-coverages:create' | 'care-coverages:edit' | 'care-coverages:delete'
+  | 'partner-companies:list' | 'partner-companies:create' | 'partner-companies:edit' | 'partner-companies:delete'
+  | 'partner-patients:list' | 'partner-patients:create' | 'partner-patients:edit' | 'partner-patients:delete'
+  | 'patient-history:list' | 'patient-history:create' | 'patient-history:edit' | 'patient-history:delete'
+  | 'notification-preferences:list' | 'notification-preferences:manage'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -53,6 +62,11 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'clinical-decision:read',
     'triage:list', 'triage:manage',
     'pharmacy:list', 'pharmacy:dispense',
+    'equipment:view', 'equipment:create', 'equipment:update', 'equipment:delete',
+    'equipment:assign', 'equipment:transfer', 'equipment:maintenance', 'equipment:audit', 'equipment:report',
+    'supplies:view', 'supplies:manage',
+    'stock:view', 'stock:manage',
+    'supplies:view', 'supplies:manage',
   ],
   admin: [
     'DASHBOARD_VIEW',
@@ -89,6 +103,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'settings:read',
     'episodes:list', 'episodes:create', 'episodes:edit',
+    'equipment:view',
+    'supplies:view', 'stock:view',
   ],
   doctor: [
     'DASHBOARD_VIEW',
@@ -111,6 +127,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'protocols:list', 'protocols:create', 'protocols:edit',
     'knowledge-base:list', 'knowledge-base:search',
     'clinical-decision:read',
+    'equipment:view', 'supplies:view',
   ],
   specialist: [
     'DASHBOARD_VIEW',
@@ -142,6 +159,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'documents:list', 'documents:create', 'documents:edit',
     'notifications:list',
     'settings:read',
+    'equipment:view', 'supplies:view', 'stock:view',
   ],
   pharmacist: [
     'DASHBOARD_VIEW',
@@ -169,6 +187,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'settings:read',
     'episodes:list', 'episodes:create', 'episodes:edit',
     'triage:list', 'triage:manage',
+    'equipment:view', 'supplies:view', 'stock:view',
   ],
   accountant: [
     'DASHBOARD_VIEW',
@@ -179,6 +198,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'analytics:read',
     'notifications:list',
     'settings:read',
+    'equipment:view', 'equipment:report',
+    'supplies:view', 'stock:view',
   ],
   archivist: [
     'DASHBOARD_VIEW',
@@ -193,6 +214,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notifications:list',
     'settings:read',
     'episodes:list', 'episodes:archive',
+    'equipment:view',
   ],
   patient: [
     'DASHBOARD_VIEW',

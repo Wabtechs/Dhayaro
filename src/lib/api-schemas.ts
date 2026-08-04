@@ -4,7 +4,7 @@ import { apiError } from '@/lib/api-errors'
 import {
   TREATMENT_STATUSES, LAB_EXAM_STATUSES, DIAGNOSTIC_TYPES, CONSULTATION_STATUSES,
   QUEUE_STATUSES, PRIORITIES, SEVERITY_LEVELS, CASE_PRIORITIES, EPISODE_STATUSES,
-  DOCUMENT_TYPES, ENTITY_TYPES, GENDERS,
+  DOCUMENT_TYPES, ENTITY_TYPES, GENDERS, CARE_COVERAGE_TYPES, COVERAGE_STATUSES,
 } from '@/lib/schemas'
 
 export const API_ROLES = [
@@ -502,3 +502,151 @@ export const auditFoncUpdateSchema = z.object({
 export const auditFoncNoteSchema = z.object({
   note: z.string().min(1),
 })
+
+export const careCoverageCreateSchema = z.object({
+  patientId: uuid,
+  coverageType: z.enum(CARE_COVERAGE_TYPES),
+  organization: optStr,
+  contractNumber: optStr,
+  coverageRate: optNum,
+  coverageCeiling: optNum,
+  remainingAmount: optNum,
+  validFrom: optStr,
+  validUntil: optStr,
+  justification: optStr,
+  facilityId: optUuid,
+})
+
+export const careCoverageUpdateSchema = z
+  .object({
+    coverageType: z.enum(CARE_COVERAGE_TYPES),
+    organization: optStr,
+    contractNumber: optStr,
+    coverageRate: optNum,
+    coverageCeiling: optNum,
+    remainingAmount: optNum,
+    validFrom: optStr,
+    validUntil: optStr,
+    justification: optStr,
+    status: z.enum(COVERAGE_STATUSES),
+  })
+  .partial()
+
+export const partnerCompanyCreateSchema = z.object({
+  code: z.string().min(1),
+  name: z.string().min(1),
+  sector: optStr,
+  address: optStr,
+  city: optStr,
+  country: optStr,
+  phone: optStr,
+  email: z.email().nullish(),
+  website: optStr,
+  contactName: optStr,
+  contactFunction: optStr,
+  contactPhone: optStr,
+  contactEmail: z.email().nullish(),
+  contractNumber: optStr,
+  contractStartDate: optStr,
+  contractEndDate: optStr,
+  contractStatus: z.enum(COVERAGE_STATUSES).nullish(),
+  coverageRate: optNum,
+  annualCeiling: optNum,
+  notes: optStr,
+  facilityId: optUuid,
+})
+
+export const partnerCompanyUpdateSchema = z
+  .object({
+    code: z.string().min(1),
+    name: z.string().min(1),
+    sector: optStr,
+    address: optStr,
+    city: optStr,
+    country: optStr,
+    phone: optStr,
+    email: z.email().nullish(),
+    website: optStr,
+    contactName: optStr,
+    contactFunction: optStr,
+    contactPhone: optStr,
+    contactEmail: z.email().nullish(),
+    contractNumber: optStr,
+    contractStartDate: optStr,
+    contractEndDate: optStr,
+    contractStatus: z.enum(COVERAGE_STATUSES),
+    coverageRate: optNum,
+    annualCeiling: optNum,
+    notes: optStr,
+  })
+  .partial()
+
+export const partnerPatientCreateSchema = z.object({
+  partnerId: uuid,
+  patientId: uuid,
+  contractNumber: optStr,
+  coverageRate: optNum,
+  annualCeiling: optNum,
+  remainingAmount: optNum,
+  validFrom: optStr,
+  validUntil: optStr,
+  notes: optStr,
+  facilityId: optUuid,
+})
+
+export const partnerPatientUpdateSchema = z
+  .object({
+    partnerId: uuid,
+    patientId: uuid,
+    contractNumber: optStr,
+    coverageRate: optNum,
+    annualCeiling: optNum,
+    remainingAmount: optNum,
+    validFrom: optStr,
+    validUntil: optStr,
+    status: z.enum(COVERAGE_STATUSES),
+    notes: optStr,
+  })
+  .partial()
+
+export const patientHistoryCreateSchema = z.object({
+  patientId: uuid,
+  episodeId: optUuid,
+  eventType: z.string().min(1),
+  title: z.string().min(1),
+  description: optStr,
+  performedBy: optUuid,
+  performedByName: optStr,
+  metadata: optJson,
+  facilityId: optUuid,
+})
+
+export const patientHistoryUpdateSchema = z
+  .object({
+    episodeId: optUuid,
+    eventType: z.string().min(1),
+    title: z.string().min(1),
+    description: optStr,
+    performedBy: optUuid,
+    performedByName: optStr,
+    metadata: optJson,
+  })
+  .partial()
+
+export const notificationPreferenceCreateSchema = z.object({
+  userId: uuid,
+  soundEnabled: optBool,
+  volume: optNum,
+  notificationTypes: z.array(z.string()).nullish(),
+  services: z.array(z.string()).nullish(),
+  facilityId: optUuid,
+})
+
+export const notificationPreferenceUpdateSchema = z
+  .object({
+    soundEnabled: optBool,
+    volume: optNum,
+    notificationTypes: z.array(z.string()).nullish(),
+    services: z.array(z.string()).nullish(),
+  })
+  .partial()
