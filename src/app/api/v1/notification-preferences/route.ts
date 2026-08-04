@@ -88,7 +88,6 @@ export async function POST(request: NextRequest) {
     }
 
     const [row] = await db.insert(notificationPreferences).values({
-      id: crypto.randomUUID(),
       userId: body.userId,
       soundEnabled: body.soundEnabled ?? true,
       volume: body.volume ?? 50,

@@ -95,7 +95,6 @@ export async function POST(request: NextRequest) {
     const now = new Date()
 
     const [row] = await db.insert(partnerCompanies).values({
-      id: crypto.randomUUID(),
       facilityId: facilityId || null,
       code: body.code,
       name: body.name,

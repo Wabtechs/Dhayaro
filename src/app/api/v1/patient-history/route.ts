@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
     }
 
     const [row] = await db.insert(patientHistory).values({
-      id: crypto.randomUUID(),
       facilityId: facilityId || null,
       patientId: body.patientId,
       episodeId: body.episodeId || null,

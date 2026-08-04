@@ -104,7 +104,6 @@ export async function POST(request: NextRequest) {
     const now = new Date()
 
     const [row] = await db.insert(careCoverages).values({
-      id: crypto.randomUUID(),
       facilityId: facilityId || null,
       patientId,
       coverageType: body.coverageType,
