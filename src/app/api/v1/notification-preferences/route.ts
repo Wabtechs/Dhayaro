@@ -28,13 +28,15 @@ export async function GET(request: NextRequest) {
     const userId = sanitizeUuid(searchParams.get('userId'))
     if (userId) conditions.push(eq(notificationPreferences.userId, userId))
 
-    const facilityFilter = addFacilityFilter(notificationPreferences.facilityId, auth, searchParams)
+    const facilityFilter = addFacilityFilter(users.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
     const [[countResult], items] = await Promise.all([
-      getDb().select({ value: count() }).from(notificationPreferences).where(whereClause),
+      getDb().select({ value: count() }).from(notificationPreferences)
+        .leftJoin(users, eq(notificationPreferences.userId, users.id))
+        .where(whereClause),
       getDb().select({
         id: notificationPreferences.id,
         userId: notificationPreferences.userId,
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const db = getDb()
-    const { facilityId } = enforceFacilityAccess(body, auth)
+    enforceFacilityAccess(body, auth)
     const now = new Date()
 
     const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, body.userId)).limit(1)
@@ -94,8 +96,7 @@ export async function POST(request: NextRequest) {
       notificationTypes: body.notificationTypes ?? ['INFO', 'WARNING', 'SUCCESS', 'ERROR'],
       services: body.services ?? ['LABORATORY', 'PHARMACY', 'IMAGERY', 'HOSPITALIZATION', 'RECEPTION', 'ADMINISTRATION'],
       isActive: true,
-      facilityId: facilityId || null,
-createdAt: now,
+      createdAt: now,
         updatedAt: now,
       } as any).returning()
 
