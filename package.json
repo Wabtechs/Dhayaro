@@ -42,7 +42,7 @@
     "docx": "^9.7.1",
     "drizzle-orm": "^0.44.3",
     "file-saver": "^2.0.5",
-    "jose": "^6.0.11",
+    "jose": "^6.2.6",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.24.0",
