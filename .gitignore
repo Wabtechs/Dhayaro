@@ -13,7 +13,6 @@ dist-ssr
 *.local
 .next
 out
-drizzle
 .env
 .env.local
 

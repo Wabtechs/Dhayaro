@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { archives, patients } from '@/lib/schema'
+import { archives, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
@@ -36,9 +36,12 @@ export async function GET(
         createdAt: archives.createdAt,
         patientFirstname: patients.firstname,
         patientLastname: patients.lastname,
+        archivistFirstname: users.firstname,
+        archivistLastname: users.lastname,
       })
       .from(archives)
       .leftJoin(patients, eq(archives.patientId, patients.id))
+      .leftJoin(users, eq(archives.archivedBy, users.id))
       .where(eq(archives.id, validId))
       .limit(1)
 

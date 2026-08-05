@@ -111,3 +111,10 @@ export function getStatusColor(status: string): string {
 export function getRoleLabel(role: string): string {
   return roleLabelMap[role] || role
 }
+
+export function shortRef(id: string | null | undefined): string {
+  if (!id) return '—'
+  const hex = id.replace(/[^0-9a-f]/gi, '')
+  if (hex.length !== 32) return id
+  return `#${hex.slice(-6).toUpperCase()}`
+}

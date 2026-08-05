@@ -23,7 +23,7 @@ import {
   CardContent,
 } from '@/components/ui/card'
 import { useArchiveDetail } from '@/hooks/use-data'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateTime, shortRef } from '@/lib/utils'
 import type { Archive } from '@/types'
 
 const typeConfig: Record<string, { label: string; color: string }> = {
@@ -38,11 +38,8 @@ const typeConfig: Record<string, { label: string; color: string }> = {
 interface ArchiveItem extends Archive {
   patientFirstname?: string
   patientLastname?: string
-}
-
-function shortUuid(value?: string): string {
-  if (!value) return '—'
-  return value.slice(0, 8)
+  archivistFirstname?: string
+  archivistLastname?: string
 }
 
 function renderData(data: unknown): { key: string; value: string }[] {
@@ -258,8 +255,8 @@ export default function ArchiveDetailPage() {
                 <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">ID de l&apos;entité</p>
-                  <p className="text-sm font-mono text-foreground break-all">
-                    {String(a.entityId || '—')}
+                  <p className="text-sm font-mono text-foreground" title={a.entityId}>
+                    {shortRef(a.entityId)}
                   </p>
                 </div>
               </div>
@@ -289,8 +286,8 @@ export default function ArchiveDetailPage() {
                 <ArchiveIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Archivé par</p>
-                  <p className="text-sm font-mono text-foreground">
-                    {shortUuid(a.archivedBy)}
+                  <p className="text-sm text-foreground">
+                    {`${a.archivistFirstname ?? ''} ${a.archivistLastname ?? ''}`.trim() || shortRef(a.archivedBy)}
                   </p>
                 </div>
               </div>

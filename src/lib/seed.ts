@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -203,7 +203,34 @@ async function seed() {
   await db.delete(clinicalKnowledgeBase)
   await db.delete(diseaseStatistics)
   await db.delete(therapeuticProtocols)
+  await db.delete(purchaseOrderItems)
+  await db.delete(stockMovements)
+  await db.delete(supplyBatches)
+  await db.delete(purchaseOrders)
+  await db.delete(medicalSupplies)
+  await db.delete(sparePartInventory)
+  await db.delete(spareParts)
+  await db.delete(equipmentAudits)
+  await db.delete(equipmentBookings)
+  await db.delete(equipmentWarranties)
+  await db.delete(equipmentLogs)
+  await db.delete(equipmentIncidents)
+  await db.delete(maintenanceTasks)
+  await db.delete(equipmentMaintenance)
+  await db.delete(equipmentDocuments)
+  await db.delete(equipmentAssignments)
+  await db.delete(medicalEquipment)
+  await db.delete(equipmentSuppliers)
+  await db.delete(equipmentCategories)
+  await db.delete(equipmentLocations)
+  await db.delete(partnerPatients)
+  await db.delete(partnerCompanies)
+  await db.delete(patientHistory)
+  await db.delete(careCoverages)
+  await db.delete(notificationPreferences)
   await db.delete(notifications)
+  await db.delete(auditHistory)
+  await db.delete(helpImages)
   await db.delete(patients)
   await db.delete(users)
   await db.delete(diseases)
@@ -799,6 +826,580 @@ async function seed() {
   )
   console.log(`Sync Queue: 50`)
 
+  console.log('\n=== Modules: Prise en charge & Équipements ===\n')
+
+  const equipTypeValues = ['BIOMEDICAL', 'MEDICAL', 'FURNITURE', 'IT', 'OTHER'] as const
+  const equipStatusValues = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'BROKEN', 'RESERVED', 'OUT_OF_SERVICE'] as const
+  const equipStateValues = ['NEW', 'GOOD', 'FAIR', 'POOR', 'CRITICAL'] as const
+  const maintenanceTypes = ['PREVENTIVE', 'CORRECTIVE', 'INSPECTION', 'CALIBRATION', 'VALIDATION', 'REVISION'] as const
+  const incidentStatuses = ['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'RESOLVED', 'CLOSED'] as const
+  const incidentPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL'] as const
+  const bookingStatuses = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const
+  const warrantyStatuses = ['ACTIVE', 'EXPIRED', 'CLAIMED'] as const
+  const auditTypes = ['INVENTORY', 'STATUS_CHECK', 'REGULATORY', 'QUALITY', 'SAFETY'] as const
+  const assignmentTypes = ['DOCTOR', 'NURSE', 'TECHNICIAN', 'DEPARTMENT', 'SERVICE', 'OTHER'] as const
+  const docCategories = ['INVOICE', 'CONTRACT', 'WARRANTY', 'MANUAL', 'REPORT', 'CERTIFICATE', 'PHOTO', 'OTHER'] as const
+  const coverageTypes = ['PERSONAL', 'INSURANCE', 'MUTUAL', 'COMPANY', 'NGO', 'GOVERNMENT', 'HEALTH_PROJECT', 'PARTNER', 'FREE', 'OTHER'] as const
+  const coverageStatuses = ['ACTIVE', 'EXPIRED', 'SUSPENDED'] as const
+
+  console.log('Generating equipment locations...')
+  const buildingNames = ['Bâtiment Central', 'Pavillon Mère-Enfant', 'Bloc Technique', 'Aile Chirurgie']
+  const departmentNames = ['Urgences', 'Cardiologie', 'Pédiatrie', 'Maternité', 'Radiologie', 'Laboratoire', 'Chirurgie', 'Réanimation', 'Imagerie Médicale']
+  const insertedLocations: any[] = []
+  const locRoots = insertedFacilities.map((f, fi) => {
+    const id = uuid()
+    insertedLocations.push({ id, facilityId: f.id })
+    return { id, facilityId: f.id, type: 'FACILITY' as const, name: facilityData[fi].name, code: `LOC-${String(fi + 1).padStart(3, '0')}`, description: 'Emplacement racine de l\'établissement', createdAt: daysAgo(365), updatedAt: new Date() }
+  })
+  await db.insert(equipmentLocations).values(locRoots)
+  const locChildren: any[] = []
+  insertedFacilities.forEach((f, fi) => {
+    if (fi > 2) return
+    buildingNames.forEach((b, bi) => {
+      const bId = uuid()
+      insertedLocations.push({ id: bId, facilityId: f.id })
+      locChildren.push({ id: bId, facilityId: f.id, parentId: locRoots[fi].id, type: 'BUILDING', name: b, building: b, code: `BLD-${fi}-${bi}`, description: null, createdAt: daysAgo(300), updatedAt: new Date() })
+      departmentNames.forEach((d, di) => {
+        const dId = uuid()
+        insertedLocations.push({ id: dId, facilityId: f.id })
+        locChildren.push({ id: dId, facilityId: f.id, parentId: bId, type: 'DEPARTMENT', name: d, building: b, department: d, code: `DEP-${fi}-${bi}-${di}`, description: null, createdAt: daysAgo(280), updatedAt: new Date() })
+        if (bi === 0 && di === 0) {
+          const rId = uuid()
+          insertedLocations.push({ id: rId, facilityId: f.id })
+          locChildren.push({ id: rId, facilityId: f.id, parentId: dId, type: 'ROOM', name: 'Salle 101', building: b, department: d, room: '101', code: `RM-${fi}-101`, description: null, createdAt: daysAgo(270), updatedAt: new Date() })
+        }
+      })
+    })
+  })
+  await db.insert(equipmentLocations).values(locChildren)
+  console.log(`Equipment Locations: ${insertedLocations.length}`)
+
+  console.log('Generating equipment categories...')
+  const categoryRoots = [
+    { name: 'Imagerie', icon: 'scanner', color: '#0ea5e9', description: 'Équipements d\'imagerie médicale' },
+    { name: 'Cardiologie', icon: 'heart', color: '#ef4444', description: 'Équipements cardiologiques' },
+    { name: 'Laboratoire', icon: 'flask', color: '#8b5cf6', description: 'Équipements de laboratoire' },
+    { name: 'Mobilier médical', icon: 'bed', color: '#10b981', description: 'Mobilier et literie' },
+    { name: 'Informatique', icon: 'monitor', color: '#6366f1', description: 'Matériel informatique' },
+    { name: 'Réanimation', icon: 'lungs', color: '#f59e0b', description: 'Équipements de réanimation' },
+    { name: 'Chirurgie', icon: 'scissors', color: '#14b8a6', description: 'Équipements de bloc opératoire' },
+    { name: 'Biologie', icon: 'microscope', color: '#ec4899', description: 'Instruments de biologie' },
+  ]
+  const insertedCategories: Array<{ id: string; facilityId: string | null }> = []
+  const catRootRows = categoryRoots.map((c) => ({ id: uuid(), facilityId: pick(insertedFacilities).id, ...c, isActive: true, createdAt: daysAgo(365), updatedAt: new Date() }))
+  insertedCategories.push(...catRootRows.map((c) => ({ id: c.id, facilityId: c.facilityId })))
+  await db.insert(equipmentCategories).values(catRootRows)
+  const subCatDefs = [
+    ['Échographes', 0], ['Radiographie', 0], ['Scanners', 0], ['IRM', 0],
+    ['Électrocardiographes', 1], ['Moniteurs cardiaques', 1], ['Holter', 1],
+    ['Centrifuges', 2], ['Analyseurs biochimiques', 2], ['Hématologie', 2],
+    ['Lits hospitaliers', 3], ['Fauteuils roulants', 3], ['Chariots', 3],
+    ['Ordinateurs', 4], ['Serveurs', 4], ['Imprimantes', 4],
+    ['Respirateurs', 5], ['Moniteurs de signes vitaux', 5], ['Pompes à perfusion', 5],
+    ['Tables d\'opération', 6], ['Éclairage chirurgical', 6], ['Instrumentation', 6],
+    ['Microscopes', 7], ['Centrifuges de paillasse', 7],
+  ] as const
+  const subCatRows = subCatDefs.map(([name, parentIdx]) => ({
+    id: uuid(), facilityId: catRootRows[parentIdx].facilityId, parentId: catRootRows[parentIdx].id,
+    name, icon: null, color: null, description: null, isActive: true, createdAt: daysAgo(300), updatedAt: new Date(),
+  }))
+  insertedCategories.push(...subCatRows.map((c) => ({ id: c.id, facilityId: c.facilityId })))
+  await db.insert(equipmentCategories).values(subCatRows)
+  console.log(`Equipment Categories: ${insertedCategories.length}`)
+
+  console.log('Generating equipment suppliers...')
+  const supplierData = [
+    { code: 'SUP-001', name: 'GE Healthcare Afrique Centrale', contactPerson: 'M. Kabamba', phone: '+243 81 700 1001', email: 'contact@gehealth.drc.cd', address: 'Avenue du Commerce, Gombe', city: 'Kinshasa', category: 'Équipements biomédicaux', rating: 4, notes: 'Fabricant agréé' },
+    { code: 'SUP-002', name: 'Siemens Healthineers DRC', contactPerson: 'Mme Nzuzi', phone: '+243 81 700 1002', email: 'info@siemens.drc.cd', address: 'Boulevard du 30 Juin, Gombe', city: 'Kinshasa', category: 'Imagerie', rating: 5, notes: null },
+    { code: 'SUP-003', name: 'MediSupply Congo', contactPerson: 'M. Ilunga', phone: '+243 81 700 1003', email: 'ventes@medisupply.cd', address: 'Avenue Sendwe, Limete', city: 'Kinshasa', category: 'Consommables', rating: 3, notes: null },
+    { code: 'SUP-004', name: 'Pharmacie Centrale Kinshasa', contactPerson: 'Mme Bemba', phone: '+243 81 700 1004', email: 'pharm@pck.cd', address: 'Avenue Tombalbaye, Limete', city: 'Kinshasa', category: 'Réactifs & intrants', rating: 4, notes: null },
+    { code: 'SUP-005', name: 'Labo Diagnostic Equipment', contactPerson: 'M. Tshala', phone: '+243 81 700 1005', email: 'sales@labeq.cd', address: 'Avenue des Aviateurs, Gombe', city: 'Kinshasa', category: 'Laboratoire', rating: 4, notes: null },
+    { code: 'SUP-006', name: 'Africatel Medical', contactPerson: 'Mme Kanku', phone: '+243 81 700 1006', email: 'contact@africatel.cd', address: 'Avenue Kasa-Vubu, Kalamu', city: 'Kinshasa', category: 'Informatique médicale', rating: 3, notes: null },
+    { code: 'SUP-007', name: 'Mobilier Hospitalier SA', contactPerson: 'M. Mbala', phone: '+243 81 700 1007', email: 'info@mobilierhosp.cd', address: 'Boulevard Lumumba, Masina', city: 'Kinshasa', category: 'Mobilier', rating: 3, notes: null },
+    { code: 'SUP-008', name: 'Santech DRC', contactPerson: 'M. Mvumbi', phone: '+243 81 700 1008', email: 'sales@santech.cd', address: 'Avenue de la Paix, Ngaliema', city: 'Kinshasa', category: 'Maintenance & pièces', rating: 4, notes: null },
+    { code: 'SUP-009', name: 'Philips Medical Congo', contactPerson: 'Mme Yema', phone: '+243 81 700 1009', email: 'contact@philips.cd', address: 'Avenue du Port, Gombe', city: 'Kinshasa', category: 'Équipements', rating: 5, notes: null },
+    { code: 'SUP-010', name: 'Groupe Medical du Congo', contactPerson: 'M. Lufwa', phone: '+243 81 700 1010', email: 'info@gmc.cd', address: 'Avenue des Batetela, Limete', city: 'Kinshasa', category: 'Divers', rating: 3, notes: null },
+  ]
+  const insertedSuppliers: { id: string }[] = await db.insert(equipmentSuppliers).values(
+    supplierData.map((s) => ({ id: uuid(), facilityId: pick(insertedFacilities).id, ...s, isActive: true, createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date() }))
+  ).returning({ id: equipmentSuppliers.id })
+  console.log(`Equipment Suppliers: ${insertedSuppliers.length}`)
+
+  console.log('Generating 120 medical equipment items...')
+  const equipNameData = [
+    { name: 'Échographe Doppler', type: 'BIOMEDICAL', manufacturer: 'GE', brand: 'GE Healthcare', model: 'Voluson E10' },
+    { name: 'Radiographie mobile', type: 'BIOMEDICAL', manufacturer: 'Siemens', brand: 'Siemens', model: 'Mobilett Elara Max' },
+    { name: 'Scanner 64 coupes', type: 'BIOMEDICAL', manufacturer: 'Siemens', brand: 'Siemens', model: 'SOMATOM go.Up' },
+    { name: 'Électrocardiographe 12 pistes', type: 'BIOMEDICAL', manufacturer: 'Fukuda', brand: 'Fukuda', model: 'FX-8322' },
+    { name: 'Centrifugeuse de paillasse', type: 'BIOMEDICAL', manufacturer: 'HERMLE', brand: 'HERMLE', model: 'Z 306' },
+    { name: 'Analyseur biochimique', type: 'BIOMEDICAL', manufacturer: 'Mindray', brand: 'Mindray', model: 'BS-240' },
+    { name: 'Lit électrique hospitalier', type: 'FURNITURE', manufacturer: 'Malvestio', brand: 'Malvestio', model: 'M5' },
+    { name: 'Fauteuil roulant', type: 'FURNITURE', manufacturer: 'Karma', brand: 'Karma', model: 'S-1050' },
+    { name: 'Ordinateur de bureau', type: 'IT', manufacturer: 'HP', brand: 'HP', model: 'ProDesk 400' },
+    { name: 'Serveur rack', type: 'IT', manufacturer: 'Dell', brand: 'Dell', model: 'PowerEdge R650' },
+    { name: 'Respirateur de réanimation', type: 'BIOMEDICAL', manufacturer: 'Hamilton', brand: 'Hamilton', model: 'C6' },
+    { name: 'Moniteur de signes vitaux', type: 'BIOMEDICAL', manufacturer: 'Mindray', brand: 'Mindray', model: 'ePM 12M' },
+    { name: 'Table d\'opération', type: 'MEDICAL', manufacturer: 'Maquet', brand: 'Maquet', model: 'Magnus' },
+    { name: 'Éclairage chirurgical', type: 'MEDICAL', manufacturer: 'Mölnlycke', brand: 'Mölnlycke', model: 'PowerLED' },
+    { name: 'Microscope binoculaire', type: 'BIOMEDICAL', manufacturer: 'Leica', brand: 'Leica', model: 'DM500' },
+    { name: 'Autoclave', type: 'BIOMEDICAL', manufacturer: 'Tuttnauer', brand: 'Tuttnauer', model: '3870E' },
+    { name: 'Pompe à perfusion', type: 'BIOMEDICAL', manufacturer: 'Fresenius', brand: 'Fresenius', model: 'Injectomat Agilia' },
+    { name: 'Défibrillateur', type: 'BIOMEDICAL', manufacturer: 'Zoll', brand: 'Zoll', model: 'R Series' },
+    { name: 'Pèse-personne médical', type: 'MEDICAL', manufacturer: 'Seca', brand: 'Seca', model: '769' },
+    { name: 'Oxygénateur mobile', type: 'BIOMEDICAL', manufacturer: 'Oxy', brand: 'Oxy', model: 'O2-M10' },
+  ]
+  const equipBatch: any[] = []
+  for (let i = 0; i < 120; i++) {
+    const e = equipNameData[i % equipNameData.length]
+    const fac = pick(insertedFacilities)
+    const locPool = insertedLocations.filter((l) => l.facilityId === fac.id)
+    const loc = locPool.length ? pick(locPool) : pick(insertedLocations)
+    const purchased = daysAgo(randInt(90, 1400))
+    const commissioned = new Date(purchased.getTime() + randInt(5, 45) * 86400000).toISOString().split('T')[0]
+    equipBatch.push({
+      id: uuid(), facilityId: fac.id, code: `EQ-${String(i + 1).padStart(4, '0')}`,
+      qrCode: `QR-${i + 1}`, barcode: `BC-${i + 1}`,
+      name: e.name, description: `${e.brand} ${e.model}`,
+      type: e.type, categoryId: pick(insertedCategories).id,
+      subCategoryId: Math.random() > 0.5 ? pick(insertedCategories).id : null,
+      manufacturer: e.manufacturer, brand: e.brand, model: e.model,
+      serialNumber: `SN-${e.manufacturer.slice(0, 2).toUpperCase()}-${randInt(10000, 99999)}`,
+      purchaseDate: purchased.toISOString().split('T')[0], purchasePrice: randInt(50000, 9000000),
+      currency: pick(['CDF', 'USD']), warrantyMonths: pick([6, 12, 24, 36, 48, 60]), lifecycleYears: randInt(3, 10),
+      state: pick(equipStateValues), status: pick(equipStatusValues),
+      responsibleUserId: pick(insertedUsers).id, locationId: loc.id,
+      building: loc.type === 'BUILDING' ? loc.name : null,
+      department: loc.department ?? null,
+      room: loc.room ?? null,
+      commissioningDate: commissioned,
+      comments: Math.random() > 0.7 ? 'Bon état général' : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id,
+      createdAt: purchased, updatedAt: new Date(),
+    })
+  }
+  const insertedEquipment: { id: string }[] = await db.insert(medicalEquipment).values(equipBatch).returning({ id: medicalEquipment.id })
+  console.log(`Medical Equipment: ${insertedEquipment.length}`)
+
+  console.log('Generating equipment assignments...')
+  const assignmentBatch: any[] = []
+  insertedEquipment.forEach((eq, i) => {
+    if (i % 3 === 0) return
+    const start = daysAgo(randInt(5, 500))
+    assignmentBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      assignedToType: pick(assignmentTypes), assignedToId: uuid(),
+      assignedToName: pick(['Dr Kabongo', 'Service Cardiologie', 'Radiologie', 'Laboratoire', 'Bloc opératoire', 'Dr Clovis', 'Urgences']),
+      department: pick(departmentNames),
+      startedAt: start, endedAt: Math.random() > 0.5 ? new Date(start.getTime() + randInt(10, 200) * 86400000) : null,
+      notes: Math.random() > 0.6 ? 'Affectation en cours' : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: start, updatedAt: new Date(),
+    })
+  })
+  await db.insert(equipmentAssignments).values(assignmentBatch)
+  console.log(`Equipment Assignments: ${assignmentBatch.length}`)
+
+  console.log('Generating equipment documents...')
+  const docBatch: any[] = []
+  insertedEquipment.forEach((eq, i) => {
+    if (i % 4 !== 0) return
+    docBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      title: pick(['Manuel d\'utilisation', 'Facture d\'achat', 'Certificat de garantie', 'Rapport d\'installation', 'Plan de maintenance', 'Photographie d\'inventaire']),
+      category: pick(docCategories), filePath: null, fileType: pick(['pdf', 'png', 'jpg']), fileSize: randInt(100000, 8000000),
+      version: 1, description: 'Document interne',
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(30, 600)), updatedAt: new Date(),
+    })
+  })
+  await db.insert(equipmentDocuments).values(docBatch)
+  console.log(`Equipment Documents: ${docBatch.length}`)
+
+  console.log('Generating equipment maintenance...')
+  const insertedMaintenance: { id: string }[] = []
+  const maintBatch: any[] = []
+  for (let i = 0; i < 45; i++) {
+    const eq = pick(insertedEquipment)
+    const mId = uuid()
+    const type = pick(maintenanceTypes)
+    const completed = Math.random() > 0.35
+    const status = completed ? 'COMPLETED' : pick(['SCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'OVERDUE'])
+    const scheduled = daysAgo(randInt(5, 200))
+    const started = completed || status === 'IN_PROGRESS' ? new Date(scheduled.getTime() + randInt(1, 5) * 86400000) : null
+    const finished = completed ? new Date((started || scheduled).getTime() + randInt(1, 4) * 86400000) : null
+    maintBatch.push({
+      id: mId, facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      maintenanceType: type, status,
+      scheduledDate: scheduled.toISOString().split('T')[0], startedAt: started, completedAt: finished,
+      technicianUserId: pick(insertedUsers).id, technicianName: pick(['Ing. Mbuyi', 'Technicien Lumbala', 'Ing. Kasongo', 'Technicien Tshala']),
+      company: Math.random() > 0.4 ? 'Service technique interne' : pick(supplierData.map((s) => s.name)),
+      cost: randInt(20000, 1500000), currency: 'CDF', durationHours: randInt(2, 24),
+      priority: pick(incidentPriorities), report: completed ? 'Maintenance effectuée conformément au manuel constructeur' : null,
+      photos: [], partsReplaced: Math.random() > 0.6 ? [{ name: pick(['Filtre', 'Joint', 'Électrode', 'Batterie']), quantity: randInt(1, 3), cost: randInt(5000, 50000) }] : [],
+      signature: completed ? 'Signé' : null, notes: Math.random() > 0.5 ? 'À renouveler dans 6 mois' : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: scheduled, updatedAt: finished || new Date(),
+    })
+    insertedMaintenance.push({ id: mId })
+  }
+  await db.insert(equipmentMaintenance).values(maintBatch)
+  console.log(`Equipment Maintenance: ${insertedMaintenance.length}`)
+
+  console.log('Generating maintenance tasks...')
+  const taskBatch: any[] = []
+  insertedMaintenance.forEach((m, i) => {
+    const count = 1 + (i % 3)
+    for (let t = 0; t < count; t++) {
+      taskBatch.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, maintenanceId: m.id,
+        title: pick(['Contrôle visuel', 'Test fonctionnel', 'Nettoyage des filtres', 'Calibrage capteurs', 'Vérification sécurité électrique', 'Remplacement pièces']),
+        description: 'Tâche de maintenance', status: pick(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED']),
+        completedAt: Math.random() > 0.5 ? daysAgo(randInt(1, 60)) : null,
+        completedBy: Math.random() > 0.5 ? pick(insertedUsers).id : null,
+        createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(10, 150)), updatedAt: new Date(),
+      })
+    }
+  })
+  await db.insert(maintenanceTasks).values(taskBatch)
+  console.log(`Maintenance Tasks: ${taskBatch.length}`)
+
+  console.log('Generating equipment incidents...')
+  const incidentBatch: any[] = []
+  for (let i = 0; i < 25; i++) {
+    const eq = pick(insertedEquipment)
+    const status = pick(incidentStatuses)
+    const resolved = status === 'RESOLVED' || status === 'CLOSED'
+    incidentBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      title: pick(['Panne répétée', 'Dysfonctionnement capteur', 'Coupure de courant', 'Surchauffe', 'Écran défaillant', 'Fuite de liquide']),
+      description: 'Incident signalé pendant l\'utilisation', priority: pick(incidentPriorities), status,
+      reportedByUserId: pick(insertedUsers).id, assignedToUserId: Math.random() > 0.4 ? pick(insertedUsers).id : null,
+      resolvedAt: resolved ? daysAgo(randInt(1, 90)) : null,
+      resolutionNotes: resolved ? 'Intervention technique réalisée' : null,
+      rootCause: Math.random() > 0.5 ? 'Usure normale' : null, cost: resolved ? randInt(10000, 500000) : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(1, 200)), updatedAt: new Date(),
+    })
+  }
+  await db.insert(equipmentIncidents).values(incidentBatch)
+  console.log(`Equipment Incidents: ${incidentBatch.length}`)
+
+  console.log('Generating equipment logs...')
+  const logBatch: any[] = []
+  const logActions = ['CREATED', 'UPDATED', 'ASSIGNED', 'MAINTENANCE', 'LOCATION_CHANGED', 'STATUS_CHANGED', 'AUDITED']
+  insertedEquipment.forEach((eq, i) => {
+    if (i % 2 !== 0) return
+    const count = randInt(1, 3)
+    for (let l = 0; l < count; l++) {
+      logBatch.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+        action: pick(logActions), details: { description: pick(['Fiche créée', 'Mise à jour d\'informations', 'Affectation modifiée', 'Maintenance planifiée']) },
+        userId: pick(insertedUsers).id, createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id,
+        createdAt: daysAgo(randInt(1, 300)), updatedAt: new Date(),
+      })
+    }
+  })
+  await db.insert(equipmentLogs).values(logBatch)
+  console.log(`Equipment Logs: ${logBatch.length}`)
+
+  console.log('Generating equipment warranties...')
+  const warrantyBatch: any[] = []
+  insertedEquipment.forEach((eq, i) => {
+    if (i % 3 === 0) return
+    const start = daysAgo(randInt(30, 600))
+    const end = new Date(start.getTime() + pick([6, 12, 24, 36, 48]) * 30 * 86400000)
+    const expired = end < new Date()
+    warrantyBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      supplierId: Math.random() > 0.5 ? pick(insertedSuppliers).id : null,
+      startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0],
+      status: expired ? 'EXPIRED' : pick(['ACTIVE', 'ACTIVE', 'ACTIVE', 'CLAIMED']),
+      coverage: 'Pièces et main d\'œuvre', terms: 'Garantie constructeur standard',
+      cost: randInt(50000, 2000000), notes: null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: start, updatedAt: new Date(),
+    })
+  })
+  await db.insert(equipmentWarranties).values(warrantyBatch)
+  console.log(`Equipment Warranties: ${warrantyBatch.length}`)
+
+  console.log('Generating equipment bookings...')
+  const bookingBatch: any[] = []
+  for (let i = 0; i < 35; i++) {
+    const eq = pick(insertedEquipment)
+    const start = daysAgo(randInt(-5, 30))
+    const end = new Date(start.getTime() + randInt(1, 6) * 3600000)
+    bookingBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      bookedByUserId: pick(insertedUsers).id, assignedToName: pick(['Dr Kabongo', 'Dr Clovis', 'Radiologie', 'Laboratoire']), assignedToId: uuid(),
+      purpose: pick(['Examen programmé', 'Intervention chirurgicale', 'Maintenance', 'Formation', 'Test']),
+      startTime: start, endTime: end, status: pick(bookingStatuses), notes: Math.random() > 0.6 ? 'Demande interne' : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(1, 30)), updatedAt: new Date(),
+    })
+  }
+  await db.insert(equipmentBookings).values(bookingBatch)
+  console.log(`Equipment Bookings: ${bookingBatch.length}`)
+
+  console.log('Generating equipment audits...')
+  const auditBatch: any[] = []
+  insertedEquipment.forEach((eq, i) => {
+    if (i % 4 !== 0) return
+    const auditDate = daysAgo(randInt(5, 300))
+    const next = new Date(auditDate.getTime() + randInt(90, 365) * 86400000)
+    auditBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
+      auditType: pick(auditTypes), auditedByUserId: pick(insertedUsers).id,
+      auditDate: auditDate.toISOString().split('T')[0], status: pick(equipStateValues),
+      findings: [{ label: 'Conformité', result: pick(['OK', 'OK', 'À surveiller', 'Non conforme']), note: null }],
+      nextAuditDate: next.toISOString().split('T')[0], notes: null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: auditDate, updatedAt: new Date(),
+    })
+  })
+  await db.insert(equipmentAudits).values(auditBatch)
+  console.log(`Equipment Audits: ${auditBatch.length}`)
+
+  console.log('Generating spare parts...')
+  const sparePartData = [
+    { name: 'Électrodes ECG jetables', sku: 'SP-ECG-001', manufacturer: 'Philips' },
+    { name: 'Pile interne défibrillateur', sku: 'SP-ZOLL-001', manufacturer: 'Zoll' },
+    { name: 'Filtre expiratoire respirateur', sku: 'SP-HAM-001', manufacturer: 'Hamilton' },
+    { name: 'Cartouche analyseur biochimique', sku: 'SP-BS-001', manufacturer: 'Mindray' },
+    { name: 'Ampoule éclairage chirurgical', sku: 'SP-LED-001', manufacturer: 'Maquet' },
+    { name: 'Roulette lit hospitalier', sku: 'SP-MAL-001', manufacturer: 'Malvestio' },
+    { name: 'Clavier et souris médical', sku: 'SP-HP-001', manufacturer: 'HP' },
+    { name: 'Transducteur échographie', sku: 'SP-GE-001', manufacturer: 'GE' },
+    { name: 'Tuyau oxygène renforcé', sku: 'SP-OXY-001', manufacturer: 'Oxy' },
+    { name: 'Capteur SpO2', sku: 'SP-SPO2-001', manufacturer: 'Mindray' },
+    { name: 'Disque dur serveur', sku: 'SP-DELL-001', manufacturer: 'Dell' },
+    { name: 'Sonotrode endoscopie', sku: 'SP-END-001', manufacturer: 'Olympus' },
+  ]
+  const insertedSpareParts: { id: string; name: string }[] = await db.insert(spareParts).values(
+    sparePartData.map((s, i) => ({
+      id: uuid(), facilityId: pick(insertedFacilities).id, code: `SP-${String(i + 1).padStart(3, '0')}`,
+      sku: s.sku, name: s.name, categoryId: pick(insertedCategories).id,
+      description: 'Pièce de rechange', unit: 'piece', manufacturer: s.manufacturer,
+      supplierId: pick(insertedSuppliers).id, isActive: true,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date(),
+    }))
+  ).returning({ id: spareParts.id, name: spareParts.name })
+  console.log(`Spare Parts: ${insertedSpareParts.length}`)
+
+  console.log('Generating spare part inventory...')
+  await db.insert(sparePartInventory).values(
+    insertedSpareParts.map((p) => ({
+      id: uuid(), facilityId: pick(insertedFacilities).id, sparePartId: p.id,
+      location: pick(['MAIN', 'MAIN', 'MAINTENANCE', 'MEDICAL']),
+      quantity: randInt(0, 60), minThreshold: randInt(2, 10),
+      unitCost: randInt(5000, 500000), currency: pick(['CDF', 'USD']),
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date(),
+    }))
+  )
+  console.log(`Spare Part Inventory: ${insertedSpareParts.length}`)
+
+  console.log('Generating medical supplies...')
+  const supplyData = [
+    { name: 'Gants nitrile non stériles T7', code: 'SUPPLY-001', sku: 'SKU-GLO-001', category: 'GLOVES', unit: 'boîte', minStock: 100, criticalStock: 25, price: 12000 },
+    { name: 'Seringues 5ml', code: 'SUPPLY-002', sku: 'SKU-SYR-005', category: 'SYRINGES', unit: 'boîte de 100', minStock: 80, criticalStock: 20, price: 15000 },
+    { name: 'Seringues 10ml', code: 'SUPPLY-003', sku: 'SKU-SYR-010', category: 'SYRINGES', unit: 'boîte de 100', minStock: 80, criticalStock: 20, price: 18000 },
+    { name: 'Compresses stériles 10x10', code: 'SUPPLY-004', sku: 'SKU-COM-001', category: 'COMPRESSES', unit: 'paquet', minStock: 120, criticalStock: 30, price: 4000 },
+    { name: 'Masques chirurgicaux', code: 'SUPPLY-005', sku: 'SKU-MAS-001', category: 'MASKS', unit: 'boîte de 50', minStock: 150, criticalStock: 40, price: 9000 },
+    { name: 'Réactif NFS', code: 'SUPPLY-006', sku: 'SKU-REA-001', category: 'REAGENTS', unit: 'flacon', minStock: 30, criticalStock: 8, price: 85000 },
+    { name: 'Cathéters IV 22G', code: 'SUPPLY-007', sku: 'SKU-CAT-001', category: 'CATHETERS', unit: 'boîte de 50', minStock: 60, criticalStock: 15, price: 22000 },
+    { name: 'Poches NaCl 0,9% 500ml', code: 'SUPPLY-008', sku: 'SKU-IVB-001', category: 'IV_BAGS', unit: 'unité', minStock: 200, criticalStock: 50, price: 2500 },
+    { name: 'Perfuseurs', code: 'SUPPLY-009', sku: 'SKU-PER-001', category: 'PERFUSION', unit: 'unité', minStock: 150, criticalStock: 40, price: 2000 },
+    { name: 'Fils de suture 2/0', code: 'SUPPLY-010', sku: 'SKU-SUT-001', category: 'SUTURES', unit: 'boîte', minStock: 40, criticalStock: 10, price: 60000 },
+    { name: 'Bandages élastiques 10cm', code: 'SUPPLY-011', sku: 'SKU-BAN-001', category: 'BANDAGES', unit: 'rouleau', minStock: 100, criticalStock: 25, price: 3500 },
+    { name: 'Désinfectant de surface', code: 'SUPPLY-012', sku: 'SKU-DIS-001', category: 'DISINFECTANTS', unit: 'bidon 5L', minStock: 50, criticalStock: 12, price: 45000 },
+    { name: 'Gants chirurgicaux stériles', code: 'SUPPLY-013', sku: 'SKU-GLO-002', category: 'GLOVES', unit: 'boîte', minStock: 70, criticalStock: 18, price: 16000 },
+    { name: 'Seringues 2ml', code: 'SUPPLY-014', sku: 'SKU-SYR-002', category: 'SYRINGES', unit: 'boîte de 100', minStock: 80, criticalStock: 20, price: 13000 },
+    { name: 'Test rapide paludisme', code: 'SUPPLY-015', sku: 'SKU-REA-002', category: 'REAGENTS', unit: 'boîte de 25', minStock: 40, criticalStock: 10, price: 30000 },
+    { name: 'Sac de suture auto-absorbable', code: 'SUPPLY-016', sku: 'SKU-SUT-002', category: 'SUTURES', unit: 'boîte', minStock: 35, criticalStock: 8, price: 55000 },
+  ]
+  const insertedSupplies: { id: string; name: string }[] = await db.insert(medicalSupplies).values(
+    supplyData.map((s) => ({ id: uuid(), facilityId: pick(insertedFacilities).id, ...s, description: null, supplierId: pick(insertedSuppliers).id, isActive: true, createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date() }))
+  ).returning({ id: medicalSupplies.id, name: medicalSupplies.name })
+  console.log(`Medical Supplies: ${insertedSupplies.length}`)
+
+  console.log('Generating purchase orders...')
+  const insertedOrders: { id: string }[] = []
+  const poBatch: any[] = []
+  for (let i = 0; i < 20; i++) {
+    const oId = uuid()
+    const orderDate = daysAgo(randInt(10, 300))
+    const received = Math.random() > 0.3
+    const expected = new Date(orderDate.getTime() + randInt(10, 45) * 86400000)
+    poBatch.push({
+      id: oId, facilityId: pick(insertedFacilities).id, orderNumber: `PO-${String(i + 1).padStart(6, '0')}`,
+      supplierId: pick(insertedSuppliers).id, orderDate: orderDate.toISOString().split('T')[0],
+      expectedDate: expected.toISOString().split('T')[0], receivedDate: received ? expected.toISOString().split('T')[0] : null,
+      status: received ? pick(['RECEIVED', 'RECEIVED', 'PARTIAL']) : pick(['DRAFT', 'SUBMITTED', 'ORDERED', 'PARTIAL']),
+      totalAmount: 0, currency: 'CDF', notes: Math.random() > 0.5 ? 'Commande réapprovisionnement' : null,
+      createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: orderDate, updatedAt: new Date(),
+    })
+    insertedOrders.push({ id: oId })
+  }
+  await db.insert(purchaseOrders).values(poBatch)
+  console.log(`Purchase Orders: ${insertedOrders.length}`)
+
+  console.log('Generating purchase order items...')
+  const poiBatch: any[] = []
+  insertedOrders.forEach((o, i) => {
+    const count = 2 + (i % 3)
+    for (let k = 0; k < count; k++) {
+      const isSupply = Math.random() > 0.5
+      const supply = isSupply ? pick(insertedSupplies) : null
+      const spare = !isSupply ? pick(insertedSpareParts) : null
+      const qty = randInt(10, 500)
+      const unitPrice = isSupply ? pick(supplyData).price : randInt(8000, 300000)
+      poiBatch.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, orderId: o.id,
+        itemType: isSupply ? 'supply' : 'spare_part', supplyId: supply ? supply.id : null, sparePartId: spare ? spare.id : null, equipmentId: null,
+        description: supply ? supply.name : spare ? spare.name : 'Article commandé',
+        quantity: qty, unitPrice, totalPrice: qty * unitPrice, receivedQuantity: Math.random() > 0.5 ? qty : randInt(0, qty),
+        createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(10, 300)), updatedAt: new Date(),
+      })
+    }
+  })
+  await db.insert(purchaseOrderItems).values(poiBatch)
+  console.log(`Purchase Order Items: ${poiBatch.length}`)
+
+  console.log('Generating supply batches...')
+  const batchRows: any[] = []
+  insertedSupplies.forEach((s, i) => {
+    if (i % 2 !== 0) return
+    const count = 1 + (i % 3)
+    for (let b = 0; b < count; b++) {
+      const received = daysAgo(randInt(5, 200))
+      const exp = new Date(received.getTime() + randInt(6, 24) * 30 * 86400000)
+      batchRows.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, supplyId: s.id,
+        batchNumber: `B-${String(i + 1).padStart(3, '0')}-${b + 1}`, lotNumber: `LOT-${String(i + 1).padStart(4, '0')}${b}`,
+        manufacturerDate: received.toISOString().split('T')[0], expiryDate: exp.toISOString().split('T')[0],
+        quantity: randInt(20, 500), receivedDate: received.toISOString().split('T')[0],
+        supplierId: pick(insertedSuppliers).id, purchaseOrderId: Math.random() > 0.4 ? pick(insertedOrders).id : null,
+        createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: received, updatedAt: new Date(),
+      })
+    }
+  })
+  await db.insert(supplyBatches).values(batchRows)
+  console.log(`Supply Batches: ${batchRows.length}`)
+
+  console.log('Generating stock movements...')
+  const stockBatch: any[] = []
+  insertedSupplies.forEach((s, i) => {
+    const count = 1 + (i % 4)
+    for (let m = 0; m < count; m++) {
+      const isReceipt = m === 0
+      stockBatch.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, supplyId: s.id,
+        batchId: Math.random() > 0.5 && batchRows.length ? pick(batchRows).id : null,
+        movementType: isReceipt ? 'RECEIPT' : pick(['ISSUE', 'ISSUE', 'ADJUSTMENT', 'RETURN', 'EXPIRED']),
+        quantity: isReceipt ? randInt(20, 300) : -randInt(10, 150),
+        unitCost: isReceipt ? pick(supplyData).price : null,
+        fromLocation: isReceipt ? 'MAIN' : null, toLocation: isReceipt ? 'MAIN' : null,
+        reason: isReceipt ? 'Réception commande' : pick(['Consommation service', 'Perte constatée', 'Retour fournisseur', 'Péremption']),
+        referenceId: Math.random() > 0.5 ? `PO-${String(randInt(1, 20)).padStart(6, '0')}` : null,
+        createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(randInt(1, 200)), updatedAt: new Date(),
+      })
+    }
+  })
+  await db.insert(stockMovements).values(stockBatch)
+  console.log(`Stock Movements: ${stockBatch.length}`)
+
+  console.log('Generating partner companies...')
+  const partnerData = [
+    { code: 'PTN-001', name: 'Ministère de la Santé Publique', sector: 'Gouvernement', city: 'Kinshasa', phone: '+243 81 200 1001', email: 'contact@minisan.cd', contactName: 'M. Kalume', contactFunction: 'Directeur', coverageRate: 100 },
+    { code: 'PTN-002', name: 'CNSS', sector: 'Sécurité sociale', city: 'Kinshasa', phone: '+243 81 200 1002', email: 'cnss@cnss.cd', contactName: 'Mme Banza', contactFunction: 'Chef service', coverageRate: 80 },
+    { code: 'PTN-003', name: 'INPP', sector: 'Prévoyance', city: 'Kinshasa', phone: '+243 81 200 1003', email: 'info@inpp.cd', contactName: 'M. Tshibanda', contactFunction: 'Directeur adjoint', coverageRate: 75 },
+    { code: 'PTN-004', name: 'OMS - RDC', sector: 'Organisation internationale', city: 'Kinshasa', phone: '+243 81 200 1004', email: 'oms@who.int', contactName: 'Dr Ngoma', contactFunction: 'Représentant', coverageRate: 100 },
+    { code: 'PTN-005', name: 'MSF Belgique', sector: 'ONG', city: 'Kinshasa', phone: '+243 81 200 1005', email: 'msf@msf.be', contactName: 'M. Van Dijck', contactFunction: 'Coordinateur', coverageRate: 90 },
+    { code: 'PTN-006', name: 'Gécamines SA', sector: 'Entreprise minière', city: 'Lubumbashi', phone: '+243 81 200 1006', email: 'sante@gecamines.cd', contactName: 'Mme Kabeya', contactFunction: 'RH Santé', coverageRate: 70 },
+    { code: 'PTN-007', name: 'SNEL', sector: 'Énergie', city: 'Kinshasa', phone: '+243 81 200 1007', email: 'social@snel.cd', contactName: 'M. Bakole', contactFunction: 'Responsable social', coverageRate: 65 },
+    { code: 'PTN-008', name: 'Bralima', sector: 'Industrie', city: 'Kinshasa', phone: '+243 81 200 1008', email: 'rh@bralima.cd', contactName: 'Mme Ilunga', contactFunction: 'Médecin d\'entreprise', coverageRate: 85 },
+    { code: 'PTN-009', name: 'Croix-Rouge RDC', sector: 'ONG', city: 'Kinshasa', phone: '+243 81 200 1009', email: 'info@croixrouge.cd', contactName: 'M. Lushiku', contactFunction: 'Secrétaire général', coverageRate: 50 },
+    { code: 'PTN-010', name: 'Fonds Social RDC', sector: 'ONG', city: 'Kinshasa', phone: '+243 81 200 1010', email: 'contact@fondssocial.cd', contactName: 'M. Kamwanya', contactFunction: 'Chargé de projets', coverageRate: 60 },
+  ]
+  const insertedPartners: { id: string }[] = await db.insert(partnerCompanies).values(
+    partnerData.map((p) => ({
+      id: uuid(), facilityId: pick(insertedFacilities).id, ...p,
+      address: 'Avenue de la Convention', country: 'RD Congo', website: null,
+      contactPhone: '+243 81 200 0000', contactEmail: p.email,
+      contractNumber: `CT-${p.code.slice(-3)}`, contractStartDate: '2025-01-01', contractEndDate: '2026-12-31',
+      contractStatus: 'ACTIVE', annualCeiling: randInt(1000000, 50000000), notes: null, isActive: true,
+      createdAt: daysAgo(365), updatedAt: new Date(),
+    }))
+  ).returning({ id: partnerCompanies.id })
+  console.log(`Partner Companies: ${insertedPartners.length}`)
+
+  console.log('Generating care coverages...')
+  const coverageBatch: any[] = []
+  insertedPatients.forEach((p, i) => {
+    if (i % 5 !== 0) return
+    const type = pick(coverageTypes)
+    const status = pick(coverageStatuses)
+    const from = daysAgo(randInt(30, 700))
+    const until = new Date(from.getTime() + randInt(30, 365) * 86400000)
+    const rate = type === 'PERSONAL' || type === 'FREE' ? 0 : randInt(40, 100)
+    coverageBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, patientId: p.id,
+      coverageType: type,
+      organization: type === 'COMPANY' ? pick(partnerData).name : type === 'INSURANCE' ? pick(['CNSS', 'INPP', 'INAM']) : type === 'NGO' ? pick(['MSF', 'Croix-Rouge']) : type === 'GOVERNMENT' ? 'Ministère de la Santé' : null,
+      contractNumber: Math.random() > 0.3 ? `CONV-${randInt(10000, 99999)}` : null,
+      coverageRate: rate, coverageCeiling: randInt(50000, 5000000), remainingAmount: randInt(0, 3000000),
+      validFrom: from.toISOString().split('T')[0], validUntil: status === 'ACTIVE' ? until.toISOString().split('T')[0] : null,
+      status, justification: Math.random() > 0.6 ? 'Justificatif disponible' : null, isActive: true,
+      createdAt: from, updatedAt: new Date(),
+    })
+  })
+  await db.insert(careCoverages).values(coverageBatch)
+  console.log(`Care Coverages: ${coverageBatch.length}`)
+
+  console.log('Generating partner patients...')
+  const ppBatch: any[] = []
+  insertedPatients.forEach((p, i) => {
+    if (i % 12 !== 0) return
+    const partner = pick(insertedPartners)
+    const from = daysAgo(randInt(30, 500))
+    const until = new Date(from.getTime() + randInt(90, 400) * 86400000)
+    ppBatch.push({
+      id: uuid(), facilityId: pick(insertedFacilities).id, partnerId: partner.id, patientId: p.id,
+      contractNumber: `PTN-${randInt(10000, 99999)}`, coverageRate: randInt(50, 100),
+      annualCeiling: randInt(500000, 5000000), remainingAmount: randInt(0, 3000000),
+      validFrom: from.toISOString().split('T')[0], validUntil: until.toISOString().split('T')[0],
+      status: pick(coverageStatuses), notes: null, isActive: true, createdAt: from, updatedAt: new Date(),
+    })
+  })
+  await db.insert(partnerPatients).values(ppBatch)
+  console.log(`Partner Patients: ${ppBatch.length}`)
+
+  console.log('Generating patient history...')
+  const historyTypes = ['CONSULTATION', 'DIAGNOSIS', 'TREATMENT', 'LAB_EXAM', 'ADMISSION', 'DISCHARGE', 'DOCUMENT', 'PRESCRIPTION', 'COVERAGE', 'PAYMENT']
+  const historyTitles = ['Consultation médicale', 'Diagnostic posé', 'Traitement prescrit', 'Examen de laboratoire', 'Admission', 'Sortie du patient', 'Document généré', 'Ordonnance délivrée', 'Prise en charge mise à jour', 'Paiement effectué']
+  const historyBatch: any[] = []
+  insertedPatients.forEach((p, i) => {
+    if (i % 3 !== 0) return
+    const count = 1 + (i % 5)
+    for (let h = 0; h < count; h++) {
+      const type = pick(historyTypes)
+      historyBatch.push({
+        id: uuid(), facilityId: pick(insertedFacilities).id, patientId: p.id,
+        episodeId: Math.random() > 0.6 ? pick(insertedEpisodes).id : null,
+        eventType: type, title: pick(historyTitles),
+        description: pick(['Événement enregistré dans le dossier du patient', 'Suivi clinique', 'Mise à jour du dossier']),
+        performedBy: Math.random() > 0.3 ? pick(insertedUsers).id : null,
+        performedByName: pick(['Dr Kabongo', 'Dr Clovis', 'Dr Espérance', 'Infirmier Mohamed', 'Réception Yasmine']),
+        metadata: { source: 'seed' }, createdAt: daysAgo(randInt(1, 365)),
+      })
+    }
+  })
+  await db.insert(patientHistory).values(historyBatch)
+  console.log(`Patient History: ${historyBatch.length}`)
+
+  console.log('Generating notification preferences...')
+  await db.insert(notificationPreferences).values(
+    insertedUsers.map((u) => ({
+      id: uuid(), userId: u.id, soundEnabled: Math.random() > 0.3, volume: randInt(0, 100),
+      notificationTypes: ['INFO', 'WARNING', 'SUCCESS', 'ERROR'], services: ['LABORATORY', 'PHARMACY', 'IMAGERY', 'HOSPITALIZATION', 'RECEPTION', 'ADMINISTRATION'],
+      isActive: true, createdAt: daysAgo(365), updatedAt: new Date(),
+    }))
+  )
+  console.log(`Notification Preferences: ${insertedUsers.length}`)
+
   console.log('\n=== Seed terminé avec succès! ===')
   console.log(`  Facilities:         ${insertedFacilities.length}`)
   console.log(`  Users:              ${insertedUsers.length}`)
@@ -823,6 +1424,30 @@ async function seed() {
   console.log(`  Knowledge Base:     30`)
   console.log(`  Disease Statistics: ${insertedDiseases.length}`)
   console.log(`  Therapeutic Protocols: ${protocolData.length}`)
+  console.log(`  Equipment Locations:  ${insertedLocations.length}`)
+  console.log(`  Equipment Categories: ${insertedCategories.length}`)
+  console.log(`  Equipment Suppliers:  ${insertedSuppliers.length}`)
+  console.log(`  Medical Equipment:    ${insertedEquipment.length}`)
+  console.log(`  Assignments:          ${assignmentBatch.length}`)
+  console.log(`  Equipment Docs:       ${docBatch.length}`)
+  console.log(`  Maintenance:          ${insertedMaintenance.length}`)
+  console.log(`  Maintenance Tasks:    ${taskBatch.length}`)
+  console.log(`  Incidents:            ${incidentBatch.length}`)
+  console.log(`  Equipment Logs:       ${logBatch.length}`)
+  console.log(`  Warranties:           ${warrantyBatch.length}`)
+  console.log(`  Bookings:             ${bookingBatch.length}`)
+  console.log(`  Audits:               ${auditBatch.length}`)
+  console.log(`  Spare Parts:          ${insertedSpareParts.length}`)
+  console.log(`  Medical Supplies:     ${insertedSupplies.length}`)
+  console.log(`  Supply Batches:       ${batchRows.length}`)
+  console.log(`  Stock Movements:      ${stockBatch.length}`)
+  console.log(`  Purchase Orders:      ${insertedOrders.length}`)
+  console.log(`  PO Items:             ${poiBatch.length}`)
+  console.log(`  Care Coverages:       ${coverageBatch.length}`)
+  console.log(`  Partner Companies:    ${insertedPartners.length}`)
+  console.log(`  Partner Patients:     ${ppBatch.length}`)
+  console.log(`  Patient History:      ${historyBatch.length}`)
+  console.log(`  Notification Prefs:   ${insertedUsers.length}`)
   console.log(`  TOTAL:              ~${insertedPatients.length + insertedConsultations.length + diagnosticsCount + insertedTreatments.length + prescCount + labCount + insertedCases.length + auditEntries.length + insertedNotifs.length + 420}`)
 }
 

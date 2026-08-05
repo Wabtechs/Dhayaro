@@ -71,11 +71,8 @@ const typeConfig: Record<string, { label: string; color: string }> = {
 interface ArchiveItem extends Archive {
   patientFirstname?: string
   patientLastname?: string
-}
-
-function shortUuid(value?: string): string {
-  if (!value) return '—'
-  return value.slice(0, 8)
+  archivistFirstname?: string
+  archivistLastname?: string
 }
 
 export { ArchivesView }
@@ -334,6 +331,7 @@ export default function ArchivesView() {
                     const type = String(item.entityType || '').toUpperCase()
                     const config = typeConfig[type] || { label: type, color: 'bg-gray-100 text-gray-700' }
                     const patientName = `${item.patientFirstname ?? ''} ${item.patientLastname ?? ''}`.trim()
+                    const archivistName = `${item.archivistFirstname ?? ''} ${item.archivistLastname ?? ''}`.trim()
                     return (
                       <TableRow
                         key={item.id}
@@ -349,8 +347,8 @@ export default function ArchivesView() {
                         <TableCell>
                           {patientName || '—'}
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {shortUuid(item.archivedBy)}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {archivistName || '—'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(item.createdAt)}

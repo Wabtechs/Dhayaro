@@ -24,7 +24,7 @@ import { useSyncData } from '@/hooks/use-data'
 import { api } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateTime, shortRef } from '@/lib/utils'
 import type { SyncLog } from '@/types'
 
 const entityLabels: Record<string, string> = {
@@ -91,15 +91,17 @@ function SyncTable({ logs, onRetry }: { logs: SyncLog[]; onRetry: (id: string) =
           </TableRow>
         </TableHeader>
         <TableBody>
-          {logs.map((log) => {
+          {logs.map((log, index) => {
             const sc = statusConfig[log.status]
             return (
               <TableRow key={log.id}>
-                <TableCell className="font-mono text-xs">{log.id}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">#{index + 1}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{entityLabels[log.entityType] || log.entityType}</Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell font-mono text-xs">{log.entityId}</TableCell>
+                <TableCell className="hidden md:table-cell font-mono text-xs">
+                  <span title={log.entityId}>{shortRef(log.entityId)}</span>
+                </TableCell>
                 <TableCell>
                   <Badge className={actionBadgeClass[log.action]}>{actionLabels[log.action]}</Badge>
                 </TableCell>
