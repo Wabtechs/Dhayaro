@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'inventory'
+    const limit = Math.min(1000, Math.max(1, parseInt(searchParams.get('limit') || '200', 10)))
     const facility = addFacilityFilter
     void facility
 
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
           addFacilityFilter(supplyBatches.facilityId, auth, searchParams),
         ))
         .orderBy(sql`${supplyBatches.expiryDate} asc nulls last`)
+        .limit(limit)
 
       const expired = expiring.filter(e => (e.daysLeft ?? 0) < 0)
       const expiringSoon = expiring.filter(e => (e.daysLeft ?? 0) >= 0 && (e.daysLeft ?? 0) <= 90)

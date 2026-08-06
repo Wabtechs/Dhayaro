@@ -102,6 +102,7 @@ export const patients = pgTable('patients', {
   facilityId: uuid('facility_id').references(() => facilities.id),
   userId: uuid('user_id').references(() => users.id),
   patientUuid: text('patient_uuid').notNull().unique(),
+  dossierNumber: text('dossier_number').notNull().unique(),
   firstname: text('firstname').notNull(),
   lastname: text('lastname').notNull(),
   sex: genderEnum('sex').notNull(),

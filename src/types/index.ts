@@ -60,6 +60,7 @@ export interface Patient {
   insuranceNumber?: string
   facilityId: string
   patientUuid?: string
+  dossierNumber?: string
   isActive: boolean
   isArchived?: boolean
   createdAt: string

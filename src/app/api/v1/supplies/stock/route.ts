@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { medicalSupplies, supplyBatches, equipmentSuppliers } from '@/lib/schema'
-import { eq, and, isNull, sql, inArray } from 'drizzle-orm'
-import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
+import { eq, and, or, ilike, isNull, sql, inArray } from 'drizzle-orm'
+import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireEquipmentPermission } from '@/lib/equipment-utils'
 
 export async function GET(request: NextRequest) {
@@ -13,9 +13,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
     const alerts = searchParams.get('alerts')
+    const { page, size, offset, search } = parsePagination(searchParams)
 
     const conditions: any[] = [isNull(medicalSupplies.deletedAt), eq(medicalSupplies.isActive, true)]
     if (category) conditions.push(eq(medicalSupplies.category, category as never))
+    if (search) conditions.push(or(ilike(medicalSupplies.name, `%${search}%`), ilike(medicalSupplies.code, `%${search}%`)))
     const facilityFilter = addFacilityFilter(medicalSupplies.facilityId, auth, searchParams)
     if (facilityFilter) conditions.push(facilityFilter)
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -39,6 +41,7 @@ export async function GET(request: NextRequest) {
       .from(medicalSupplies)
       .leftJoin(equipmentSuppliers, eq(medicalSupplies.supplierId, equipmentSuppliers.id))
       .where(whereClause)
+      .orderBy(medicalSupplies.name)
 
     const ids = supplies.map(s => s.id)
 
@@ -88,7 +91,7 @@ export async function GET(request: NextRequest) {
       byCategory[i.category] = cat
     }
 
-    return NextResponse.json({ items: filtered, totals, byCategory })
+    return NextResponse.json({ items: filtered.slice(offset, offset + size), total: filtered.length, page, size, totals, byCategory })
   } catch (e) {
     logError('GET /supplies/stock', e)
     return apiError(500, 'Internal server error')

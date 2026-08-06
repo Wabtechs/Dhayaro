@@ -150,7 +150,7 @@ export function useEquipmentAudits(params?: string) {
 export function useEquipmentLogs(params?: string) {
   return useQuery({
     queryKey: ['equipment-logs', params],
-    queryFn: () => fetchData<unknown[]>(`/equipment/logs${params ? '?' + params : ''}`),
+    queryFn: () => fetchData<{ items: unknown[]; total: number; page: number; size: number }>(`/equipment/logs${params ? '?' + params : ''}`),
   })
 }
 

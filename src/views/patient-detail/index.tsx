@@ -49,7 +49,7 @@ import {
   useUpdatePatient,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, shortRef } from '@/lib/utils'
 import { patientSchema, type PatientValues, toPatientPayload, commaJoin } from '@/lib/schemas'
 import type { CaseStatus, CasePriority } from '@/types'
 
@@ -205,7 +205,7 @@ export default function PatientDetailPage() {
   const email = (p.email as string) || ''
   const address = (p.address as string) || '—'
   const dateOfBirth = (p.dateOfBirth as string) || ''
-  const medicalRecordNumber = (p.medicalRecordNumber as string) || (p.patientUuid as string) || ''
+  const medicalRecordNumber = (p.dossierNumber as string) || shortRef((p.medicalRecordNumber as string) || (p.patientUuid as string))
   const isActive = p.isActive !== false
   const facilityId = (p.facilityId as string) || ''
   const allergies = (p.allergies as string[]) || []

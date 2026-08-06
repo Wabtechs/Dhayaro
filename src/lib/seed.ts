@@ -285,7 +285,7 @@ async function seed() {
       const fn = sex === 'M' ? pick(firstNamesM) : pick(firstNamesF)
       const ln = pick(lastNames)
       return {
-        id: uuid(), patientUuid: uuid(),
+        id: uuid(), patientUuid: uuid(), dossierNumber: `DOS-${String(idx + 1).padStart(6, '0')}`,
         facilityId: pick(insertedFacilities).id,
         firstname: fn, lastname: ln, sex,
         dateOfBirth: `${birthYear}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`,
@@ -327,6 +327,7 @@ async function seed() {
       facilityId,
       userId: insertedUsers[userIdx].id,
       patientUuid: uuid(),
+      dossierNumber: `DOS-${String(1001 + pi).padStart(6, '0')}`,
       firstname: acc.fn,
       lastname: acc.ln,
       sex: pi === 1 ? 'F' as const : 'M' as const,

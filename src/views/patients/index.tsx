@@ -50,7 +50,7 @@ import { usePatientsData, useFacilitiesData, useUpdatePatient, useDeletePatient 
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/services/api'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, shortRef } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { patientSchema, type PatientValues, toPatientPayload, commaJoin } from '@/lib/schemas'
 
@@ -69,6 +69,7 @@ interface PatientItem {
   facilityId?: string
   patientUuid?: string
   medicalRecordNumber?: string
+  dossierNumber?: string
   allergies?: string[]
   isActive?: boolean
   createdAt?: string
@@ -664,7 +665,7 @@ export default function PatientsPage() {
                     </button>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {(patient.medicalRecordNumber || patient.patientUuid) || '—'}
+                    {patient.dossierNumber || shortRef(patient.medicalRecordNumber || patient.patientUuid)}
                   </TableCell>
                   <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
                   <TableCell>
@@ -775,7 +776,7 @@ export default function PatientsPage() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                    {(patient.medicalRecordNumber || patient.patientUuid) || '—'}
+                    {patient.dossierNumber || shortRef(patient.medicalRecordNumber || patient.patientUuid)}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">

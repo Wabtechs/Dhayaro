@@ -101,9 +101,19 @@ export async function POST(request: NextRequest) {
 
     const now = new Date()
 
+    const [lastPatient] = await getDb()
+      .select({ dossierNumber: patients.dossierNumber })
+      .from(patients)
+      .orderBy(desc(patients.dossierNumber))
+      .limit(1)
+    const lastSeq = lastPatient?.dossierNumber?.match(/^DOS-(\d+)$/)?.[1]
+    const nextSeq = (lastSeq ? parseInt(lastSeq, 10) + 1 : 1)
+    const dossierNumber = `DOS-${String(nextSeq).padStart(6, '0')}`
+
     const [row] = await getDb().insert(patients).values({
       id: crypto.randomUUID(),
       patientUuid,
+      dossierNumber,
       firstname: body.firstname,
       lastname: body.lastname,
       sex: body.sex,

@@ -5,7 +5,7 @@ import {
   equipmentWarranties, equipmentLogs, spareParts, sparePartInventory,
   medicalSupplies,
 } from '@/lib/schema'
-import { eq, and, count, sql, gte, lte } from 'drizzle-orm'
+import { eq, and, count, sql, gte, lte, desc } from 'drizzle-orm'
 import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
 import { requireEquipmentPermission } from '@/lib/equipment-utils'
 
@@ -120,7 +120,8 @@ export async function GET(request: NextRequest) {
       getDb().select({ action: equipmentLogs.action, createdAt: equipmentLogs.createdAt })
         .from(equipmentLogs)
         .where(compactAnd(addFacilityFilter(equipmentLogs.facilityId, auth, searchParams)))
-        .orderBy(equipmentLogs.createdAt),
+        .orderBy(desc(equipmentLogs.createdAt))
+        .limit(200),
       getDb().select({ value: count() }).from(spareParts)
         .where(compactAnd(addFacilityFilter(spareParts.facilityId, auth, searchParams))),
       getDb().select({ value: count() }).from(sparePartInventory)
@@ -159,7 +160,7 @@ export async function GET(request: NextRequest) {
       value: i.value,
     }))
 
-    const recentActivity = (logsRecent as Array<{ action: string; createdAt: Date | string }>).slice(-10).reverse().map(l => ({
+    const recentActivity = (logsRecent as Array<{ action: string; createdAt: Date | string }>).slice(0, 10).map(l => ({
       action: l.action,
       createdAt: l.createdAt,
     }))
