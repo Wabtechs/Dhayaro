@@ -48,7 +48,6 @@ import {
   ShieldCheck,
   Building,
   Handshake,
-  UserCog as UserCogIcon,
   Clock,
 } from 'lucide-react'
 
@@ -143,7 +142,7 @@ const navSections: NavSection[] = [
   {
     label: 'AIDE',
     items: [
-      { label: 'Guide d\'utilisation', icon: BookMarked, href: '/help' },
+      { label: 'Guide d\'utilisation', icon: BookMarked, href: '/help', permission: 'DASHBOARD_VIEW' },
     ],
   },
 ]
