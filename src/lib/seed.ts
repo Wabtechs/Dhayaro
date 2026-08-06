@@ -1208,7 +1208,7 @@ async function seed() {
     { name: 'Sac de suture auto-absorbable', code: 'SUPPLY-016', sku: 'SKU-SUT-002', category: 'SUTURES', unit: 'boîte', minStock: 35, criticalStock: 8, price: 55000 },
   ]
   const insertedSupplies: { id: string; name: string }[] = await db.insert(medicalSupplies).values(
-    supplyData.map((s) => ({ id: uuid(), facilityId: pick(insertedFacilities).id, ...s, description: null, supplierId: pick(insertedSuppliers).id, isActive: true, createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date() }))
+    supplyData.map((s) => ({ id: uuid(), facilityId: pick(insertedFacilities).id, ...s, description: null, supplierId: pick(insertedSuppliers).id, isActive: true, createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: daysAgo(365), updatedAt: new Date() })) as any
   ).returning({ id: medicalSupplies.id, name: medicalSupplies.name })
   console.log(`Medical Supplies: ${insertedSupplies.length}`)
 
