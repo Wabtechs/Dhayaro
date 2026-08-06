@@ -8,6 +8,14 @@ import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, clinicalCaseCreateSchema } from '@/lib/api-schemas'
 
+const STATUS_TO_OUTCOME: Record<string, 'PENDING' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE'> = {
+  draft: 'PENDING',
+  active: 'IN_PROGRESS',
+  in_review: 'IN_PROGRESS',
+  resolved: 'SUCCESS',
+  archived: 'FAILURE',
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request)
@@ -23,6 +31,12 @@ export async function GET(request: NextRequest) {
         ilike(clinicalCases.description, `%${search}%`),
         ilike(clinicalCases.provisionalDiagnosis, `%${search}%`),
       )!)
+    }
+
+    const statusFilter = searchParams.get('status')
+    if (statusFilter) {
+      const outcome = STATUS_TO_OUTCOME[statusFilter]
+      if (outcome) conditions.push(eq(clinicalCases.outcomeStatus, outcome))
     }
 
     const facilityFilter = addFacilityFilter(clinicalCases.facilityId, auth, searchParams)

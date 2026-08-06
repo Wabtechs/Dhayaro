@@ -394,6 +394,10 @@ export const clinicalCaseCreateSchema = z.object({
   facilityId: optUuid,
 })
 
+export const caseNoteCreateSchema = z.object({
+  content: z.string().trim().min(1, 'La note est requise').max(5000, 'Note trop longue'),
+})
+
 export const clinicalCaseUpdateSchema = z
   .object({
     title: optStr,

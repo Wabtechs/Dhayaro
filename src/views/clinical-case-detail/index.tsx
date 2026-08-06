@@ -57,10 +57,11 @@ import {
   useUsersData,
   useFacilitiesData,
   useUpdateClinicalCase,
+  useCaseNotes,
+  useAddCaseNote,
 } from '@/hooks/use-data'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
-import { useAuthStore } from '@/store/auth-store'
 import { formatDate, formatDateTime, getInitials } from '@/lib/utils'
 import type { CaseStatus, CaseNote } from '@/types'
 
@@ -79,6 +80,11 @@ const priorityLabels: Record<string, string> = {
   critical: 'Critique',
 }
 
+interface NoteItem extends CaseNote {
+  authorFirstName?: string
+  authorLastName?: string
+}
+
 export default function ClinicalCaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -90,10 +96,11 @@ export default function ClinicalCaseDetailPage() {
   const { data: facilitiesData } = useFacilitiesData()
   const updateCase = useUpdateClinicalCase()
   const { toast } = useToast()
-  const { user } = useAuthStore()
 
   const c = clinicalCase as Record<string, unknown> | null | undefined
-  const [notes, setNotes] = useState<CaseNote[]>([])
+  const { data: notesData } = useCaseNotes(id)
+  const addNote = useAddCaseNote()
+  const notes = ((notesData?.items ?? []) as unknown as NoteItem[])
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -220,16 +227,13 @@ export default function ClinicalCaseDetailPage() {
   const doctorName = doctor ? `${(doctor.firstName as string) || ''} ${(doctor.lastName as string) || ''}`.trim() : 'Inconnu'
   const facilityName = (facility?.name as string) || 'Inconnu'
 
-  const onAddNote = noteForm.handleSubmit((values) => {
-    const newNote: CaseNote = {
-      id: `note-${Date.now()}`,
-      caseId,
-      authorId: (user?.id as string) || 'unknown',
-      content: values.content.trim(),
-      createdAt: new Date().toISOString(),
+  const onAddNote = noteForm.handleSubmit(async (values) => {
+    try {
+      await addNote.mutateAsync({ id: caseId, content: values.content.trim() })
+      noteForm.reset()
+    } catch {
+      toast({ title: 'Erreur', description: "Impossible d'ajouter la note.", variant: 'destructive' })
     }
-    setNotes((prev) => [newNote, ...prev])
-    noteForm.reset()
   })
 
   const statusActions: { label: string; status: CaseStatus; icon: React.ReactNode }[] = []
@@ -445,26 +449,29 @@ export default function ClinicalCaseDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {notes.map((note) => (
-                    <div key={note.id} className="rounded-lg border p-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>
-                            {getInitials('Moi')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">Moi</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDateTime(note.createdAt)}
-                          </p>
+                  {notes.map((note) => {
+                    const authorName = `${note.authorFirstName || ''} ${note.authorLastName || ''}`.trim() || 'Moi'
+                    return (
+                      <div key={note.id} className="rounded-lg border p-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {getInitials(authorName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{authorName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDateTime(note.createdAt)}
+                            </p>
+                          </div>
                         </div>
+                        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                          {note.content}
+                        </p>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        {note.content}
-                      </p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </TabsContent>

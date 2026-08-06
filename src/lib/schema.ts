@@ -713,6 +713,17 @@ export const clinicalCases = pgTable('clinical_cases', {
   index('idx_cases_status').on(t.outcomeStatus),
 ])
 
+export const caseNotes = pgTable('case_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  caseId: uuid('case_id').notNull().references(() => clinicalCases.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id').references(() => users.id),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_case_notes_case').on(t.caseId),
+  index('idx_case_notes_author').on(t.authorId),
+])
+
 // HELP IMAGES (for /docs and /help guide sections)
 
 export const helpImages = pgTable('help_images', {

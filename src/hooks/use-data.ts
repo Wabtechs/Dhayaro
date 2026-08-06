@@ -17,7 +17,7 @@ function toCamelCase(key: string): string {
 }
 
 const OUTCOME_MAP: Record<string, string> = {
-  PENDING: 'active',
+  PENDING: 'draft',
   IN_PROGRESS: 'active',
   SUCCESS: 'resolved',
   FAILURE: 'archived',
@@ -112,6 +112,13 @@ function transformKeys(obj: unknown): unknown {
   return obj;
 }
 
+const OUTCOME_TO_STATUS: Record<string, string> = {
+  PENDING: 'draft',
+  IN_PROGRESS: 'active',
+  SUCCESS: 'resolved',
+  FAILURE: 'archived',
+}
+
 function transformClinicalCase(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(transformClinicalCase);
   if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
@@ -124,6 +131,11 @@ function transformClinicalCase(obj: unknown): unknown {
       result.diagnosis = result.provisionalDiagnosis;
       delete result.provisionalDiagnosis;
     }
+    if (result.status === undefined) {
+      const outcome = (result.outcomeStatus as string) || 'PENDING';
+      result.status = OUTCOME_TO_STATUS[outcome] || 'draft';
+    }
+    if (result.priority === 'urgent') result.priority = 'critical';
     return result;
   }
   return obj;
@@ -367,6 +379,27 @@ export function useClinicalCaseDetail(id: string) {
     queryKey: ['clinical-case', id],
     queryFn: () => fetchData<unknown>(`/clinical-cases/${id}`).then(transformClinicalCase),
     enabled: !!id,
+  });
+}
+
+export function useCaseNotes(id: string) {
+  return useQuery({
+    queryKey: ['clinical-case-notes', id],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/clinical-cases/${id}/notes`),
+    enabled: !!id,
+  });
+}
+
+export function useAddCaseNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>(`/clinical-cases/${id}/notes`, { content }, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['clinical-case-notes', variables.id] });
+    },
   });
 }
 

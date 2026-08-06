@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -197,6 +197,7 @@ async function seed() {
   await db.delete(diagnostics)
   await db.delete(consultations)
   await db.delete(clinicalCases)
+  await db.delete(caseNotes)
   await db.delete(similarCaseSearches)
   await db.delete(episodeEntities)
   await db.delete(careEpisodes)
@@ -551,6 +552,30 @@ async function seed() {
     })
   ).returning({ id: clinicalCases.id })
   console.log(`Clinical Cases: ${insertedCases.length}`)
+
+  console.log('Generating clinical case notes...')
+  const noteTemplates = [
+    'Signes vitaux stables, poursuite du traitement actuel.',
+    'Patient revu en consultation : amélioration des symptômes.',
+    'Surveillance des paramètres biologiques, nouvelle ordonnance établie.',
+    'Éducation thérapeutique réalisée, bon suivi du traitement.',
+    'Consultation de contrôle programmée dans 2 semaines.',
+  ]
+  const caseNotesBatch: Array<{ id: string; caseId: string; authorId: string; content: string; createdAt: Date }> = []
+  for (const cc of insertedCases) {
+    const noteCount = 1 + Math.floor(Math.random() * 3)
+    for (let n = 0; n < noteCount; n++) {
+      caseNotesBatch.push({
+        id: uuid(),
+        caseId: cc.id,
+        authorId: insertedUsers[pick(doctorIndices)].id,
+        content: pick(noteTemplates),
+        createdAt: daysAgo(Math.floor(Math.random() * 30)),
+      })
+    }
+  }
+  const insertedNotes = await db.insert(caseNotes).values(caseNotesBatch).returning({ id: caseNotes.id })
+  console.log(`Clinical Case Notes: ${insertedNotes.length}`)
 
   console.log('Generating 200 audit logs...')
   const auditBatchSize = 200
