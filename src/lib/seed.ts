@@ -12,7 +12,7 @@ const R = {
 
 function daysAgo(n: number): Date {
   const d = new Date()
-  d.setDate(d.getDate() - n)
+  d.setDate(d.getDate() - Math.max(0, n))
   d.setHours(8 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60), 0, 0)
   return d
 }
@@ -648,7 +648,6 @@ async function seed() {
   console.log(`Documents: ${docBatchSize}`)
 
   console.log('Generating 100 archives...')
-  const archiveTypes = ['CONSULTATION','DIAGNOSTIC','TREATMENT','LAB_EXAM','DOCUMENT','PATIENT_FILE'] as const
   await db.insert(archives).values(
     Array.from({ length: 100 }, () => {
       const c = pick(insertedConsultations)
@@ -828,14 +827,12 @@ async function seed() {
 
   console.log('\n=== Modules: Prise en charge & Équipements ===\n')
 
-  const equipTypeValues = ['BIOMEDICAL', 'MEDICAL', 'FURNITURE', 'IT', 'OTHER'] as const
   const equipStatusValues = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'BROKEN', 'RESERVED', 'OUT_OF_SERVICE'] as const
   const equipStateValues = ['NEW', 'GOOD', 'FAIR', 'POOR', 'CRITICAL'] as const
   const maintenanceTypes = ['PREVENTIVE', 'CORRECTIVE', 'INSPECTION', 'CALIBRATION', 'VALIDATION', 'REVISION'] as const
   const incidentStatuses = ['OPEN', 'IN_PROGRESS', 'ON_HOLD', 'RESOLVED', 'CLOSED'] as const
   const incidentPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL'] as const
   const bookingStatuses = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const
-  const warrantyStatuses = ['ACTIVE', 'EXPIRED', 'CLAIMED'] as const
   const auditTypes = ['INVENTORY', 'STATUS_CHECK', 'REGULATORY', 'QUALITY', 'SAFETY'] as const
   const assignmentTypes = ['DOCTOR', 'NURSE', 'TECHNICIAN', 'DEPARTMENT', 'SERVICE', 'OTHER'] as const
   const docCategories = ['INVOICE', 'CONTRACT', 'WARRANTY', 'MANUAL', 'REPORT', 'CERTIFICATE', 'PHOTO', 'OTHER'] as const
@@ -990,7 +987,7 @@ async function seed() {
       assignedToType: pick(assignmentTypes), assignedToId: uuid(),
       assignedToName: pick(['Dr Kabongo', 'Service Cardiologie', 'Radiologie', 'Laboratoire', 'Bloc opératoire', 'Dr Clovis', 'Urgences']),
       department: pick(departmentNames),
-      startedAt: start, endedAt: Math.random() > 0.5 ? new Date(start.getTime() + randInt(10, 200) * 86400000) : null,
+      startedAt: start, endedAt: Math.random() > 0.5 ? new Date(Math.min(start.getTime() + randInt(10, 200) * 86400000, Date.now())) : null,
       notes: Math.random() > 0.6 ? 'Affectation en cours' : null,
       createdBy: pick(insertedUsers).id, updatedBy: pick(insertedUsers).id, createdAt: start, updatedAt: new Date(),
     })
@@ -1023,8 +1020,8 @@ async function seed() {
     const completed = Math.random() > 0.35
     const status = completed ? 'COMPLETED' : pick(['SCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'OVERDUE'])
     const scheduled = daysAgo(randInt(5, 200))
-    const started = completed || status === 'IN_PROGRESS' ? new Date(scheduled.getTime() + randInt(1, 5) * 86400000) : null
-    const finished = completed ? new Date((started || scheduled).getTime() + randInt(1, 4) * 86400000) : null
+    const started = completed || status === 'IN_PROGRESS' ? new Date(Math.min(scheduled.getTime() + randInt(1, 5) * 86400000, Date.now())) : null
+    const finished = completed ? new Date(Math.min((started || scheduled).getTime() + randInt(1, 4) * 86400000, Date.now())) : null
     maintBatch.push({
       id: mId, facilityId: pick(insertedFacilities).id, equipmentId: eq.id,
       maintenanceType: type, status,
