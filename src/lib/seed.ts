@@ -1319,7 +1319,7 @@ async function seed() {
       contractNumber: `CT-${p.code.slice(-3)}`, contractStartDate: '2025-01-01', contractEndDate: '2026-12-31',
       contractStatus: 'ACTIVE', annualCeiling: randInt(1000000, 50000000), notes: null, isActive: true,
       createdAt: daysAgo(365), updatedAt: new Date(),
-    }))
+    })) as any
   ).returning({ id: partnerCompanies.id })
   console.log(`Partner Companies: ${insertedPartners.length}`)
 
