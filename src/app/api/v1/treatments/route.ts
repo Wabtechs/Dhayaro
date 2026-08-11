@@ -208,8 +208,8 @@ export async function POST(request: NextRequest) {
             description: row.description,
             notes: row.notes,
             outcome: row.outcome,
-            startDate: row.startDate?.toISOString(),
-            endDate: row.endDate?.toISOString(),
+            startDate: row.startDate,
+            endDate: row.endDate,
             status: row.status,
           },        })
       }
