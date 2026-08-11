@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { invoices, invoiceItems, patients, users, careCoverages } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
-import { apiError, logError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
+import { apiError, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -88,8 +88,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /invoices', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'GET /invoices')
   }
 }
 
@@ -187,7 +186,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ invoiceNumber, status: 'ISSUED', totalAmount: body.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0) }, { status: 201 })
   } catch (e) {
-    logError('POST /invoices', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'POST /invoices')
   }
 }

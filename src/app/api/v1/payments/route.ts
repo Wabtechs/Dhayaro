@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { payments, invoices, patients } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
-import { apiError, logError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
+import { apiError, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -71,8 +71,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /payments', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'GET /payments')
   }
 }
 
@@ -174,7 +173,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(payment.payment, { status: 201 })
   } catch (e) {
-    logError('POST /payments', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'POST /payments')
   }
 }

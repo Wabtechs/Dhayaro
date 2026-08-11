@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { payments, invoices, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 
@@ -53,7 +53,6 @@ export async function GET(
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /payments/[id]', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'GET /payments/[id]')
   }
 }

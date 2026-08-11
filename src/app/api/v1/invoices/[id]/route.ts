@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { invoices, invoiceItems, patients, users, careCoverages, billingCodes } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -80,8 +80,7 @@ export async function GET(
 
     return NextResponse.json({ ...row, items })
   } catch (e) {
-    logError('GET /invoices/[id]', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'GET /invoices/[id]')
   }
 }
 
@@ -103,7 +102,6 @@ export async function PUT(
     await logAudit(auth.user, 'UPDATE', 'invoice', validId)
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('PUT /invoices/[id]', e)
-    return apiError(500, 'Internal server error')
+    return handleEndpointError(e, 'PUT /invoices/[id]')
   }
 }

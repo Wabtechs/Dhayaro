@@ -36,8 +36,6 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   REFUNDED: { label: 'Remboursée', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' },
 }
 
-const PAYMENT_METHODS = ['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'INSURANCE']
-
 export { BillerView }
 export default function BillerView() {
   const { toast } = useToast()
