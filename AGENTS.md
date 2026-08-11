@@ -17,7 +17,7 @@ src/
   app/
     (app)/          → authenticated route groups (dashboard/, patients/, etc.)
     (auth)/         → public routes (login/, forgot-password/)
-    api/v1/         → Next.js API routes (33 endpoints)
+    api/v1/         → Next.js API routes (all modules: clinical, billing, beds, equipment, supplies)
     providers.tsx   → QueryClient + TooltipProvider + Toaster
   views/            → page-level components (one per route)
   components/
@@ -34,9 +34,9 @@ src/
     api.ts          → ApiClient class (auto token refresh on 401)
   lib/
     auth.ts         → JWT create/verify, password hash, requireAuth/requireRole
-    db.ts           → Neon connection singleton (getDb, getSql)
-    schema.ts       → Drizzle table definitions (17 tables)
-    seed.ts         → seed data (auto-seeded if DB empty)
+    db.ts           → Neon connection singleton (getDb via neon-serverless WS Pool, getSql via neon HTTP)
+    schema.ts       → Drizzle table definitions (beds, billing, equipment, supplies, clinical…)
+    seed.ts         → seed data (manual: `npm run db:seed`)
     validation.ts   → sanitizeUuid, sanitizeSearch
     api-errors.ts   → apiError, logError, parsePagination, addFacilityFilter, enforceFacilityAccess
     rate-limit.ts   → in-memory IP rate limiter
@@ -56,7 +56,9 @@ src/
 - **Auth flow:** login → JWT access_token + refresh_token → auto-refresh on 401
 - **Role casing:** API stores UPPERCASE, frontend uses lowercase — `transformKeys` lowercases `role` automatically
 - **DB schema:** UUID PKs, `created_at`/`updated_at`, `is_active` soft-delete
-- **Seed data:** auto-seeded on first request if DB empty (in `seed.ts`)
+- **DB driver:** `getDb()` = `drizzle-orm/neon-serverless` (WebSocket Pool → supports `db.transaction()`); `getSql()` = `neon()` HTTP for raw SQL. **timestamp() columns require `Date` objects** — the WS driver serializes them via `.toISOString()`, so a string value throws `value.toISOString is not a function` at runtime. `date()` columns expect strings (ISO `YYYY-MM-DD`).
+- **Migrations:** do NOT use `drizzle-kit migrate` against Neon (hangs; no `__drizzle_migrations` table — schema was created via `db:push`). For new tables: `npm run db:push`, or apply the generated `drizzle/<hash>.sql` manually (split on `--> statement-breakpoint`).
+- **Seed data:** manual only — `npm run db:seed`. Note: `tsx` does not load `.env`, so set `DATABASE_URL` in the shell env first. Clean-up order in `seed.ts` is FK-safe (child tables incl. `patient_history`, `dispensations`, `payments`, `invoiceItems`, `invoices` deleted before parents).
 - **Naming:** files `kebab-case`, components `PascalCase`, API routes `snake_case`
 - **Zustand selectors:** always use `useStore((s) => s.field)`, never destructure entire store
 - **Multi-facility:** SUPER_ADMIN sees all; others auto-filtered by `auth.user.facilityId` via `addFacilityFilter()`. SUPER_ADMIN can switch facility via header `<Select>` saved to localStorage `dhayaro_active_facility`.
