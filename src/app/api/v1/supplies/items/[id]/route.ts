@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { medicalSupplies, supplyBatches, equipmentSuppliers } from '@/lib/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm'
 import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
+import { sanitizeUuid } from '@/lib/validation'
 import { requireEquipmentPermission, logEquipmentAudit, stockStatus } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { medicalSupplyUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'supplies:view')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { itemId: "L'identifiant du produit est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -63,6 +66,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'supplies:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { itemId: "L'identifiant du produit est invalide." })
     const parsed = await parseJsonBody(request, medicalSupplyUpdateSchema)
     if (parsed.ok === false) return parsed.error
     const body = parsed.body
@@ -98,6 +103,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const auth = await requireEquipmentPermission(request, 'supplies:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { itemId: "L'identifiant du produit est invalide." })
     const now = new Date()
     const [row] = await getDb().update(medicalSupplies).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(medicalSupplies.id, id), isNull(medicalSupplies.deletedAt))).returning()
     if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)

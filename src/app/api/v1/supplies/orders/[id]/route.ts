@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { purchaseOrders, purchaseOrderItems, equipmentSuppliers, supplyBatches, stockMovements } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
+import { sanitizeUuid } from '@/lib/validation'
 import { requireEquipmentPermission, logEquipmentAudit, notifyStaff } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { purchaseOrderUpdateSchema, normalizeNum, PO_STATUSES } from '@/lib/api-schemas-equipment'
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'supplies:view')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { orderId: "L'identifiant de la commande est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -65,6 +68,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'supplies:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { orderId: "L'identifiant de la commande est invalide." })
     const parsed = await parseJsonBody(request, purchaseOrderUpdateSchema)
     if (parsed.ok === false) return parsed.error
     const body = parsed.body
@@ -163,6 +168,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const auth = await requireEquipmentPermission(request, 'supplies:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { orderId: "L'identifiant de la commande est invalide." })
     const now = new Date()
     const db = getDb()
     const [row] = await db.update(purchaseOrders).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(purchaseOrders.id, id), isNull(purchaseOrders.deletedAt))).returning()

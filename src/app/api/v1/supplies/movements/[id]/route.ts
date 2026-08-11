@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { stockMovements, medicalSupplies } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
+import { sanitizeUuid } from '@/lib/validation'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { stockMovementUpdateSchema } from '@/lib/api-schemas-equipment'
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'stock:view')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { movementId: "L'identifiant du mouvement est invalide." })
     const [row] = await getDb()
       .select({
         id: stockMovements.id,
@@ -44,6 +47,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireEquipmentPermission(request, 'stock:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { movementId: "L'identifiant du mouvement est invalide." })
     const parsed = await parseJsonBody(request, stockMovementUpdateSchema)
     if (parsed.ok === false) return parsed.error
     const body = parsed.body
@@ -70,6 +75,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const auth = await requireEquipmentPermission(request, 'stock:manage')
     if ('error' in auth) return auth.error
     const { id } = await params
+    const validId = sanitizeUuid(id)
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { movementId: "L'identifiant du mouvement est invalide." })
     const now = new Date()
     const [row] = await getDb().update(stockMovements).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(stockMovements.id, id), isNull(stockMovements.deletedAt))).returning()
     if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)

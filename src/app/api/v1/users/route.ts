@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, parsePagination, handleEndpointError, addFacilityFilter } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, userCreateSchema } from '@/lib/api-schemas'
 
@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(users.role, roleParam as typeof ROLES[number]))
     }
 
-    const facilityParam = searchParams.get('facilityId')
-    if (facilityParam && auth.user.role === 'SUPER_ADMIN') {
-      conditions.push(eq(users.facilityId, facilityParam))
+    const facilityFilter = addFacilityFilter(users.facilityId, auth, searchParams)
+    if (facilityFilter) {
+      conditions.push(facilityFilter)
     }
 
     const whereClause = and(...conditions)
