@@ -24,7 +24,7 @@ export async function POST(
     const now = new Date()
 
     const [bed] = await db
-      .select({ id: beds.id, facilityId: beds.facilityId, bedNumber: beds.bedNumber, room: beds.room, status: beds.status })
+      .select({ id: beds.id, facilityId: beds.facilityId, bedNumber: beds.bedNumber, room: beds.room, label: beds.label, status: beds.status })
       .from(beds)
       .where(eq(beds.id, bedId))
       .limit(1)

@@ -40,7 +40,7 @@ export async function POST(
     const now = new Date()
 
     const bed = await db
-      .select({ id: beds.id, facilityId: beds.facilityId, bedNumber: beds.bedNumber, room: beds.room, status: beds.status, isActive: beds.isActive })
+      .select({ id: beds.id, facilityId: beds.facilityId, bedNumber: beds.bedNumber, room: beds.room, floor: beds.floor, department: beds.department, status: beds.status, isActive: beds.isActive })
       .from(beds)
       .where(eq(beds.id, bedId))
       .limit(1)
@@ -111,7 +111,7 @@ export async function POST(
       episodeId: episodeId || undefined,
       eventType: 'HOSPITALIZATION_ADMITTED',
       title: EVENT_TITLES.HOSPITALIZATION_ADMITTED,
-      description: `Admission au lit ${current.bedNumber || current.room} (${current.label || '—'})`,
+      description: `Admission au lit ${current.bedNumber || current.room}`,
       performedBy: auth.user.sub,
       performedByName: `${auth.user.firstname ?? ''} ${auth.user.lastname ?? ''}`.trim(),
       metadata: {

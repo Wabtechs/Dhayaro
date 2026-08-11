@@ -786,7 +786,7 @@ async function seed() {
         room,
         department: dept,
         label: `Lit ${number}`,
-        type: pick(bedTypes),
+        type: pick(bedTypes) as any,
         status: isOccupied ? 'OCCUPIED' : (pick(bedStatuses) as any),
         notes: null,
         isActive: true,
