@@ -125,7 +125,7 @@ export default function CareEpisodeFichePage() {
         const result = await api.get<FicheData>(`/care-episodes/${id}/fiche`, token)
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données de l\'épisode. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

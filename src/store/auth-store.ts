@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     try {
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3000)
+      const timeout = setTimeout(() => controller.abort(), 15000)
 
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -71,7 +71,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       clearTimeout(timeout)
 
       if (!res.ok) {
-        throw new Error('Identifiant ou mot de passe incorrect')
+        if (res.status === 429) {
+          throw new Error('Vous avez effectué trop de tentatives. Veuillez patienter avant de réessayer.')
+        }
+
+        const errorData = await res.json().catch(() => null)
+        if (errorData?.message) {
+          throw new Error(errorData.message)
+        }
+        throw new Error('Adresse e-mail ou mot de passe incorrect.')
       }
 
       const data = await res.json()
@@ -101,8 +109,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       saveSession(user, token)
       set({ user, token })
       return
-    } catch {
-      throw new Error('Le serveur est indisponible. Veuillez réessayer.')
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          throw new Error('Le serveur met trop de temps à répondre. Veuillez vérifier votre connexion puis réessayer.', { cause: err })
+        }
+        if (err.message === 'Failed to fetch') {
+          throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion Internet puis réessayez.', { cause: err })
+        }
+        throw new Error(err.message, { cause: err })
+      }
+      throw new Error('Une erreur inattendue s\'est produite. Veuillez réessayer.', { cause: err })
     }
   },
 

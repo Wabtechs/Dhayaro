@@ -118,11 +118,10 @@ export default function NotificationPreferencesPage() {
         toast({ title: 'Succès', description: 'Préférences supprimées' })
         setDeletingId(null)
       } else {
-        const err = await res.json()
-        toast({ title: 'Erreur', description: err.message || 'Impossible de supprimer', variant: 'destructive' })
+        toast({ title: 'Erreur', description: 'Impossible de supprimer les préférences. Veuillez réessayer.', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer les préférences', variant: 'destructive' })
+      toast({ title: 'Erreur', description: 'Impossible de supprimer les préférences. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
     }
   }
 
@@ -280,11 +279,10 @@ export default function NotificationPreferencesPage() {
                 setShowCreateDialog(false)
                 createForm.reset()
               } else {
-                const err = await res.json()
-                toast({ title: 'Erreur', description: err.message || 'Impossible de créer', variant: 'destructive' })
+                toast({ title: 'Erreur', description: 'Impossible de créer les préférences. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
             } catch {
-              toast({ title: 'Erreur', description: 'Impossible de créer les préférences', variant: 'destructive' })
+              toast({ title: 'Erreur', description: 'Impossible de créer les préférences. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
             }
           })} className="space-y-4">
             <div>

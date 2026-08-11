@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { parseJsonBody, treatmentUpdateSchema } from '@/lib/api-schemas'
 
 const TREATMENT_KEYS = ['description', 'status', 'startDate', 'endDate', 'notes', 'outcome', 'consultationId', 'patientId', 'doctorId', 'diagnosisId', 'facilityId'] as const
@@ -65,6 +66,29 @@ export async function PUT(
 
     await logAudit(auth.user, 'UPDATE', 'treatment', validId, { ...allowedFields })
 
+    if (allowedFields.status) {
+      const statusEventMap: Record<string, 'TREATMENT_STARTED' | 'TREATMENT_COMPLETED' | 'TREATMENT_CANCELLED' | 'TREATMENT_SUSPENDED'> = {
+        IN_PROGRESS: 'TREATMENT_STARTED',
+        COMPLETED: 'TREATMENT_COMPLETED',
+        CANCELLED: 'TREATMENT_CANCELLED',
+        SUSPENDED: 'TREATMENT_SUSPENDED',
+      }
+      const eventType = statusEventMap[allowedFields.status as string]
+      if (eventType) {
+        await logPatientEvent({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          episodeId: updated.episodeId,
+          eventType,
+          title: EVENT_TITLES[eventType],
+          description: `Traitement "${updated.description}" - Nouveau statut: ${allowedFields.status}`,
+          performedBy: auth.user.sub,
+          performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+          metadata: { treatmentId: updated.id, previousStatus: updated.status, newStatus: allowedFields.status },
+        })
+      }
+    }
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /treatments/[id]', e)
@@ -95,6 +119,18 @@ export async function DELETE(
     }
 
     await logAudit(auth.user, 'DELETE', 'treatment', validId, { description: deleted.description })
+
+    await logPatientEvent({
+      facilityId: deleted.facilityId,
+      patientId: deleted.patientId,
+      episodeId: deleted.episodeId,
+      eventType: 'TREATMENT_CANCELLED',
+      title: EVENT_TITLES.TREATMENT_CANCELLED,
+      description: `Traitement "${deleted.description}" annulé`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { treatmentId: deleted.id },
+    })
 
     return NextResponse.json({ detail: 'Treatment cancelled' })
   } catch (e) {

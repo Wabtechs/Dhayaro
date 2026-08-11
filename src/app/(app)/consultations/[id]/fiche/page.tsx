@@ -66,7 +66,7 @@ export default function ConsultationFichePage() {
         const result = await api.get<FicheData>(`/consultations/${id}/fiche`, token)
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données de la consultation. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

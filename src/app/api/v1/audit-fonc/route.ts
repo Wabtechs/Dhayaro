@@ -319,7 +319,7 @@ export async function PUT(request: NextRequest) {
   const staticMap = buildCategoryMap()
   const staticItem = staticMap.get(item_id)
   if (!staticItem) {
-    return NextResponse.json({ detail: `Unknown item_id: ${item_id}` }, { status: 400 })
+    return NextResponse.json({ detail: 'Cet élément n\'est pas reconnu.' }, { status: 400 })
   }
 
   try {
@@ -343,7 +343,7 @@ export async function PUT(request: NextRequest) {
     })
   } catch (err) {
     console.error('audit-fonc PUT error:', err)
-    return NextResponse.json({ detail: 'Database error' }, { status: 500 })
+    return NextResponse.json({ detail: 'Une erreur est survenue lors de l\'enregistrement.' }, { status: 500 })
   }
 
   const response = await GET()
@@ -370,8 +370,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error('audit-fonc POST error:', err)
-    return NextResponse.json({ detail: 'Database error' }, { status: 500 })
+    return NextResponse.json({ detail: 'Une erreur est survenue lors de l\'enregistrement.' }, { status: 500 })
   }
 
-  return NextResponse.json({ detail: 'Journal entry added' })
+  return NextResponse.json({ detail: 'Note enregistrée.' })
 }

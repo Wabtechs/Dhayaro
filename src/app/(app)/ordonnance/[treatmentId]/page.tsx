@@ -94,7 +94,7 @@ export default function OrdonnancePage() {
         )
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données de l\'ordonnance. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

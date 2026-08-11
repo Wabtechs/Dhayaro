@@ -5,6 +5,7 @@ import { eq, desc, and, or, ilike, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, queueCreateSchema } from '@/lib/api-schemas'
 
@@ -134,6 +135,18 @@ export async function POST(request: NextRequest) {
     }).returning()
 
     await logAudit(auth.user, 'CREATE', 'queue', row.id, { patientId: row.patientId, ticketNumber: row.ticketNumber })
+
+    await logPatientEvent({
+      facilityId: row.facilityId,
+      patientId: row.patientId,
+      episodeId: null,
+      eventType: 'QUEUE_TICKET_CREATED',
+      title: EVENT_TITLES.QUEUE_TICKET_CREATED,
+      description: `Ticket ${ticketNumber} créé - Priorité: ${body.priority || 'NORMAL'}`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { queueId: row.id, ticketNumber: row.ticketNumber, priority: body.priority || 'NORMAL' },
+    })
 
     // Cascade: auto-create care_episode if patient has no active episode
     const [activeEpisode] = await getDb()

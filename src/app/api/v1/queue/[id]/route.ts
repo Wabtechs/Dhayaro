@@ -4,6 +4,7 @@ import { queue, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 import { parseJsonBody, queueUpdateSchema } from '@/lib/api-schemas'
@@ -106,6 +107,29 @@ export async function PUT(
 
     await logAudit(auth.user, 'UPDATE', 'queue', validId, { status: updated.status })
 
+    if (allowedFields.status) {
+      const statusEventMap: Record<string, 'QUEUE_STATUS_CHANGED'> = {
+        WITH_DOCTOR: 'QUEUE_STATUS_CHANGED',
+        WITH_LAB: 'QUEUE_STATUS_CHANGED',
+        WITH_PHARMACY: 'QUEUE_STATUS_CHANGED',
+        COMPLETED: 'QUEUE_STATUS_CHANGED',
+        CANCELLED: 'QUEUE_STATUS_CHANGED',
+      }
+      if (statusEventMap[allowedFields.status as string]) {
+        await logPatientEvent({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          episodeId: updated.consultationId,
+          eventType: 'QUEUE_STATUS_CHANGED',
+          title: EVENT_TITLES.QUEUE_STATUS_CHANGED,
+          description: `File d'attente - Nouveau statut: ${allowedFields.status}`,
+          performedBy: auth.user.sub,
+          performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+          metadata: { queueId: updated.id, ticketNumber: updated.ticketNumber, previousStatus: updated.status, newStatus: allowedFields.status },
+        })
+      }
+    }
+
     return NextResponse.json(updated)
   } catch (e) {
     logError('PUT /queue/[id]', e)
@@ -136,6 +160,18 @@ export async function DELETE(
     }
 
     await logAudit(auth.user, 'DELETE', 'queue', validId, { status: 'CANCELLED' })
+
+    await logPatientEvent({
+      facilityId: updated.facilityId,
+      patientId: updated.patientId,
+      episodeId: updated.consultationId,
+      eventType: 'QUEUE_STATUS_CHANGED',
+      title: EVENT_TITLES.QUEUE_STATUS_CHANGED,
+      description: `Ticket ${updated.ticketNumber} annulé`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { queueId: updated.id, ticketNumber: updated.ticketNumber },
+    })
 
     return NextResponse.json({ detail: 'Queue entry cancelled' })
   } catch (e) {

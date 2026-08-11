@@ -311,8 +311,7 @@ export default function CareCoveragesPage() {
                 setShowCreateDialog(false)
                 createForm.reset()
               } else {
-                const err = await res.json()
-                toast({ title: 'Erreur', description: err.message || 'Impossible de créer la couverture', variant: 'destructive' })
+                toast({ title: 'Erreur', description: 'Impossible de créer la couverture. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
             } catch {
               toast({ title: 'Erreur', description: 'Impossible de créer la couverture', variant: 'destructive' })

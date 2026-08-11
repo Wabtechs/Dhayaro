@@ -5,6 +5,7 @@ import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addDoctorFilter, addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, prescriptionCreateSchema } from '@/lib/api-schemas'
 
@@ -102,6 +103,21 @@ export async function POST(request: NextRequest) {
     }).returning()
 
     await logAudit(auth.user, 'CREATE', 'prescription', row.id, { medicationId: row.medicationId, dosage: row.dosage })
+
+    // Get patientId from treatment for patientHistory
+    const [treatment] = await db.select({ patientId: treatments.patientId, facilityId: treatments.facilityId }).from(treatments).where(eq(treatments.id, treatmentId)).limit(1)
+    if (treatment) {
+      await logPatientEvent({
+        facilityId: treatment.facilityId,
+        patientId: treatment.patientId,
+        eventType: 'PRESCRIPTION_CREATED',
+        title: EVENT_TITLES.PRESCRIPTION_CREATED,
+        description: `Prescription créée pour traitement #${treatmentId}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+        metadata: { prescriptionId: row.id, treatmentId, medicationId: row.medicationId, dosage: row.dosage },
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

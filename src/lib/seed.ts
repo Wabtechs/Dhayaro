@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems, billingCodes } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -233,6 +233,7 @@ async function seed() {
   await db.delete(auditHistory)
   await db.delete(helpImages)
   await db.delete(patients)
+  await db.delete(billingCodes)
   await db.delete(users)
   await db.delete(diseases)
   await db.delete(labCategories)
@@ -243,6 +244,37 @@ async function seed() {
     ...f, id: uuid(), isActive: true, createdAt: daysAgo(365), updatedAt: new Date(),
   }))).returning({ id: facilities.id })
   console.log(`Facilities: ${insertedFacilities.length}`)
+
+  const billingCodeData = [
+    { code: 'CONS001', label: 'Consultation médicale', serviceType: 'CONSULTATION', price: 5000, currency: 'CDF' },
+    { code: 'CONS002', label: 'Consultation spécialisée', serviceType: 'CONSULTATION', price: 8000, currency: 'CDF' },
+    { code: 'CONS003', label: 'Triage / évaluation initiale', serviceType: 'CONSULTATION', price: 2000, currency: 'CDF' },
+    { code: 'LAB001', label: 'Prise de sang complète', serviceType: 'LABORATORY', price: 7500, currency: 'CDF' },
+    { code: 'LAB002', label: 'Examen urinaire', serviceType: 'LABORATORY', price: 3000, currency: 'CDF' },
+    { code: 'LAB003', label: 'Radiographie thoracique', serviceType: 'LABORATORY', price: 12000, currency: 'CDF' },
+    { code: 'MED001', label: 'Médicament - Paracétamol 500 mg', serviceType: 'PHARMACY', price: 1500, currency: 'CDF' },
+    { code: 'MED002', label: 'Médicament - Amoxicilline 500 mg', serviceType: 'PHARMACY', price: 2500, currency: 'CDF' },
+    { code: 'MED003', label: 'Médicament - Amlodipine 5 mg', serviceType: 'PHARMACY', price: 3000, currency: 'CDF' },
+    { code: 'PROC001', label: 'Pose de perfusion', serviceType: 'PROCEDURE', price: 4000, currency: 'CDF' },
+    { code: 'PROC002', label: 'Pansement & surveillance', serviceType: 'PROCEDURE', price: 3000, currency: 'CDF' },
+    { code: 'HOSP001', label: 'Hospitalisation (jury)', serviceType: 'HOSPITALIZATION', price: 25000, currency: 'CDF' },
+  ]
+
+  const insertedBillingCodes: { id: string }[] = await db.insert(billingCodes).values(
+    billingCodeData.map((b) => ({
+      id: uuid(),
+      facilityId: pick(insertedFacilities).id,
+      code: b.code,
+      label: b.label,
+      serviceType: b.serviceType,
+      price: b.price,
+      currency: b.currency,
+      isActive: true,
+      createdAt: daysAgo(365),
+      updatedAt: new Date(),
+    }))
+  ).returning({ id: billingCodes.id })
+  console.log(`Billing codes: ${insertedBillingCodes.length}`)
 
   const passwordHash = await hashPassword('admin123')
   const doctorHash = await hashPassword('doctor123')

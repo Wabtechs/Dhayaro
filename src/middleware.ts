@@ -55,7 +55,11 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/api/v1/notification-preferences': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/partner-companies': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
   '/api/v1/partner-patients': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'LABORATORY', 'PHARMACIST', 'NURSE', 'ACCOUNTANT', 'ARCHIVIST'],
-  '/api/v1/patient-history': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'NURSE', 'LABORATORY', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST'],
+   '/api/v1/patient-history': ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'DOCTOR', 'SPECIALIST', 'NURSE', 'LABORATORY', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST'],
+  '/api/v1/billing': ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
+  '/api/v1/invoices': ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'SPECIALIST', 'ACCOUNTANT'],
+  '/api/v1/billing-codes': ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
+  '/api/v1/payments': ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -92,6 +96,13 @@ function applyHeaders(response: NextResponse, isApi: boolean): NextResponse {
   return response
 }
 
+function createApiError(status: number, message: string, code: string): NextResponse {
+  return NextResponse.json(
+    { success: false, message, code, errors: {}, data: null },
+    { status }
+  )
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isApi = pathname.startsWith('/api/')
@@ -107,7 +118,7 @@ export async function middleware(request: NextRequest) {
   if (isApi) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '')
     if (!token) {
-      return applyHeaders(NextResponse.json({ detail: 'Not authenticated' }, { status: 401 }), true)
+      return applyHeaders(createApiError(401, 'Connexion requise. Veuillez vous reconnecter.', 'SESSION_EXPIRED'), true)
     }
     try {
       const { payload } = await jwtVerify(token, JWT_SECRET)
@@ -117,7 +128,7 @@ export async function middleware(request: NextRequest) {
         const userRole = payload.role as string
         if (!allowedRoles.includes(userRole)) {
           return applyHeaders(
-            NextResponse.json({ detail: 'Insufficient permissions' }, { status: 403 }),
+            createApiError(403, 'Votre compte ne dispose pas des autorisations nécessaires pour effectuer cette action.', 'ACCESS_DENIED'),
             true
           )
         }
@@ -125,7 +136,7 @@ export async function middleware(request: NextRequest) {
 
       return applyHeaders(NextResponse.next(), true)
     } catch {
-      return applyHeaders(NextResponse.json({ detail: 'Invalid or expired token' }, { status: 401 }), true)
+      return applyHeaders(createApiError(401, 'Votre session n\'est plus valide. Veuillez vous reconnecter.', 'SESSION_EXPIRED'), true)
     }
   }
 

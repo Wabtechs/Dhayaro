@@ -34,6 +34,7 @@ export type Permission =
   | 'partner-companies:list' | 'partner-companies:create' | 'partner-companies:edit' | 'partner-companies:delete'
   | 'partner-patients:list' | 'partner-patients:create' | 'partner-patients:edit' | 'partner-patients:delete'
   | 'patient-history:list' | 'patient-history:create' | 'patient-history:edit' | 'patient-history:delete'
+  | 'billing:list' | 'billing:create' | 'billing:edit' | 'billing:delete' | 'billing:pay'
   | 'notification-preferences:list' | 'notification-preferences:manage'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -66,6 +67,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'equipment:assign', 'equipment:transfer', 'equipment:maintenance', 'equipment:audit', 'equipment:report',
     'supplies:view', 'supplies:manage',
     'stock:view', 'stock:manage',
+    'billing:list', 'billing:create', 'billing:edit', 'billing:delete', 'billing:pay',
     'supplies:view', 'supplies:manage',
   ],
   admin: [
@@ -92,6 +94,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'knowledge-base:list', 'knowledge-base:search',
     'clinical-decision:read',
     'triage:list', 'triage:manage',
+    'billing:list', 'billing:create', 'billing:edit', 'billing:delete', 'billing:pay',
   ],
   receptionist: [
     'DASHBOARD_VIEW',
@@ -198,8 +201,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'analytics:read',
     'notifications:list',
     'settings:read',
-    'equipment:view', 'equipment:report',
+     'equipment:view', 'equipment:report',
     'supplies:view', 'stock:view',
+    'billing:list', 'billing:create', 'billing:edit', 'billing:delete', 'billing:pay',
   ],
   archivist: [
     'DASHBOARD_VIEW',

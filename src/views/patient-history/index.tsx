@@ -132,11 +132,10 @@ export default function PatientHistoryPage() {
         toast({ title: 'Succès', description: 'Événement supprimé' })
         setDeletingId(null)
       } else {
-        const err = await res.json()
-        toast({ title: 'Erreur', description: err.message || 'Impossible de supprimer', variant: 'destructive' })
+        toast({ title: 'Erreur', description: 'Impossible de supprimer l\'événement. Veuillez réessayer.', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'événement', variant: 'destructive' })
+      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'événement. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
     }
   }
 
@@ -284,11 +283,10 @@ export default function PatientHistoryPage() {
                 setShowCreateDialog(false)
                 createForm.reset()
               } else {
-                const err = await res.json()
-                toast({ title: 'Erreur', description: err.message || 'Impossible d&apos;ajouter', variant: 'destructive' })
+                toast({ title: 'Erreur', description: 'Impossible d&apos;ajouter l&apos;événement. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
             } catch {
-              toast({ title: 'Erreur', description: 'Impossible d&apos;ajouter l&apos;événement', variant: 'destructive' })
+              toast({ title: 'Erreur', description: 'Impossible d&apos;ajouter l&apos;événement. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
             }
           })} className="space-y-4">
             <div>

@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       facilityId: user.facilityId || null,
+      firstname: user.firstname,
+      lastname: user.lastname,
     })
 
     const refreshToken = await createRefreshToken({
@@ -62,6 +64,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       facilityId: user.facilityId || null,
+      firstname: user.firstname,
+      lastname: user.lastname,
     })
 
     const response = NextResponse.json({

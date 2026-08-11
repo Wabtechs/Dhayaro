@@ -47,6 +47,12 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', ['RECEIPT', '
 export const poStatusEnum = pgEnum('po_status', ['DRAFT', 'SUBMITTED', 'ORDERED', 'PARTIAL', 'RECEIVED', 'CANCELLED'])
 export const equipmentAuditTypeEnum = pgEnum('equipment_audit_type', ['INVENTORY', 'STATUS_CHECK', 'REGULATORY', 'QUALITY', 'SAFETY'])
 
+// BILLING ENUMS
+
+export const billingStatusEnum = pgEnum('billing_status', ['DRAFT', 'ISSUED', 'PAID', 'CANCELLED', 'REFUNDED'])
+export const paymentMethodEnum = pgEnum('payment_method', ['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'INSURANCE'])
+export const paymentStatusEnum = pgEnum('payment_status', ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'])
+
 // FACILITIES
 
 export const facilities = pgTable('facilities', {
@@ -1219,4 +1225,126 @@ export const purchaseOrderItems = pgTable('purchase_order_items', {
   index('idx_po_items_order').on(t.orderId),
   index('idx_po_items_supply').on(t.supplyId),
   index('idx_po_items_facility').on(t.facilityId),
+])
+
+// 21. DISPENSATIONS (pharmacy medication dispensing logs)
+
+export const dispensations = pgTable('dispensations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  patientId: uuid('patient_id').references(() => patients.id).notNull(),
+  treatmentId: uuid('treatment_id').references(() => treatments.id).notNull(),
+  doctorId: uuid('doctor_id').references(() => users.id).notNull(),
+  pharmacistId: uuid('pharmacist_id').references(() => users.id).notNull(),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
+  medicationId: uuid('medication_id').references(() => medications.id),
+  quantity: integer('quantity').notNull(),
+  dosage: text('dosage'),
+  batchNumber: text('batch_number'),
+  expiryDate: date('expiry_date'),
+  notes: text('notes'),
+  signature: text('signature'),
+  dispensedAt: timestamp('dispensed_at', { withTimezone: true }).notNull().defaultNow(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_dispensations_facility').on(t.facilityId),
+  index('idx_dispensations_patient').on(t.patientId),
+  index('idx_dispensations_treatment').on(t.treatmentId),
+  index('idx_dispensations_pharmacist').on(t.pharmacistId),
+  index('idx_dispensations_date').on(t.dispensedAt),
+])
+
+// 22. BILLING CODES
+
+export const billingCodes = pgTable('billing_codes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  code: text('code').notNull(),
+  label: text('label').notNull(),
+  serviceType: text('service_type').notNull().default('CONSULTATION'),
+  price: integer('price').notNull().default(0),
+  currency: text('currency').notNull().default('CDF'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_billing_codes_facility').on(t.facilityId),
+  index('idx_billing_codes_code').on(t.code),
+  index('idx_billing_codes_service').on(t.serviceType),
+])
+
+// 23. INVOICES
+
+export const invoices = pgTable('invoices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  patientId: uuid('patient_id').references(() => patients.id).notNull(),
+  careCoverageId: uuid('care_coverage_id').references(() => careCoverages.id),
+  doctorId: uuid('doctor_id').references(() => users.id),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
+  invoiceNumber: text('invoice_number').notNull().unique(),
+  status: billingStatusEnum('status').notNull().default('DRAFT'),
+  totalAmount: integer('total_amount').notNull().default(0),
+  paidAmount: integer('paid_amount').notNull().default(0),
+  currency: text('currency').notNull().default('CDF'),
+  coverageRate: integer('coverage_rate').default(0),
+  coverageCeiling: integer('coverage_ceiling').default(0),
+  patientShare: integer('patient_share').notNull().default(0),
+  insuranceShare: integer('insurance_share').notNull().default(0),
+  issueDate: date('issue_date').notNull(),
+  dueDate: date('due_date'),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  notes: text('notes'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_invoices_facility').on(t.facilityId),
+  index('idx_invoices_patient').on(t.patientId),
+  index('idx_invoices_status').on(t.status),
+  index('idx_invoices_number').on(t.invoiceNumber),
+  index('idx_invoices_date').on(t.issueDate),
+])
+
+// 24. INVOICE ITEMS
+
+export const invoiceItems = pgTable('invoice_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  invoiceId: uuid('invoice_id').references(() => invoices.id).notNull(),
+  billingCodeId: uuid('billing_code_id').references(() => billingCodes.id),
+  description: text('description').notNull(),
+  serviceType: text('service_type').notNull(),
+  quantity: integer('quantity').notNull().default(1),
+  unitPrice: integer('unit_price').notNull().default(0),
+  totalPrice: integer('total_price').notNull().default(0),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_invoice_items_invoice').on(t.invoiceId),
+  index('idx_invoice_items_facility').on(t.facilityId),
+])
+
+// 25. PAYMENTS
+
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  invoiceId: uuid('invoice_id').references(() => invoices.id).notNull(),
+  patientId: uuid('patient_id').references(() => patients.id).notNull(),
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('CDF'),
+  method: paymentMethodEnum('method').notNull(),
+  reference: text('reference'),
+  status: paymentStatusEnum('status').notNull().default('PENDING'),
+  recordedBy: uuid('recorded_by').references(() => users.id),
+  paidAt: timestamp('paid_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_payments_facility').on(t.facilityId),
+  index('idx_payments_invoice').on(t.invoiceId),
+  index('idx_payments_patient').on(t.patientId),
+  index('idx_payments_method').on(t.method),
 ])

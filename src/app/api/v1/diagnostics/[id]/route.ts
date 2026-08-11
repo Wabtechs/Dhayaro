@@ -6,6 +6,8 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
+import { createClinicalDocument, documentExistsForEntity } from '@/lib/documents'
 import { parseJsonBody, diagnosticUpdateSchema } from '@/lib/api-schemas'
 
 const DIAGNOSTIC_KEYS = ['diseaseId', 'diagnosticType', 'description', 'notes', 'consultationId', 'patientId', 'doctorId', 'facilityId', 'isValidated'] as const
@@ -115,6 +117,39 @@ export async function PUT(
         link: `/diagnostics/${validId}`,
         metadata: { diagnosticId: validId, patientId: existing[0].patientId },
       })
+
+      await logPatientEvent({
+        facilityId: updated.facilityId,
+        patientId: existing[0].patientId,
+        episodeId: updated.episodeId,
+        eventType: 'DIAGNOSTIC_VALIDATED',
+        title: EVENT_TITLES.DIAGNOSTIC_VALIDATED,
+        description: `Diagnostic validé par ${auth.user.firstname} ${auth.user.lastname}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+        metadata: { diagnosticId: validId, validatedBy: auth.user.sub },
+      })
+
+      const reportExists = await documentExistsForEntity('consultationId', updated.consultationId || '', 'REPORT')
+      if (updated.consultationId && !reportExists) {
+        await createClinicalDocument({
+          facilityId: updated.facilityId,
+          patientId: existing[0].patientId,
+          doctorId: existing[0].doctorId,
+          episodeId: updated.episodeId,
+          consultationId: updated.consultationId,
+          documentType: 'REPORT',
+          title: 'Compte-rendu de diagnostic',
+          content: {
+            diagnosticId: updated.id,
+            diagnosticType: updated.diagnosticType,
+            description: updated.description,
+            notes: updated.notes,
+            validatedBy: auth.user.sub,
+            validatedAt: updated.validatedAt?.toISOString(),
+          },
+        })
+      }
     }
 
     return NextResponse.json(updated)
@@ -135,7 +170,14 @@ export async function DELETE(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const existing = await getDb().select({ id: diagnostics.id }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
+    const existing = await getDb().select({ 
+      id: diagnostics.id,
+      patientId: diagnostics.patientId,
+      episodeId: diagnostics.episodeId,
+      facilityId: diagnostics.facilityId,
+      description: diagnostics.description,
+      diagnosticType: diagnostics.diagnosticType,
+    }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Diagnostic not found')
     }
@@ -143,6 +185,18 @@ export async function DELETE(
     await getDb().update(diagnostics).set({ isActive: false, updatedAt: new Date() }).where(eq(diagnostics.id, validId))
 
     await logAudit(auth.user, 'DELETE', 'diagnostic', validId)
+
+    await logPatientEvent({
+      facilityId: existing[0].facilityId,
+      patientId: existing[0].patientId,
+      episodeId: existing[0].episodeId,
+      eventType: 'DIAGNOSTIC_UPDATED',
+      title: EVENT_TITLES.DIAGNOSTIC_UPDATED,
+      description: `Diagnostic ${existing[0].diagnosticType} désactivé: ${existing[0].description}`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { diagnosticId: validId, action: 'deactivated' },
+    })
 
     return NextResponse.json({ success: true })
   } catch (e) {

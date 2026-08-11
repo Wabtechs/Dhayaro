@@ -136,11 +136,10 @@ export default function PartnerPatientsPage() {
         toast({ title: 'Succès', description: 'Affiliation supprimée' })
         setDeletingId(null)
       } else {
-        const err = await res.json()
-        toast({ title: 'Erreur', description: err.message || 'Impossible de supprimer', variant: 'destructive' })
+        toast({ title: 'Erreur', description: 'Impossible de supprimer l\'affiliation. Veuillez réessayer.', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'affiliation', variant: 'destructive' })
+      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'affiliation. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
     }
   }
 
@@ -290,11 +289,10 @@ export default function PartnerPatientsPage() {
                 setShowCreateDialog(false)
                 createForm.reset()
               } else {
-                const err = await res.json()
-                toast({ title: 'Erreur', description: err.message || 'Impossible de créer', variant: 'destructive' })
+                toast({ title: 'Erreur', description: 'Impossible de créer l\'affiliation. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
             } catch {
-              toast({ title: 'Erreur', description: 'Impossible de créer l\'affiliation', variant: 'destructive' })
+              toast({ title: 'Erreur', description: 'Impossible de créer l\'affiliation. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
             }
           })} className="space-y-4">
             <div>

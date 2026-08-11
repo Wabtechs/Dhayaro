@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { NextRequest } from 'next/server'
-import { apiError } from '@/lib/api-errors'
+import { apiErrorResponse } from '@/lib/api-errors'
 import {
   TREATMENT_STATUSES, LAB_EXAM_STATUSES, DIAGNOSTIC_TYPES, CONSULTATION_STATUSES,
   QUEUE_STATUSES, PRIORITIES, SEVERITY_LEVELS, CASE_PRIORITIES, EPISODE_STATUSES,
@@ -38,6 +38,15 @@ export function formatZodIssues(error: z.ZodError): string {
     .join('; ')
 }
 
+export function formatZodIssuesAsErrors(error: z.ZodError): Record<string, string> {
+  const fieldErrors: Record<string, string> = {}
+  for (const issue of error.issues) {
+    const path = issue.path.length ? issue.path.join('.') : '_global'
+    fieldErrors[path] = issue.message || 'Valeur invalide'
+  }
+  return fieldErrors
+}
+
 export async function parseJsonBody(
   request: NextRequest,
   schema: z.ZodTypeAny,
@@ -46,11 +55,11 @@ export async function parseJsonBody(
   try {
     raw = await request.json()
   } catch {
-    return { ok: false, error: apiError(400, 'Invalid JSON body') }
+    return { ok: false, error: apiErrorResponse('INVALID_JSON', 400) }
   }
   const result = schema.safeParse(raw)
   if (!result.success) {
-    return { ok: false, error: apiError(400, formatZodIssues(result.error)) }
+    return { ok: false, error: apiErrorResponse('VALIDATION_ERROR', 422, formatZodIssuesAsErrors(result.error)) }
   }
   return { ok: true, body: raw as any }
 }
@@ -335,6 +344,65 @@ export const prescriptionCreateSchema = z.object({
   duration: z.string().min(1),
   instructions: optStr,
   quantity: optNum,
+})
+
+export const dispenseCreateSchema = z.object({
+  treatmentId: uuid,
+  queueId: optUuid,
+  medicationId: optUuid,
+  quantity: z.number().int().min(1),
+  dosage: optStr,
+  batchNumber: optStr,
+  expiryDate: optStr,
+  notes: optStr,
+  signature: optStr,
+})
+
+export const billingCodeCreateSchema = z.object({
+  code: z.string().min(1),
+  label: z.string().min(1),
+  serviceType: z.string().min(1),
+  price: z.number().int().min(0),
+  currency: optStr,
+  isActive: optBool,
+  facilityId: optUuid,
+})
+
+export const billingCodeUpdateSchema = billingCodeCreateSchema.partial()
+
+export const invoiceItemSchema = z.object({
+  billingCodeId: optUuid,
+  description: z.string().min(1),
+  serviceType: z.string().min(1),
+  quantity: z.number().int().min(1).default(1),
+  unitPrice: z.number().int().min(0),
+  totalPrice: z.number().int().min(0),
+  notes: optStr,
+})
+
+export const invoiceCreateSchema = z.object({
+  patientId: uuid,
+  careCoverageId: optUuid,
+  doctorId: optUuid,
+  episodeId: optUuid,
+  items: z.array(invoiceItemSchema).min(1),
+  notes: optStr,
+  issueDate: optStr,
+  dueDate: optStr,
+  facilityId: optUuid,
+})
+
+export const paymentCreateSchema = z.object({
+  invoiceId: uuid,
+  patientId: optUuid,
+  amount: z.number().int().min(1),
+  currency: optStr,
+  method: z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'INSURANCE']),
+  reference: optStr,
+  status: z.enum(['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED']).nullish(),
+  recordedById: optUuid,
+  paidAt: optStr,
+  facilityId: optUuid,
 })
 
 export const queueCreateSchema = z.object({

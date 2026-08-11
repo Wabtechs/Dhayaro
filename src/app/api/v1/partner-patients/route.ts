@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { partnerPatients, partnerCompanies, patients } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, partnerPatientCreateSchema, partnerPatientUpdateSchema } from '@/lib/api-schemas'
@@ -127,7 +127,6 @@ createdAt: now,
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /partner-patients', e)
-    return apiError(500, e instanceof Error ? e.message : 'Internal server error')
+    return handleEndpointError(e, 'POST /partner-patients')
   }
 }

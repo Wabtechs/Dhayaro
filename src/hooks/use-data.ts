@@ -1170,27 +1170,19 @@ export function useDispenseTreatment() {
   return useMutation({
     mutationFn: async ({ id, queueId }: { id: string; queueId?: string }) => {
       const token = getTokenFromStorage();
-      const results: Record<string, unknown>[] = [];
-
-      const treatmentUpdate = await api.put<unknown>(`/treatments/${id}`, {
-        status: 'IN_PROGRESS',
+      const result = await api.post<unknown>('/pharmacy/dispense', {
+        treatmentId: id,
+        queueId,
       }, token);
-      results.push(treatmentUpdate as Record<string, unknown>);
-
-      if (queueId) {
-        const queueUpdate = await api.put<unknown>(`/queue/${queueId}`, {
-          status: 'COMPLETED',
-        }, token);
-        results.push(queueUpdate as Record<string, unknown>);
-      }
-
-      return results;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treatments-list'] });
       queryClient.invalidateQueries({ queryKey: ['queue'] });
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['patient-history'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
     },
   });
 }
@@ -1240,5 +1232,63 @@ export function useNotificationPreferencesData(params?: string) {
   return useQuery({
     queryKey: ['notification-preferences', params],
     queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/notification-preferences${params ? '?' + params : ''}`),
+  });
+}
+
+export function useBillingCodesData(params?: string) {
+  return useQuery({
+    queryKey: ['billing-codes', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/billing-codes${params ? '?' + params : ''}`),
+  });
+}
+
+export function useInvoicesData(params?: string) {
+  return useQuery({
+    queryKey: ['invoices', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/invoices${params ? '?' + params : ''}`),
+  });
+}
+
+export function useInvoiceDetail(id?: string) {
+  return useQuery({
+    queryKey: ['invoice', id],
+    queryFn: () => fetchData<unknown>(`/invoices/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function usePaymentsData(params?: string) {
+  return useQuery({
+    queryKey: ['payments', params],
+    queryFn: () => fetchData<{ items: unknown[]; total: number }>(`/payments${params ? '?' + params : ''}`),
+  });
+}
+
+export function useCreateInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: unknown) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/invoices', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useCreatePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: unknown) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/payments', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }

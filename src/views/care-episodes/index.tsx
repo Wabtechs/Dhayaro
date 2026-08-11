@@ -162,8 +162,8 @@ export default function CareEpisodesPage() {
       })
       toast({ title: 'Succès', description: 'Épisode mis à jour' })
       setEditingEpisode(null)
-    } catch (e) {
-      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de modifier l\'épisode', variant: 'destructive' })
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de modifier l\'épisode. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
     }
   })
 
@@ -171,8 +171,8 @@ export default function CareEpisodesPage() {
     try {
       await archiveEpisode.mutateAsync(id)
       toast({ title: 'Succès', description: 'Épisode archivé' })
-    } catch (e) {
-      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible d\'archiver l\'épisode', variant: 'destructive' })
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible d\'archiver l\'épisode. Veuillez réessayer.', variant: 'destructive' })
     }
   }
 
@@ -180,8 +180,8 @@ export default function CareEpisodesPage() {
     try {
       await restoreEpisode.mutateAsync(id)
       toast({ title: 'Succès', description: 'Épisode restauré' })
-    } catch (e) {
-      toast({ title: 'Erreur', description: e instanceof Error ? e.message : 'Impossible de restaurer l\'épisode', variant: 'destructive' })
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de restaurer l\'épisode. Veuillez réessayer.', variant: 'destructive' })
     }
   }
 

@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -38,6 +39,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await logAudit(auth.user, 'UPDATE', 'care_episode', episodeId, {
       action: 'RESTORE',
       wasArchived: true,
+    })
+
+    await logPatientEvent({
+      facilityId: row.facilityId,
+      patientId: row.patientId,
+      episodeId: row.id,
+      eventType: 'EPISODE_RESTORED',
+      title: EVENT_TITLES.EPISODE_RESTORED,
+      description: `Épisode restauré`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { episodeId: row.id },
     })
 
     return NextResponse.json(row)

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: 'Invalid or expired refresh token' }, { status: 401 })
     }
 
-    const access_token = await createToken({ sub: payload.sub, email: payload.email, role: payload.role, facilityId: payload.facilityId })
+    const access_token = await createToken({ sub: payload.sub, email: payload.email, role: payload.role, facilityId: payload.facilityId, firstname: payload.firstname, lastname: payload.lastname })
 
     const response = NextResponse.json({ access_token })
     response.cookies.set('dhayaro_token', access_token, {

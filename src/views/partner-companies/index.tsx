@@ -129,11 +129,10 @@ export default function PartnerCompaniesPage() {
         toast({ title: 'Succès', description: 'Entreprise partenaire désactivée' })
         setDeletingId(null)
       } else {
-        const err = await res.json()
-        toast({ title: 'Erreur', description: err.message || 'Impossible de supprimer', variant: 'destructive' })
+        toast({ title: 'Erreur', description: 'Impossible de supprimer l\'entreprise. Veuillez réessayer.', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'entreprise', variant: 'destructive' })
+      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'entreprise. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
     }
   }
 
@@ -278,11 +277,10 @@ export default function PartnerCompaniesPage() {
                 setShowCreateDialog(false)
                 createForm.reset()
               } else {
-                const err = await res.json()
-                toast({ title: 'Erreur', description: err.message || 'Impossible de créer', variant: 'destructive' })
+                toast({ title: 'Erreur', description: 'Impossible de créer l\'entreprise. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
             } catch {
-              toast({ title: 'Erreur', description: 'Impossible de créer l\'entreprise', variant: 'destructive' })
+              toast({ title: 'Erreur', description: 'Impossible de créer l\'entreprise. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
             }
           })} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

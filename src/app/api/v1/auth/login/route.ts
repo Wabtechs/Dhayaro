@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   if (!allowed) {
     return NextResponse.json(
-      { detail: 'Too many login attempts. Please try again later.' },
+      { success: false, message: 'Vous avez effectué trop de tentatives. Veuillez patienter avant de réessayer.', code: 'RATE_LIMIT_EXCEEDED', errors: {}, data: null },
       { status: 429, headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) } }
     )
   }
@@ -29,13 +29,19 @@ export async function POST(request: NextRequest) {
 
     const rows = await getDb().select().from(users).where(eq(users.email, email)).limit(1)
     if (rows.length === 0) {
-      return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
+      return NextResponse.json(
+        { success: false, message: 'Adresse e-mail ou mot de passe incorrect.', code: 'AUTHENTICATION_FAILED', errors: {}, data: null },
+        { status: 401 }
+      )
     }
 
     const user = rows[0]
     const valid = await verifyPassword(password, user.passwordHash)
     if (!valid) {
-      return NextResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
+      return NextResponse.json(
+        { success: false, message: 'Adresse e-mail ou mot de passe incorrect.', code: 'AUTHENTICATION_FAILED', errors: {}, data: null },
+        { status: 401 }
+      )
     }
 
     const token = await createToken({
@@ -43,6 +49,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       facilityId: user.facilityId || null,
+      firstname: user.firstname,
+      lastname: user.lastname,
     })
 
     const refreshToken = await createRefreshToken({
@@ -50,9 +58,11 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       facilityId: user.facilityId || null,
+      firstname: user.firstname,
+      lastname: user.lastname,
     })
 
-    await logAudit({ sub: user.id, email: user.email, role: user.role, facilityId: user.facilityId || null }, 'LOGIN', 'auth', user.id, { email: user.email })
+    await logAudit({ sub: user.id, email: user.email, role: user.role, facilityId: user.facilityId || null, firstname: user.firstname, lastname: user.lastname }, 'LOGIN', 'auth', user.id, { email: user.email })
 
     const response = NextResponse.json({
       access_token: token,
@@ -84,8 +94,10 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('[LOGIN] Error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ detail: 'Internal server error', error: msg }, { status: 500 })
+    console.error('[LOGIN] Error:', error instanceof Error ? error.message : String(error))
+    return NextResponse.json(
+      { success: false, message: 'Une erreur inattendue s\'est produite. Veuillez réessayer.', code: 'SERVER_ERROR', errors: {}, data: null },
+      { status: 500 }
+    )
   }
 }

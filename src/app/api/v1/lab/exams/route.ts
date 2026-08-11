@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { parseJsonBody, labExamCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -194,6 +195,18 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit(auth.user, 'CREATE', 'lab_exam', row.id, { examName: row.examName })
+
+    await logPatientEvent({
+      facilityId: row.facilityId,
+      patientId: row.patientId,
+      episodeId: targetEpisodeId,
+      eventType: 'LAB_EXAM_REQUESTED',
+      title: EVENT_TITLES.LAB_EXAM_REQUESTED,
+      description: `Examen demandé: ${body.examName}`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { labExamId: row.id, examName: body.examName, categoryId: body.categoryId, consultationId: body.consultationId },
+    })
 
     // Notify LABORATORY users
     const labUsers = await getDb()

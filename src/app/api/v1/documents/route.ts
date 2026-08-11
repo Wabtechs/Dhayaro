@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { parseJsonBody, documentCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -120,6 +121,20 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit(auth.user, 'CREATE', 'document', row.id, { title: row.title, documentType: row.documentType })
+
+    if (row.patientId) {
+      await logPatientEvent({
+        facilityId: row.facilityId,
+        patientId: row.patientId,
+        episodeId: row.episodeId,
+        eventType: 'DOCUMENT_CREATED',
+        title: EVENT_TITLES.DOCUMENT_CREATED,
+        description: `Document ${body.documentType} créé: ${body.title}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+        metadata: { documentId: row.id, documentType: body.documentType, consultationId: body.consultationId },
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

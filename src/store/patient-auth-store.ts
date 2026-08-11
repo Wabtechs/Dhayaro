@@ -83,24 +83,44 @@ export const usePatientAuthStore = create<PatientAuthState>((set) => ({
   token: initial.token,
 
   login: async (email: string, password: string) => {
-    const res = await fetch(`${API_BASE}/auth/patient-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Erreur de connexion' }))
-      throw new Error(err.detail || 'Erreur de connexion')
+    try {
+      const res = await fetch(`${API_BASE}/auth/patient-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const serverMsg = typeof err === 'object' && err !== null ? (err.message as string) || (err.detail as string) : undefined
+        throw new Error(serverMsg || 'Adresse e-mail ou mot de passe incorrect.')
+      }
+
+      const data = await res.json()
+      const token = data.access_token
+      const user = data.user as PatientUser
+      const patient = data.patient as PatientProfile
+
+      saveSession(user, patient, token)
+      set({ user, patient, token })
+    } catch (err) {
+      clearTimeout(timeout)
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          throw new Error('Le serveur met trop de temps à répondre. Veuillez vérifier votre connexion puis réessayer.', { cause: err })
+        }
+        if (err.message === 'Failed to fetch') {
+          throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion Internet puis réessayez.', { cause: err })
+        }
+        throw new Error(err.message, { cause: err })
+      }
+      throw new Error('Une erreur inattendue s\'est produite. Veuillez réessayer.', { cause: err })
     }
-
-    const data = await res.json()
-    const token = data.access_token
-    const user = data.user as PatientUser
-    const patient = data.patient as PatientProfile
-
-    saveSession(user, patient, token)
-    set({ user, patient, token })
   },
 
   logout: () => {

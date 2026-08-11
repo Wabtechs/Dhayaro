@@ -6,6 +6,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { parseJsonBody, consultationCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -179,6 +180,18 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit(auth.user, 'CREATE', 'consultation', row.id, { consultationNumber: row.consultationNumber, patientId: row.patientId, motif: row.motif })
+
+    await logPatientEvent({
+      facilityId: row.facilityId,
+      patientId: row.patientId,
+      episodeId: targetEpisodeId,
+      eventType: 'CONSULTATION_CREATED',
+      title: EVENT_TITLES.CONSULTATION_CREATED,
+      description: `Consultation #${consultationNumber} - Motif: ${body.motif}`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { consultationId: row.id, consultationNumber, motif: body.motif, status: row.status },
+    })
 
     await sendNotification({
       userId: doctorId,

@@ -6,6 +6,8 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
+import { createClinicalDocument, documentExistsForEntity } from '@/lib/documents'
 import { parseJsonBody, consultationUpdateSchema } from '@/lib/api-schemas'
 
 const CONSULTATION_KEYS = ['motif', 'symptoms', 'vitalSigns', 'notes', 'provisionalDiagnosis', 'status', 'isFollowUp', 'previousConsultationId', 'facilityId', 'patientId', 'doctorId'] as const
@@ -136,6 +138,51 @@ export async function PUT(
 
     await logAudit(auth.user, 'UPDATE', 'consultation', validId, { ...allowedFields })
 
+    if (allowedFields.status) {
+      const statusEventMap: Record<string, 'CONSULTATION_STARTED' | 'CONSULTATION_COMPLETED' | 'CONSULTATION_CANCELLED'> = {
+        IN_PROGRESS: 'CONSULTATION_STARTED',
+        COMPLETED: 'CONSULTATION_COMPLETED',
+        CANCELLED: 'CONSULTATION_CANCELLED',
+      }
+      const eventType = statusEventMap[allowedFields.status as string]
+      if (eventType) {
+        await logPatientEvent({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          episodeId: updated.episodeId,
+          eventType,
+          title: EVENT_TITLES[eventType],
+          description: `Consultation #${updated.consultationNumber} - Nouveau statut: ${allowedFields.status}`,
+          performedBy: auth.user.sub,
+          performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+          metadata: { consultationId: updated.id, consultationNumber: updated.consultationNumber, previousStatus: updated.status, newStatus: allowedFields.status },
+        })
+      }
+    }
+
+    if (allowedFields.status === 'COMPLETED' && updated.status !== 'COMPLETED') {
+      const reportExists = await documentExistsForEntity('consultationId', validId, 'REPORT')
+      if (!reportExists) {
+        await createClinicalDocument({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          doctorId: updated.doctorId,
+          episodeId: updated.episodeId,
+          consultationId: updated.id,
+          documentType: 'REPORT',
+          title: `Compte-rendu de consultation #${updated.consultationNumber}`,
+          content: {
+            consultationId: updated.id,
+            consultationNumber: updated.consultationNumber,
+            motif: updated.motif,
+            notes: updated.notes,
+            provisionalDiagnosis: updated.provisionalDiagnosis,
+            completedAt: new Date().toISOString(),
+          },
+        })
+      }
+    }
+
     if (allowedFields.status === 'CANCELLED') {
       const now = new Date()
       await Promise.all([
@@ -184,6 +231,18 @@ export async function DELETE(
     }
 
     await logAudit(auth.user, 'DELETE', 'consultation', validId, { consultationNumber: deleted.consultationNumber })
+
+    await logPatientEvent({
+      facilityId: deleted.facilityId,
+      patientId: deleted.patientId,
+      episodeId: deleted.episodeId,
+      eventType: 'CONSULTATION_CANCELLED',
+      title: EVENT_TITLES.CONSULTATION_CANCELLED,
+      description: `Consultation #${deleted.consultationNumber} annulée`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { consultationId: deleted.id, consultationNumber: deleted.consultationNumber },
+    })
 
     const now = new Date()
     await Promise.all([

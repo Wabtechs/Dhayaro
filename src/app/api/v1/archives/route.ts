@@ -5,6 +5,7 @@ import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, archiveCreateSchema } from '@/lib/api-schemas'
 
@@ -106,6 +107,19 @@ export async function POST(request: NextRequest) {
     }).returning()
 
     await logAudit(auth.user, 'CREATE', 'archive', row.id, { entityType: row.entityType, entityId: row.entityId })
+
+    if (row.patientId) {
+      await logPatientEvent({
+        facilityId: row.facilityId,
+        patientId: row.patientId,
+        eventType: 'ARCHIVE_CREATED',
+        title: EVENT_TITLES.ARCHIVE_CREATED,
+        description: `Archive ${body.entityType} créée: ${body.title}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+        metadata: { archiveId: row.id, entityType: body.entityType, entityId: body.entityId },
+      })
+    }
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {

@@ -85,7 +85,7 @@ export default function ClinicalCaseFichePage() {
         const result = await api.get<FicheData>(`/clinical-cases/${id}/fiche`, token)
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données du cas clinique. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

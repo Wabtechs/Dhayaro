@@ -6,6 +6,8 @@ import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
+import { createClinicalDocument, documentExistsForEntity } from '@/lib/documents'
 import { parseJsonBody, treatmentCreateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -179,7 +181,40 @@ export async function POST(request: NextRequest) {
 
     await logAudit(auth.user, 'CREATE', 'treatment', row.id, { description: row.description, status: row.status })
 
+    await logPatientEvent({
+      facilityId: row.facilityId,
+      patientId: row.patientId,
+      episodeId: targetEpisodeId,
+      eventType: 'TREATMENT_PRESCRIBED',
+      title: EVENT_TITLES.TREATMENT_PRESCRIBED,
+      description: `Traitement prescrit: ${body.description}`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { treatmentId: row.id, status: row.status, diagnosisId: body.diagnosisId, consultationId },
+    })
+
     if (row.status === 'PRESCRIBED') {
+      const prescriptionExists = await documentExistsForEntity('episodeId', targetEpisodeId, 'PRESCRIPTION')
+      if (!prescriptionExists) {
+        await createClinicalDocument({
+          facilityId: row.facilityId,
+          patientId: row.patientId,
+          doctorId: row.doctorId,
+          episodeId: targetEpisodeId,
+          consultationId: row.consultationId,
+          documentType: 'PRESCRIPTION',
+          title: 'Prescription de traitement',
+                    content: {
+            treatmentId: row.id,
+            description: row.description,
+            notes: row.notes,
+            outcome: row.outcome,
+            startDate: row.startDate?.toISOString(),
+            endDate: row.endDate?.toISOString(),
+            status: row.status,
+          },        })
+      }
+
       const pharmUsers = await getDb()
         .select({ id: users.id })
         .from(users)

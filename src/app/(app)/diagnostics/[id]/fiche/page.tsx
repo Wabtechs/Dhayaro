@@ -69,7 +69,7 @@ export default function DiagnosticFichePage() {
         const result = await api.get<FicheData>(`/diagnostics/${id}/fiche`, token)
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données du diagnostic. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

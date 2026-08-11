@@ -71,7 +71,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (e) {
     logError('GET /care-episodes', e)
-    return apiError(500, 'Internal server error')
+    return NextResponse.json(
+      { success: false, message: 'Une erreur inattendue s\'est produite lors du chargement des épisodes de soins.', code: 'SERVER_ERROR', errors: {}, data: null },
+      { status: 500 }
+    )
   }
 }
 
@@ -90,7 +93,10 @@ export async function POST(request: NextRequest) {
 
     const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {
-      return apiError(400, 'Patient not found')
+      return NextResponse.json(
+        { success: false, message: 'Patient introuvable.', code: 'RESOURCE_NOT_FOUND', errors: {}, data: null },
+        { status: 404 }
+      )
     }
 
     const { facilityId } = enforceFacilityAccess(body, auth)
@@ -127,6 +133,9 @@ export async function POST(request: NextRequest) {
     console.error('POST /care-episodes ERROR:', e instanceof Error ? e.message : e)
     if (e && typeof e === 'object' && 'cause' in e) console.error('CAUSE:', e.cause)
     logError('POST /care-episodes', e)
-    return apiError(500, e instanceof Error ? e.message : 'Internal server error')
+    return NextResponse.json(
+      { success: false, message: 'Impossible d\'enregistrer l\'épisode de soins. Veuillez vérifier les informations puis réessayer.', code: 'RESOURCE_CREATE_FAILED', errors: {}, data: null },
+      { status: 500 }
+    )
   }
 }

@@ -71,7 +71,7 @@ export default function LabExamFichePage() {
         const result = await api.get<FicheData>(`/lab/exams/${id}/fiche`, token)
         setData(result)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement')
+        setError('Impossible de charger les données de l\'examen. Veuillez réessayer.')
       } finally {
         setLoading(false)
       }

@@ -9,6 +9,7 @@ import { sanitizeUuid } from '@/lib/validation'
 import { apiError, logError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 
 function computeAgeRange(dateOfBirth: string | Date): string {
   const birth = new Date(dateOfBirth)
@@ -167,6 +168,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await logAudit(auth.user, 'UPDATE', 'care_episode', episodeId, {
       action: 'ARCHIVE',
       episodeNumber: episode.episodeNumber,
+    })
+
+    await logPatientEvent({
+      facilityId: episode.facilityId,
+      patientId: episode.patientId,
+      episodeId: episode.id,
+      eventType: 'EPISODE_ARCHIVED',
+      title: EVENT_TITLES.EPISODE_ARCHIVED,
+      description: `Épisode ${episode.episodeNumber} archivé définitivement`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { episodeId, episodeNumber: episode.episodeNumber, dischargeSummary },
     })
 
     return NextResponse.json({ detail: 'Episode archived successfully', episodeId })

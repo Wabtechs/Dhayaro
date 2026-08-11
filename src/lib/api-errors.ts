@@ -1,9 +1,61 @@
 import { NextResponse } from 'next/server'
 import { eq, and, SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
+import { ErrorCode, type ErrorCodeType } from './errors/error-codes'
+import { getErrorMessage } from './errors/error-messages'
+import { mapErrorToCode } from './errors/error-mapper'
 
 export function apiError(status: number, detail: string) {
   return NextResponse.json({ detail }, { status })
+}
+
+export function apiErrorResponse(code: ErrorCodeType, status: number, fieldErrors?: Record<string, string>) {
+  const errorInfo = getErrorMessage(code)
+  return NextResponse.json(
+    {
+      success: false,
+      message: errorInfo.message,
+      code,
+      errors: fieldErrors || {},
+      data: null,
+    },
+    { status },
+  )
+}
+
+export function handleEndpointError(error: unknown, endpoint: string): NextResponse {
+  const code = mapErrorToCode(error)
+  const status = getErrorStatus(code)
+  const msg = error instanceof Error ? error.message : String(error)
+  console.error(`${endpoint}:`, msg)
+  return apiErrorResponse(code, status)
+}
+
+function getErrorStatus(code: ErrorCodeType): number {
+  switch (code) {
+    case ErrorCode.VALIDATION_ERROR:
+    case ErrorCode.INVALID_JSON:
+      return 422
+    case ErrorCode.AUTHENTICATION_FAILED:
+    case ErrorCode.SESSION_EXPIRED:
+    case ErrorCode.TOKEN_REFRESH_FAILED:
+      return 401
+    case ErrorCode.ACCESS_DENIED:
+      return 403
+    case ErrorCode.RESOURCE_NOT_FOUND:
+      return 404
+    case ErrorCode.RESOURCE_ALREADY_EXISTS:
+    case ErrorCode.CONFLICT:
+      return 409
+    case ErrorCode.RATE_LIMIT_EXCEEDED:
+      return 429
+    case ErrorCode.REQUEST_TIMEOUT:
+      return 408
+    case ErrorCode.SERVICE_UNAVAILABLE:
+      return 503
+    default:
+      return 500
+  }
 }
 
 const FACILITY_ROLES = ['DOCTOR', 'SPECIALIST', 'LABORATORY', 'NURSE', 'RECEPTIONIST', 'PHARMACIST', 'ACCOUNTANT', 'ARCHIVIST']

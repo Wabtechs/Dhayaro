@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm'
 import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
+import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
+import { createClinicalDocument, documentExistsForEntity } from '@/lib/documents'
 import { sanitizeUuid } from '@/lib/validation'
 import { parseJsonBody, labExamUpdateSchema } from '@/lib/api-schemas'
 
@@ -131,6 +133,28 @@ export async function PUT(
 
     await logAudit(auth.user, 'UPDATE', 'lab_exam', validId, { ...allowedFields })
 
+    if (allowedFields.status) {
+      const statusEventMap: Record<string, 'LAB_EXAM_STARTED' | 'LAB_EXAM_COMPLETED' | 'LAB_EXAM_CANCELLED'> = {
+        IN_PROGRESS: 'LAB_EXAM_STARTED',
+        COMPLETED: 'LAB_EXAM_COMPLETED',
+        CANCELLED: 'LAB_EXAM_CANCELLED',
+      }
+      const eventType = statusEventMap[allowedFields.status as string]
+      if (eventType) {
+        await logPatientEvent({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          episodeId: updated.episodeId,
+          eventType,
+          title: EVENT_TITLES[eventType],
+          description: `Examen "${updated.examName}" - Nouveau statut: ${allowedFields.status}`,
+          performedBy: auth.user.sub,
+          performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+          metadata: { labExamId: updated.id, previousStatus: existing[0].status, newStatus: allowedFields.status },
+        })
+      }
+    }
+
     if (body.status === 'COMPLETED' && existing[0].status !== 'COMPLETED') {
       await sendNotification({
         userId: existing[0].doctorId,
@@ -141,6 +165,41 @@ export async function PUT(
         link: `/laboratory/${validId}`,
         metadata: { labExamId: validId, examName: existing[0].examName },
       })
+
+      await logPatientEvent({
+        facilityId: updated.facilityId,
+        patientId: updated.patientId,
+        episodeId: updated.episodeId,
+        eventType: 'LAB_EXAM_VALIDATED',
+        title: EVENT_TITLES.LAB_EXAM_VALIDATED,
+        description: `Examen "${updated.examName}" validé par ${auth.user.firstname} ${auth.user.lastname}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+        metadata: { labExamId: updated.id, validatedBy: auth.user.sub },
+      })
+
+      const resultExists = await documentExistsForEntity('consultationId', updated.consultationId || '', 'LAB_RESULT')
+      if (updated.consultationId && !resultExists) {
+        await createClinicalDocument({
+          facilityId: updated.facilityId,
+          patientId: updated.patientId,
+          doctorId: updated.doctorId,
+          episodeId: updated.episodeId,
+          consultationId: updated.consultationId,
+          documentType: 'LAB_RESULT',
+          title: `Résultat de laboratoire - ${updated.examName}`,
+          content: {
+            labExamId: updated.id,
+            examName: updated.examName,
+            clinicalIndication: updated.clinicalIndication,
+            results: updated.results,
+            resultNotes: updated.resultNotes,
+            validatedBy: updated.validatedBy,
+            validatedAt: updated.validatedAt?.toISOString(),
+            completedAt: updated.completedAt?.toISOString(),
+          },
+        })
+      }
     }
 
     return NextResponse.json(updated)
@@ -162,7 +221,13 @@ export async function DELETE(
     const validId = sanitizeUuid(id)
     if (!validId) return apiError(400, 'ID invalide')
 
-    const existing = await getDb().select({ id: labExams.id }).from(labExams).where(eq(labExams.id, validId)).limit(1)
+    const existing = await getDb().select({ 
+      id: labExams.id,
+      patientId: labExams.patientId,
+      episodeId: labExams.episodeId,
+      facilityId: labExams.facilityId,
+      examName: labExams.examName,
+    }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
       return apiError(404, 'Lab exam not found')
     }
@@ -170,6 +235,18 @@ export async function DELETE(
     await getDb().update(labExams).set({ isActive: false, updatedAt: new Date() }).where(eq(labExams.id, validId))
 
     await logAudit(auth.user, 'DELETE', 'lab_exam', validId)
+
+    await logPatientEvent({
+      facilityId: existing[0].facilityId,
+      patientId: existing[0].patientId,
+      episodeId: existing[0].episodeId,
+      eventType: 'LAB_EXAM_CANCELLED',
+      title: EVENT_TITLES.LAB_EXAM_CANCELLED,
+      description: `Examen "${existing[0].examName}" annulé`,
+      performedBy: auth.user.sub,
+      performedByName: `${auth.user.firstname} ${auth.user.lastname}`,
+      metadata: { labExamId: existing[0].id },
+    })
 
     return NextResponse.json({ success: true })
   } catch (e) {

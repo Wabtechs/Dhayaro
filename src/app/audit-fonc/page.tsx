@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { toast } from '@/hooks/use-toast'
 
 interface AuditItem {
   id: string
@@ -188,7 +189,7 @@ export default function AuditFoncPage() {
       setChangingItem(null)
       setNote('')
     } catch {
-      alert('Erreur lors de la mise à jour')
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour cet élément. Veuillez réessayer.', variant: 'destructive' })
     }
     setSaving(false)
   }
@@ -207,7 +208,7 @@ export default function AuditFoncPage() {
       setJournalNote('')
       fetchData()
     } catch {
-      alert('Erreur lors de l\'ajout')
+      toast({ title: 'Erreur', description: 'Impossible d\'ajouter cette note. Veuillez réessayer.', variant: 'destructive' })
     }
     setSavingJournal(false)
   }

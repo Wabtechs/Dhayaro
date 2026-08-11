@@ -38,7 +38,11 @@ export default function PatientLoginPage() {
       await login(values.email, values.password)
       router.push('/patient/dashboard')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de connexion')
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Adresse e-mail ou mot de passe incorrect.')
+      }
     } finally {
       setLoading(false)
     }
