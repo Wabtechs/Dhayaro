@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         reference: body.reference || null,
         status: body.status ?? 'COMPLETED',
         recordedBy: body.recordedById ? sanitizeUuid(body.recordedById) : null,
-        paidAt: body.paidAt || now.toISOString(),
+        paidAt: body.paidAt ? new Date(body.paidAt) : now,
         createdAt: now,
       }).returning()
 
