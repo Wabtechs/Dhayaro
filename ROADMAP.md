@@ -104,10 +104,10 @@
 ### P2.3 — Portail Patient Complet
 | Tâche | Statut | Fichiers |
 |-------|--------|----------|
-| Onglet Diagnostics dans `/patient/medical-record` | ⬜ TODO | `src/views/patient-medical-record/index.tsx` |
-| Téléchargement documents (PDF) | ⬜ TODO | `src/app/api/v1/patient/documents/[id]/download/route.ts` |
-| Génération PDF ordonnance | ⬜ TODO | `src/lib/pdf.ts` (nouveau, jsPDF/pdf-lib) |
-| Ordonnances visibles/imprimables | ⬜ TODO | `src/views/patient-medical-record/index.tsx` + API |
+| Onglet Diagnostics dans `/patient/medical-record` | ✅ DONE | `src/views/patient-medical-record/index.tsx` + `src/app/api/v1/patient/diagnostics/route.ts` |
+| Téléchargement documents (PDF) | ✅ DONE | `src/app/api/v1/patient/documents/[id]/download/route.ts` + `src/app/api/v1/patient/documents/route.ts` |
+| Génération PDF ordonnance | ✅ DONE | `src/lib/pdf.ts` (nouveau, jsPDF) |
+| Ordonnances visibles/imprimables | ✅ DONE | `src/views/patient-medical-record/index.tsx` + `src/app/api/v1/patient/treatments/[id]/ordonnance/route.ts` + `src/app/patient/ordonnance/[treatmentId]` |
 
 ### P2.4 — Middleware : couvrir toutes API
 | Tâche | Statut | Fichiers |
@@ -160,7 +160,15 @@
   - Fix `treatments` : `.toISOString()` sur colonne `date()` (string)
   - Seed : ordre de nettoyage rendu FK-safe (`patient_history`, `dispensations`, `payments`, `invoiceItems`, `invoices`)
   - Smoke tests prod : login, beds GET (22 lits), assign/release (OCCUPIED→CLEANING), facture + paiement (FACT-… → PAID), page `/hospitalization/beds` (200)
-- [ ] **Prochaine action : P2.3 - Portail Patient Complet (onglet Diagnostics + PDF ordonnance)**
+
+### 2026-08-11 — P2.3 Portail Patient Complet
+- [x] API `GET /patient/diagnostics` (diagnostics du patient, join diseases + users) + onglet Diagnostics dans `/patient/medical-record`
+- [x] API `GET /patient/documents` (liste paginée) + `GET /patient/documents/[id]/download` (PDF serveur)
+- [x] `src/lib/pdf.ts` : génération PDF serveur (jsPDF + jspdf-autotable, build Node) à partir du `content` JSONB des documents
+- [x] API `GET /patient/treatments/[id]/ordonnance` (vérifie l'appartenance au patient) + page imprimable `/patient/ordonnance/[treatmentId]` (PDF + Imprimer)
+- [x] Onglet Documents avec bouton téléchargement PDF + bouton "Ordonnance" sur chaque traitement
+- [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs, `next build` OK (routes + page incluses)
+- [ ] **Prochaine action : P2.4 - Middleware : couvrir toutes API (ROLE_ROUTES)**
 
 ---
 
