@@ -27,6 +27,11 @@ export const episodeStatusEnum = pgEnum('episode_status', ['ADMITTED', 'TRIAGE',
 export const episodeEntityTypeEnum = pgEnum('episode_entity_type', ['CONSULTATION', 'DIAGNOSIS', 'TREATMENT', 'LAB_EXAM', 'DOCUMENT'])
 export const dischargeOutcomeEnum = pgEnum('discharge_outcome', ['GUERISON', 'AMELIORATION', 'DECES', 'TRANSFERT', 'FUITE'])
 
+// HOSPITALIZATION / BEDS ENUMS
+export const bedStatusEnum = pgEnum('bed_status', ['AVAILABLE', 'OCCUPIED', 'CLEANING', 'OUT_OF_SERVICE', 'RESERVED'])
+export const bedTypeEnum = pgEnum('bed_type', ['WARD', 'PRIVATE', 'SEMI_PRIVATE', 'ICU', 'MATERNITY', 'PEDIATRIC', 'OTHER'])
+export const assignmentStatusEnum = pgEnum('bed_assignment_status', ['ACTIVE', 'COMPLETED', 'CANCELLED'])
+
 // EQUIPMENT & SUPPLIES ENUMS
 
 export const equipmentTypeEnum = pgEnum('equipment_type', ['BIOMEDICAL', 'MEDICAL', 'FURNITURE', 'IT', 'OTHER'])
@@ -484,6 +489,58 @@ export const episodeEntities = pgTable('episode_entities', {
 }, (t) => [
   index('idx_episode_entities_episode').on(t.episodeId),
   index('idx_episode_entities_type').on(t.entityType),
+])
+
+// HOSPITALIZATION — BEDS & ASSIGNMENTS
+
+export const beds = pgTable('beds', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  locationId: uuid('location_id').references(() => equipmentLocations.id),
+  bedNumber: text('bed_number').notNull(),
+  floor: text('floor'),
+  room: text('room'),
+  department: text('department'),
+  label: text('label'),
+  type: bedTypeEnum('type').notNull().default('WARD'),
+  status: bedStatusEnum('status').notNull().default('AVAILABLE'),
+  notes: text('notes'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_beds_facility').on(t.facilityId),
+  index('idx_beds_location').on(t.locationId),
+  index('idx_beds_room').on(t.room),
+  index('idx_beds_floor').on(t.floor),
+  index('idx_beds_department').on(t.department),
+  index('idx_beds_status').on(t.status),
+  index('idx_beds_number').on(t.bedNumber),
+  index('idx_beds_active').on(t.isActive),
+])
+
+export const bedAssignments = pgTable('bed_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  facilityId: uuid('facility_id').references(() => facilities.id),
+  bedId: uuid('bed_id').references(() => beds.id).notNull(),
+  patientId: uuid('patient_id').references(() => patients.id).notNull(),
+  episodeId: uuid('episode_id').references(() => careEpisodes.id),
+  assignedById: uuid('assigned_by_id').references(() => users.id),
+  assignedAt: timestamp('assigned_at', { withTimezone: true }).notNull().defaultNow(),
+  releasedAt: timestamp('released_at', { withTimezone: true }),
+  releasedById: uuid('released_by_id').references(() => users.id),
+  status: assignmentStatusEnum('status').notNull().default('ACTIVE'),
+  notes: text('notes'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('idx_bed_assignments_facility').on(t.facilityId),
+  index('idx_bed_assignments_bed').on(t.bedId),
+  index('idx_bed_assignments_patient').on(t.patientId),
+  index('idx_bed_assignments_episode').on(t.episodeId),
+  index('idx_bed_assignments_status').on(t.status),
+  index('idx_bed_assignments_active').on(t.isActive),
 ])
 
 // CLINICAL KNOWLEDGE BASE (anonymized cases)

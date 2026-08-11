@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -20,12 +20,12 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: "L'identifiant de l'établissement est invalide." })
 
     const [row] = await getDb().select().from(facilities).where(eq(facilities.id, validId)).limit(1)
 
     if (!row) {
-      return apiError(404, 'Facility not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -44,7 +44,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: "L'identifiant de l'établissement est invalide." })
 
     const parsed = await parseJsonBody(request, facilityUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -59,7 +59,7 @@ export async function PUT(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Facility not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'facility', validId, { ...allowedFields })
@@ -80,7 +80,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: "L'identifiant de l'établissement est invalide." })
 
     const [deleted] = await getDb()
       .update(facilities)
@@ -89,12 +89,12 @@ export async function DELETE(
       .returning()
 
     if (!deleted) {
-      return apiError(404, 'Facility not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'facility', validId, { isActive: false })
 
-    return NextResponse.json({ detail: 'Facility deleted' })
+    return NextResponse.json({ success: true, data: { id: validId }, message: 'Établissement supprimé avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /facilities/[id]')
   }

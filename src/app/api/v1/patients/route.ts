@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { patients, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { parseJsonBody, patientCreateSchema } from '@/lib/api-schemas'
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
       .where(or(...duplicateConditions))
       .limit(1)
     if (existing) {
-      return apiError(409, `Un patient existe déjà avec les mêmes informations : ${existing.firstname} ${existing.lastname}`)
+      return apiErrorResponse('RESOURCE_ALREADY_EXISTS', 409)
     }
 
     if (facilityId) {
       const facilityCheck = await getDb().select({ id: facilities.id }).from(facilities).where(eq(facilities.id, facilityId)).limit(1)
       if (facilityCheck.length === 0) {
-        return apiError(400, 'Facility not found')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: 'Établissement introuvable.' })
       }
     }
 

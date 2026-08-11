@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { queue, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -21,7 +21,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { queueId: "L'identifiant de la file d'attente est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -54,7 +54,7 @@ export async function GET(
       .limit(1)
 
     if (!row) {
-      return apiError(404, 'Queue entry not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -73,7 +73,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { queueId: "L'identifiant de la file d'attente est invalide." })
 
     const parsed = await parseJsonBody(request, queueUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -81,7 +81,7 @@ export async function PUT(
 
     const existing = await getDb().select({ id: queue.id }).from(queue).where(eq(queue.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Queue entry not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const allowedFields = pickAllowedKeys(body, QUEUE_KEYS)
@@ -145,7 +145,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { queueId: "L'identifiant de la file d'attente est invalide." })
 
     const [updated] = await getDb()
       .update(queue)
@@ -154,7 +154,7 @@ export async function DELETE(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Queue entry not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'queue', validId, { status: 'CANCELLED' })
@@ -171,7 +171,7 @@ export async function DELETE(
       metadata: { queueId: updated.id, ticketNumber: updated.ticketNumber },
     })
 
-    return NextResponse.json({ detail: 'Queue entry cancelled' })
+    return NextResponse.json({ success: true, data: { id: validId, status: 'CANCELLED' }, message: 'Entrée de file d\'attente annulée avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /queue/[id]')
   }

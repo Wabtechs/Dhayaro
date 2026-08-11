@@ -6,7 +6,7 @@ import {
 } from '@/lib/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -33,14 +33,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params
     const episodeId = sanitizeUuid(id)
-    if (!episodeId) return apiError(400, 'Invalid episode ID')
+    if (!episodeId) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: "L'identifiant de l'épisode est invalide." })
 
     const db = getDb()
     const now = new Date()
 
     const [episode] = await db.select().from(careEpisodes).where(eq(careEpisodes.id, episodeId)).limit(1)
-    if (!episode) return apiError(404, 'Episode not found')
-    if (episode.isArchived) return apiError(400, 'Episode already archived')
+    if (!episode) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
+    if (episode.isArchived) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: 'Cet épisode est déjà archivé.' })
 
     const entities = await db.select().from(episodeEntities).where(eq(episodeEntities.episodeId, episodeId))
 
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       metadata: { episodeId, episodeNumber: episode.episodeNumber, dischargeSummary },
     })
 
-    return NextResponse.json({ detail: 'Episode archived successfully', episodeId })
+    return NextResponse.json({ success: true, data: { id: episodeId }, message: 'Épisode archivé avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'POST /care-episodes/[id]/archive')
   }

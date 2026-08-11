@@ -3,16 +3,16 @@ import { getDb } from '@/lib/db'
 import { patients, treatments, users } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
-    if (auth.user.role !== 'PATIENT') return apiError(403, 'Accès réservé aux patients')
+    if (auth.user.role !== 'PATIENT') return apiErrorResponse('ACCESS_DENIED', 403)
 
     const [patient] = await getDb().select({ id: patients.id }).from(patients).where(eq(patients.userId, auth.user.sub)).limit(1)
-    if (!patient) return apiError(404, 'Profil patient introuvable')
+    if (!patient) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const { page, size, offset } = parsePagination(new URL(request.url).searchParams)
 

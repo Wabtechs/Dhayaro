@@ -4,7 +4,7 @@ import { syncQueue } from '@/lib/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { parseJsonBody, syncPushSchema } from '@/lib/api-schemas'
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const allIds = body.all === true
 
     if (!allIds && ids.length === 0) {
-      return apiError(400, 'ids or all must be provided')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { ids: 'Indiquez les identifiants à synchroniser ou passez all=true.' })
     }
 
     const conditions = [eq(syncQueue.userId, auth.user.sub)]
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     } else {
       const validIds = ids.filter((id) => sanitizeUuid(id))
       if (validIds.length === 0) {
-        return apiError(400, 'No valid ids provided')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { ids: 'Aucun identifiant valide fourni.' })
       }
       conditions.push(inArray(syncQueue.id, validIds))
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       .where(and(...conditions))
       .returning({ id: syncQueue.id })
 
-    return NextResponse.json({ updated: updated.length })
+    return NextResponse.json({ success: true, data: { updated: updated.length }, message: `${updated.length} élément(s) synchronisé(s).` })
   } catch (e) {
 return handleEndpointError(e, 'POST /sync/push')
   }

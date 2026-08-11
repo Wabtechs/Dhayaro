@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentCategories } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentCategoryUpdateSchema } from '@/lib/api-schemas-equipment'
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const [row] = await getDb().select().from(equipmentCategories).where(and(eq(equipmentCategories.id, id), isNull(equipmentCategories.deletedAt))).limit(1)
-    if (!row) return apiError(404, 'Category not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/categories/[id]')
@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const [row] = await getDb().update(equipmentCategories).set(fields).where(and(eq(equipmentCategories.id, id), isNull(equipmentCategories.deletedAt))).returning()
-    if (!row) return apiError(404, 'Category not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_category', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json(row)
@@ -56,7 +56,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(equipmentCategories).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(equipmentCategories.id, id), isNull(equipmentCategories.deletedAt))).returning()
-    if (!row) return apiError(404, 'Category not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_category', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json({ success: true })

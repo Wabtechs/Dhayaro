@@ -45,12 +45,13 @@ import {
   Activity,
   DoorOpen,
   BookMarked,
-   ShieldCheck,
-   Building,
-   Handshake,
-   Clock,
-   ReceiptText,
- } from 'lucide-react'
+  Bed,
+  ShieldCheck,
+  Building,
+  Handshake,
+  Clock,
+  ReceiptText,
+} from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -105,6 +106,7 @@ const navSections: NavSection[] = [
     label: 'ÉPISODES',
     items: [
       { label: 'Hospitalisation', icon: DoorOpen, href: '/hospitalization', permission: 'episodes:list' },
+      { label: 'Lits', icon: Bed, href: '/hospitalization/beds', permission: 'hospitalization:list' },
       { label: 'Épisodes de soins', icon: ClipboardList, href: '/care-episodes', permission: 'episodes:list' },
     ],
   },

@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { prescriptions, treatments, medications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addDoctorFilter, addFacilityFilter, apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addDoctorFilter, addFacilityFilter, apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
       db.select({ id: medications.id }).from(medications).where(eq(medications.id, medicationId)).limit(1),
     ])
 
-    if (treatmentCheck.length === 0) return apiError(400, 'Treatment not found')
-    if (medicationCheck.length === 0) return apiError(400, 'Medication not found')
+    if (treatmentCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: 'Traitement introuvable.' })
+    if (medicationCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { medicationId: 'Médicament introuvable.' })
 
     const [row] = await db.insert(prescriptions).values({
       id: crypto.randomUUID(),

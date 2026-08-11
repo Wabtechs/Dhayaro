@@ -7,6 +7,7 @@ import { auditHistory } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
 import { eq, desc, sql } from 'drizzle-orm'
 import { parseJsonBody, auditFoncUpdateSchema, auditFoncNoteSchema } from '@/lib/api-schemas'
+import { apiErrorResponse } from '@/lib/api-errors'
 
 const STATIC_DATA = {
   score: 82,
@@ -319,7 +320,7 @@ export async function PUT(request: NextRequest) {
   const staticMap = buildCategoryMap()
   const staticItem = staticMap.get(item_id)
   if (!staticItem) {
-    return NextResponse.json({ detail: 'Cet élément n\'est pas reconnu.' }, { status: 400 })
+    return apiErrorResponse('VALIDATION_ERROR', 422)
   }
 
   try {
@@ -343,7 +344,7 @@ export async function PUT(request: NextRequest) {
     })
   } catch (err) {
     console.error('audit-fonc PUT error:', err)
-    return NextResponse.json({ detail: 'Une erreur est survenue lors de l\'enregistrement.' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 
   const response = await GET()
@@ -370,8 +371,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error('audit-fonc POST error:', err)
-    return NextResponse.json({ detail: 'Une erreur est survenue lors de l\'enregistrement.' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 
-  return NextResponse.json({ detail: 'Note enregistrée.' })
+  return NextResponse.json({ success: true, data: {}, message: 'Note enregistrée.' })
 }

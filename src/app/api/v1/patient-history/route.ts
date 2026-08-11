@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { patientHistory, patients, careEpisodes } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, handleEndpointError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, patientHistoryCreateSchema, patientHistoryUpdateSchema } from '@/lib/api-schemas'
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, body.patientId)).limit(1)
     if (patientCheck.length === 0) {
-      return apiError(400, 'Patient not found')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
     }
 
     const [row] = await db.insert(patientHistory).values({

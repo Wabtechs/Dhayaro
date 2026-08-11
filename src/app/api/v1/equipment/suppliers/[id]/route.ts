@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentSuppliers } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentSupplierUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const [row] = await getDb().select().from(equipmentSuppliers).where(and(eq(equipmentSuppliers.id, id), isNull(equipmentSuppliers.deletedAt))).limit(1)
-    if (!row) return apiError(404, 'Supplier not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/suppliers/[id]')
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.isActive !== undefined && body.isActive !== null) fields.isActive = body.isActive
 
     const [row] = await getDb().update(equipmentSuppliers).set(fields).where(and(eq(equipmentSuppliers.id, id), isNull(equipmentSuppliers.deletedAt))).returning()
-    if (!row) return apiError(404, 'Supplier not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_supplier', resourceId: row.id, details: { code: row.code, name: row.name } })
     return NextResponse.json(row)
@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(equipmentSuppliers).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(equipmentSuppliers.id, id), isNull(equipmentSuppliers.deletedAt))).returning()
-    if (!row) return apiError(404, 'Supplier not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_supplier', resourceId: row.id, details: { code: row.code, name: row.name } })
     return NextResponse.json({ success: true })

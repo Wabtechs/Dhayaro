@@ -4,6 +4,7 @@ import { users, patients } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
 import { parseJsonBody, authLoginSchema } from '@/lib/api-schemas'
+import { apiErrorResponse } from '@/lib/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,18 +27,18 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (rows.length === 0) {
-      return NextResponse.json({ detail: 'Email ou mot de passe incorrect' }, { status: 401 })
+      return apiErrorResponse('AUTHENTICATION_FAILED', 401)
     }
 
     const user = rows[0]
 
     if (user.role !== 'PATIENT') {
-      return NextResponse.json({ detail: 'Accès réservé aux patients' }, { status: 403 })
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const valid = await verifyPassword(password, user.passwordHash)
     if (!valid) {
-      return NextResponse.json({ detail: 'Email ou mot de passe incorrect' }, { status: 401 })
+      return apiErrorResponse('AUTHENTICATION_FAILED', 401)
     }
 
     const [patient] = await getDb()
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (!patient) {
-      return NextResponse.json({ detail: 'Profil patient introuvable' }, { status: 404 })
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const token = await createToken({
@@ -120,6 +121,6 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch {
-    return NextResponse.json({ detail: 'Erreur interne' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 }

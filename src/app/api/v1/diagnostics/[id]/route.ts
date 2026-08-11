@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { diagnostics, patients, users, diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -22,7 +22,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diagnosisId: "L'identifiant du diagnostic est invalide." })
 
     const [row] = await getDb().select({
       id: diagnostics.id,
@@ -55,7 +55,7 @@ export async function GET(
     .limit(1)
 
     if (!row) {
-      return apiError(404, 'Diagnostic not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -74,7 +74,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diagnosisId: "L'identifiant du diagnostic est invalide." })
 
     const parsed = await parseJsonBody(request, diagnosticUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -86,7 +86,7 @@ export async function PUT(
       patientId: diagnostics.patientId,
       isValidated: diagnostics.isValidated,
     }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
-    if (existing.length === 0) return apiError(404, 'Diagnostic not found')
+    if (existing.length === 0) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const allowedFields = pickAllowedKeys(body, DIAGNOSTIC_KEYS)
 
@@ -102,7 +102,7 @@ export async function PUT(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Diagnostic not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'diagnostic', validId, { ...allowedFields })
@@ -168,7 +168,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diagnosisId: "L'identifiant du diagnostic est invalide." })
 
     const existing = await getDb().select({ 
       id: diagnostics.id,
@@ -179,7 +179,7 @@ export async function DELETE(
       diagnosticType: diagnostics.diagnosticType,
     }).from(diagnostics).where(eq(diagnostics.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Diagnostic not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await getDb().update(diagnostics).set({ isActive: false, updatedAt: new Date() }).where(eq(diagnostics.id, validId))

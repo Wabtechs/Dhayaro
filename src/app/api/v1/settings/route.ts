@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { parseJsonBody, settingsUpdateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       .limit(1)
 
     if (!user) {
-      return apiError(404, 'User not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json({ preferences: user.preferences || {} })

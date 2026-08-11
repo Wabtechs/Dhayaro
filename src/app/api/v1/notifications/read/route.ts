@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notifications } from '@/lib/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, notificationsReadSchema } from '@/lib/api-schemas'
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     if (!body.ids && !body.all) {
-      return apiError(400, 'ids array or all=true is required')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { ids: 'Indiquez les identifiants des notifications à marquer comme lues ou passez all=true.' })
     }
 
     const conditions = [eq(notifications.userId, auth.user.sub)]
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     } else if (Array.isArray(body.ids)) {
       const validIds = body.ids.filter((id: unknown) => sanitizeUuid(id) !== null)
       if (validIds.length === 0) {
-        return apiError(400, 'No valid notification ids provided')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { ids: 'Aucun identifiant de notification valide fourni.' })
       }
       conditions.push(inArray(notifications.id, validIds))
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       .where(and(...conditions))
       .returning()
 
-    return NextResponse.json({ detail: `${updated.length} notification(s) marked as read` })
+    return NextResponse.json({ success: true, data: { updated: updated.length }, message: `${updated.length} notification(s) marquée(s) comme lue(s).` })
   } catch (e) {
 return handleEndpointError(e, 'POST /notifications/read')
   }

@@ -15,6 +15,13 @@
       "when": 1786457701928,
       "tag": "0001_lean_phil_sheldon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786469320137,
+      "tag": "0002_easy_ares",
+      "breakpoints": true
     }
   ]
 }

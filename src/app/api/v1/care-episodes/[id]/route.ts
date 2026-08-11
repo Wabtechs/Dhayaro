@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { careEpisodes, patients, episodeEntities, consultations, diagnostics, treatments, labExams, documents } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, pickAllowedKeys } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, handleEndpointError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const episodeId = sanitizeUuid(id)
-    if (!episodeId) return apiError(400, 'Invalid episode ID')
+    if (!episodeId) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: "L'identifiant de l'épisode est invalide." })
 
     const db = getDb()
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .where(and(...conditions))
     .limit(1)
 
-    if (!episode) return apiError(404, 'Episode not found')
+    if (!episode) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const entities = await db.select().from(episodeEntities).where(eq(episodeEntities.episodeId, episodeId))
 
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const episodeId = sanitizeUuid(id)
-    if (!episodeId) return apiError(400, 'Invalid episode ID')
+    if (!episodeId) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: "L'identifiant de l'épisode est invalide." })
 
     const parsed = await parseJsonBody(request, careEpisodeUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -109,8 +109,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       isArchived: careEpisodes.isArchived,
     }).from(careEpisodes).where(and(...conditions)).limit(1)
 
-    if (!existing) return apiError(404, 'Episode not found')
-    if (existing.isArchived) return apiError(400, 'Cannot edit an archived episode')
+    if (!existing) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
+    if (existing.isArchived) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: 'Impossible de modifier un épisode archivé.' })
 
     const fields = pickAllowedKeys(body, ALLOWED_UPDATE_KEYS)
 
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { id } = await params
     const episodeId = sanitizeUuid(id)
-    if (!episodeId) return apiError(400, 'Invalid episode ID')
+    if (!episodeId) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: "L'identifiant de l'épisode est invalide." })
 
     const db = getDb()
 
@@ -174,8 +174,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       facilityId: careEpisodes.facilityId,
     }).from(careEpisodes).where(and(...conditions)).limit(1)
 
-    if (!existing) return apiError(404, 'Episode not found')
-    if (existing.isArchived) return apiError(400, 'Episode is already archived')
+    if (!existing) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
+    if (existing.isArchived) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: 'Cet épisode est déjà archivé.' })
 
     await db.update(careEpisodes).set({ isArchived: true, updatedAt: new Date() }).where(eq(careEpisodes.id, episodeId))
     await logAudit(auth.user, 'DELETE', 'care_episode', episodeId, { isArchived: true })
@@ -192,7 +192,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       metadata: { episodeId: existing.id, episodeNumber: existing.episodeNumber },
     })
 
-    return NextResponse.json({ detail: 'Episode archived' })
+    return NextResponse.json({ success: true, data: { id: episodeId }, message: 'Épisode archivé avec succès.' })
   } catch (e) {
     return handleEndpointError(e, 'DELETE /care-episodes/[id]')
   }

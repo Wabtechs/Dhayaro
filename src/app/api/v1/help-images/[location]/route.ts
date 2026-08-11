@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { helpImages } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { eq } from 'drizzle-orm'
 
 export async function DELETE(
@@ -14,7 +14,7 @@ export async function DELETE(
     if ('error' in auth) return auth.error
 
     const { location } = await params
-    if (!location) return apiError(400, 'location is required')
+    if (!location) return apiErrorResponse('VALIDATION_ERROR', 422, { location: "L'emplacement est requis." })
 
     const db = getDb()
     await db

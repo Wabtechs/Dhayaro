@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { equipmentIncidents, medicalEquipment, users } from '@/lib/schema'
 import { alias } from 'drizzle-orm/pg-core'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentIncidentUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .leftJoin(assignedToUser, eq(equipmentIncidents.assignedToUserId, assignedToUser.id))
       .where(and(eq(equipmentIncidents.id, id), isNull(equipmentIncidents.deletedAt)))
       .limit(1)
-    if (!row) return apiError(404, 'Incident not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/incidents/[id]')
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = parsed.body
 
     const existing = await getDb().select({ id: equipmentIncidents.id, equipmentId: equipmentIncidents.equipmentId, status: equipmentIncidents.status, facilityId: equipmentIncidents.facilityId }).from(equipmentIncidents).where(and(eq(equipmentIncidents.id, id), isNull(equipmentIncidents.deletedAt))).limit(1)
-    if (!existing[0]) return apiError(404, 'Incident not found')
+    if (!existing[0]) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const now = new Date()
     const fields: Record<string, unknown> = { updatedBy: auth.user.sub, updatedAt: now }
@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const [row] = await getDb().update(equipmentIncidents).set(fields).where(and(eq(equipmentIncidents.id, id), isNull(equipmentIncidents.deletedAt))).returning()
-    if (!row) return apiError(404, 'Incident not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     if (newStatus === 'RESOLVED' || newStatus === 'CLOSED') {
       await getDb().update(medicalEquipment).set({ status: 'AVAILABLE', updatedBy: auth.user.sub, updatedAt: now }).where(eq(medicalEquipment.id, row.equipmentId))
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(equipmentIncidents).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(equipmentIncidents.id, id), isNull(equipmentIncidents.deletedAt))).returning()
-    if (!row) return apiError(404, 'Incident not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_incident', resourceId: row.id, details: { equipmentId: row.equipmentId, title: row.title } })
     await logEquipmentEvent({ equipmentId: row.equipmentId, action: 'INCIDENT_DELETED', user: auth.user, details: { incidentId: row.id }, facilityId: row.facilityId })

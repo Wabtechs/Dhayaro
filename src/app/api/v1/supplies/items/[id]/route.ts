@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { medicalSupplies, supplyBatches, equipmentSuppliers } from '@/lib/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, stockStatus } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { medicalSupplyUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .leftJoin(equipmentSuppliers, eq(medicalSupplies.supplierId, equipmentSuppliers.id))
       .where(and(eq(medicalSupplies.id, id), isNull(medicalSupplies.deletedAt)))
       .limit(1)
-    if (!row) return apiError(404, 'Supply not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const [[stockResult], [expiryResult], batches] = await Promise.all([
       getDb().select({ total: sql<number>`coalesce(sum(${supplyBatches.quantity}), 0)` }).from(supplyBatches).where(and(eq(supplyBatches.supplyId, id), isNull(supplyBatches.deletedAt))),
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.isActive !== undefined && body.isActive !== null) fields.isActive = body.isActive
 
     const [row] = await getDb().update(medicalSupplies).set(fields).where(and(eq(medicalSupplies.id, id), isNull(medicalSupplies.deletedAt))).returning()
-    if (!row) return apiError(404, 'Supply not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'medical_supply', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json(row)
   } catch (e) {
@@ -100,7 +100,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(medicalSupplies).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(medicalSupplies.id, id), isNull(medicalSupplies.deletedAt))).returning()
-    if (!row) return apiError(404, 'Supply not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'medical_supply', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json({ success: true })
   } catch (e) {

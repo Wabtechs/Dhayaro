@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notificationPreferences, users } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, handleEndpointError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, notificationPreferenceCreateSchema, notificationPreferenceUpdateSchema } from '@/lib/api-schemas'
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, body.userId)).limit(1)
     if (userCheck.length === 0) {
-      return apiError(400, 'User not found')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { userId: 'Utilisateur introuvable.' })
     }
 
     const [row] = await db.insert(notificationPreferences).values({

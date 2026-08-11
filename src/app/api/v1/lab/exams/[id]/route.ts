@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { labExams, patients, users, labCategories } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -22,7 +22,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { examId: "L'identifiant de l'examen est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -59,7 +59,7 @@ export async function GET(
       .limit(1)
 
     if (!row) {
-      return apiError(404, 'Lab exam not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -78,7 +78,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { examId: "L'identifiant de l'examen est invalide." })
 
     const parsed = await parseJsonBody(request, labExamUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -91,11 +91,11 @@ export async function PUT(
       status: labExams.status,
     }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Lab exam not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     if (body.status === 'COMPLETED' && !body.results) {
-      return apiError(400, 'results are required when marking exam as COMPLETED')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { results: 'Les résultats sont requis pour clôturer l\'examen.' })
     }
 
     const allowedFields = pickAllowedKeys(body, EXAM_KEYS)
@@ -217,7 +217,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { examId: "L'identifiant de l'examen est invalide." })
 
     const existing = await getDb().select({ 
       id: labExams.id,
@@ -227,7 +227,7 @@ export async function DELETE(
       examName: labExams.examName,
     }).from(labExams).where(eq(labExams.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Lab exam not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await getDb().update(labExams).set({ isActive: false, updatedAt: new Date() }).where(eq(labExams.id, validId))

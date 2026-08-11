@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { diagnostics, consultations, patients, users, diseases, episodeEntities, careEpisodes } from '@/lib/schema'
 import { eq, ne, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -115,9 +115,9 @@ export async function POST(request: NextRequest) {
       db.select({ id: consultations.id }).from(consultations).where(eq(consultations.id, consultationId)).limit(1),
     ])
 
-    if (patientCheck.length === 0) return apiError(400, 'Patient not found')
-    if (doctorCheck.length === 0) return apiError(400, 'Doctor not found')
-    if (consultationCheck.length === 0) return apiError(400, 'Consultation not found')
+    if (patientCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
+    if (doctorCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { doctorId: 'Médecin introuvable.' })
+    if (consultationCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { consultationId: 'Consultation introuvable.' })
 
     const { facilityId } = enforceFacilityAccess(body, auth)
     const now = new Date()

@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { treatments, patients, users, episodeEntities, careEpisodes } from '@/lib/schema'
 import { eq, ne, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, enforceFacilityAccess, apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
       db.select({ id: users.id }).from(users).where(eq(users.id, doctorId)).limit(1),
     ])
 
-    if (patientCheck.length === 0) return apiError(400, 'Patient not found')
-    if (doctorCheck.length === 0) return apiError(400, 'Doctor not found')
+    if (patientCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
+    if (doctorCheck.length === 0) return apiErrorResponse('VALIDATION_ERROR', 422, { doctorId: 'Médecin introuvable.' })
 
     const { facilityId } = enforceFacilityAccess(body, auth)
     const consultationId = sanitizeUuid(body.consultationId)

@@ -5,6 +5,7 @@ import {
   TREATMENT_STATUSES, LAB_EXAM_STATUSES, DIAGNOSTIC_TYPES, CONSULTATION_STATUSES,
   QUEUE_STATUSES, PRIORITIES, SEVERITY_LEVELS, CASE_PRIORITIES, EPISODE_STATUSES,
   DOCUMENT_TYPES, ENTITY_TYPES, GENDERS, CARE_COVERAGE_TYPES, COVERAGE_STATUSES,
+  BED_STATUSES, BED_TYPES,
 } from '@/lib/schemas'
 
 export const API_ROLES = [
@@ -504,6 +505,28 @@ export const careEpisodeUpdateSchema = z
     admitReason: optStr,
   })
   .partial()
+
+export const bedCreateSchema = z.object({
+  facilityId: optUuid,
+  locationId: optUuid,
+  bedNumber: z.string().min(1, 'Le numéro de lit est requis'),
+  floor: optStr,
+  room: optStr,
+  department: optStr,
+  label: optStr,
+  type: z.enum(BED_TYPES).nullish(),
+  notes: optStr,
+})
+
+export const bedUpdateSchema = bedCreateSchema.partial()
+
+export const bedAssignmentCreateSchema = z.object({
+  facilityId: optUuid,
+  bedId: uuid,
+  patientId: uuid,
+  episodeId: optUuid,
+  notes: optStr,
+})
 
 export const protocolCreateSchema = z.object({
   name: z.string().min(1),

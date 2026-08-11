@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { medicalEquipment, equipmentCategories, users, equipmentLocations, equipmentAssignments, equipmentMaintenance, equipmentIncidents, equipmentWarranties } from '@/lib/schema'
 import { eq, and, desc, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { medicalEquipmentUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .leftJoin(equipmentLocations, eq(medicalEquipment.locationId, equipmentLocations.id))
       .where(and(eq(medicalEquipment.id, id), isNull(medicalEquipment.deletedAt)))
       .limit(1)
-    if (!row) return apiError(404, 'Equipment not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const [assignments, maintenance, incidents, warranties, latestLog] = await Promise.all([
       getDb().select().from(equipmentAssignments).where(eq(equipmentAssignments.equipmentId, id)).orderBy(desc(equipmentAssignments.startedAt)).limit(20),
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = parsed.body
 
     const existing = await getDb().select({ id: medicalEquipment.id, name: medicalEquipment.name, code: medicalEquipment.code }).from(medicalEquipment).where(and(eq(medicalEquipment.id, id), isNull(medicalEquipment.deletedAt))).limit(1)
-    if (!existing[0]) return apiError(404, 'Equipment not found')
+    if (!existing[0]) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const now = new Date()
     const stringKeys = ['code', 'qrCode', 'barcode', 'name', 'description', 'manufacturer', 'brand', 'model', 'serialNumber', 'purchaseDate', 'currency', 'photo', 'building', 'floor', 'department', 'room', 'position', 'commissioningDate', 'retirementDate', 'comments'] as const
@@ -130,7 +130,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(medicalEquipment).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(medicalEquipment.id, id), isNull(medicalEquipment.deletedAt))).returning()
-    if (!row) return apiError(404, 'Equipment not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'medical_equipment', resourceId: id, details: { code: row.code } })
     await logEquipmentEvent({ equipmentId: id, action: 'DELETED', user: auth.user, facilityId: row.facilityId })

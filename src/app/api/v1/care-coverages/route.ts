@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { careCoverages, patients } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, handleEndpointError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, careCoverageCreateSchema, careCoverageUpdateSchema } from '@/lib/api-schemas'
@@ -90,13 +90,13 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const patientId = sanitizeUuid(body.patientId)
-    if (!patientId) return apiError(400, 'Patient ID is required')
+    if (!patientId) return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: "L'identifiant du patient est requis." })
 
     const db = getDb()
 
     const patientCheck = await db.select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {
-      return apiError(400, 'Patient not found')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
     }
 
     const { facilityId } = enforceFacilityAccess(body, auth)

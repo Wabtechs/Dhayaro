@@ -35,6 +35,7 @@ export type Permission =
   | 'partner-patients:list' | 'partner-patients:create' | 'partner-patients:edit' | 'partner-patients:delete'
   | 'patient-history:list' | 'patient-history:create' | 'patient-history:edit' | 'patient-history:delete'
   | 'billing:list' | 'billing:create' | 'billing:edit' | 'billing:delete' | 'billing:pay'
+  | 'hospitalization:list' | 'hospitalization:create' | 'hospitalization:edit' | 'hospitalization:delete' | 'hospitalization:assign' | 'hospitalization:release'
   | 'notification-preferences:list' | 'notification-preferences:manage'
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {

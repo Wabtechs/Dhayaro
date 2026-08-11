@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { invoices, invoiceItems, patients, users, careCoverages, billingCodes } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -17,7 +17,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { invoiceId: "L'identifiant de la facture est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -58,7 +58,7 @@ export async function GET(
       .limit(1)
 
     if (!row) {
-      return apiError(404, 'Invoice not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const items = await getDb()
@@ -94,10 +94,10 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { invoiceId: "L'identifiant de la facture est invalide." })
 
     const [row] = await getDb().select({ id: invoices.id }).from(invoices).where(eq(invoices.id, validId)).limit(1)
-    if (!row) return apiError(404, 'Invoice not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logAudit(auth.user, 'UPDATE', 'invoice', validId)
     return NextResponse.json({ success: true })

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { supplyBatches, medicalSupplies, equipmentSuppliers } from '@/lib/schema'
 import { eq, and, desc, isNull, ilike, or, count, sql } from 'drizzle-orm'
-import { addFacilityFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, apiErrorResponse, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { supplyBatchCreateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const supplyCheck = await getDb().select({ id: medicalSupplies.id }).from(medicalSupplies).where(and(eq(medicalSupplies.id, body.supplyId), isNull(medicalSupplies.deletedAt))).limit(1)
-    if (!supplyCheck[0]) return apiError(400, 'Supply not found')
+    if (!supplyCheck[0]) return apiErrorResponse('VALIDATION_ERROR', 422, { supplyId: 'Produit introuvable.' })
 
     const now = new Date()
     const [row] = await getDb().insert(supplyBatches).values({

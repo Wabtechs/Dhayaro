@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { queue, patients, users, careEpisodes } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, apiErrorResponse, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const patientCheck = await getDb().select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {
-      return apiError(400, 'Patient not found')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
     }
 
     const now = new Date()

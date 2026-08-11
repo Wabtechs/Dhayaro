@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { archives, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -20,7 +20,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { archiveId: "L'identifiant de l'archive est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -46,7 +46,7 @@ export async function GET(
       .limit(1)
 
     if (!row) {
-      return apiError(404, 'Archive not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -65,7 +65,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { archiveId: "L'identifiant de l'archive est invalide." })
 
     const parsed = await parseJsonBody(request, archiveUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -73,7 +73,7 @@ export async function PUT(
 
     const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Archive not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const allowedFields = pickAllowedKeys(body, ARCHIVE_KEYS)
@@ -102,11 +102,11 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { archiveId: "L'identifiant de l'archive est invalide." })
 
     const existing = await getDb().select({ id: archives.id }).from(archives).where(eq(archives.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Archive not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await getDb().delete(archives).where(eq(archives.id, validId))

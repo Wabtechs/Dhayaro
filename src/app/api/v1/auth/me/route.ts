@@ -3,17 +3,18 @@ import { getDb } from '@/lib/db'
 import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getTokenFromRequest, verifyToken } from '@/lib/auth'
+import { apiErrorResponse } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const token = getTokenFromRequest(request)
     if (!token) {
-      return NextResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+      return apiErrorResponse('AUTHENTICATION_FAILED', 401)
     }
 
     const payload = await verifyToken(token)
     if (!payload) {
-      return NextResponse.json({ detail: 'Invalid or expired token' }, { status: 401 })
+      return apiErrorResponse('SESSION_EXPIRED', 401)
     }
 
     try {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
         .limit(1)
 
       if (rows.length === 0) {
-        return NextResponse.json({ detail: 'User not found' }, { status: 404 })
+        return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
       }
 
       return NextResponse.json(rows[0])
@@ -50,6 +51,6 @@ export async function GET(request: NextRequest) {
       })
     }
   } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 }

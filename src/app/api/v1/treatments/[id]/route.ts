@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { treatments } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -21,12 +21,12 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: "L'identifiant du traitement est invalide." })
 
     const [row] = await getDb().select().from(treatments).where(eq(treatments.id, validId)).limit(1)
 
     if (!row) {
-      return apiError(404, 'Treatment not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -45,7 +45,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: "L'identifiant du traitement est invalide." })
 
     const parsed = await parseJsonBody(request, treatmentUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -60,7 +60,7 @@ export async function PUT(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Treatment not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'treatment', validId, { ...allowedFields })
@@ -104,7 +104,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: "L'identifiant du traitement est invalide." })
 
     const [deleted] = await getDb()
       .update(treatments)
@@ -113,7 +113,7 @@ export async function DELETE(
       .returning()
 
     if (!deleted) {
-      return apiError(404, 'Treatment not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'treatment', validId, { description: deleted.description })
@@ -130,7 +130,7 @@ export async function DELETE(
       metadata: { treatmentId: deleted.id },
     })
 
-    return NextResponse.json({ detail: 'Treatment cancelled' })
+    return NextResponse.json({ success: true, data: { id: validId, status: 'CANCELLED' }, message: 'Traitement annulé avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /treatments/[id]')
   }

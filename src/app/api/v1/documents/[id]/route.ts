@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { documents } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -20,12 +20,12 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { documentId: "L'identifiant du document est invalide." })
 
     const [row] = await getDb().select().from(documents).where(eq(documents.id, validId)).limit(1)
 
     if (!row) {
-      return apiError(404, 'Document not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -44,7 +44,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { documentId: "L'identifiant du document est invalide." })
 
     const parsed = await parseJsonBody(request, documentUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -52,7 +52,7 @@ export async function PUT(
 
     const existing = await getDb().select({ id: documents.id }).from(documents).where(eq(documents.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Document not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const allowedFields = pickAllowedKeys(body, DOC_KEYS)
@@ -88,11 +88,11 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { documentId: "L'identifiant du document est invalide." })
 
     const existing = await getDb().select({ id: documents.id }).from(documents).where(eq(documents.id, validId)).limit(1)
     if (existing.length === 0) {
-      return apiError(404, 'Document not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await getDb().update(documents).set({ isActive: false }).where(eq(documents.id, validId))

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { stockMovements, supplyBatches, medicalSupplies } from '@/lib/schema'
 import { eq, and, desc, isNull, ilike, or, count, sql } from 'drizzle-orm'
-import { addFacilityFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, apiErrorResponse, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, notifyStaff } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { stockMovementCreateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -119,10 +119,10 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const supplyCheck = await getDb().select({ id: medicalSupplies.id, name: medicalSupplies.name, minStock: medicalSupplies.minStock }).from(medicalSupplies).where(and(eq(medicalSupplies.id, body.supplyId), isNull(medicalSupplies.deletedAt))).limit(1)
-    if (!supplyCheck[0]) return apiError(400, 'Supply not found')
+    if (!supplyCheck[0]) return apiErrorResponse('VALIDATION_ERROR', 422, { supplyId: 'Produit introuvable.' })
 
     const qty = Math.abs(Math.round(body.quantity))
-    if (qty <= 0) return apiError(400, 'La quantité doit être supérieure à zéro')
+    if (qty <= 0) return apiErrorResponse('VALIDATION_ERROR', 422, { quantity: 'La quantité doit être supérieure à zéro.' })
 
     const facilityId = enforceFacilityAccess(body, auth).facilityId
     const now = new Date()
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     if (type === 'ISSUE' || type === 'TRANSFER_OUT' || type === 'EXPIRED' || type === 'ADJUSTMENT' && Math.sign(body.quantity) < 0) {
       const res = await deductFefo(body.supplyId, qty, facilityId)
-      if (!res.ok) return apiError(400, res.reason ?? 'Stock insuffisant')
+      if (!res.ok) return apiErrorResponse('VALIDATION_ERROR', 422, { quantity: res.reason ?? 'Stock insuffisant.' })
     } else {
       batchId = await addToBatch(body.supplyId, qty, batchId, facilityId)
     }

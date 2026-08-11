@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, userCreateSchema } from '@/lib/api-schemas'
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     if ('error' in auth) return auth.error
 
     if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
-      return apiError(403, 'Only administrators can create users')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const parsed = await parseJsonBody(request, userCreateSchema)
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     if (!MULTI_FACILITY_ROLES.includes(body.role)) {
       const fid = sanitizeUuid(body.facilityId)
       if (!fid) {
-        return apiError(400, 'facilityId is required for this role')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: "L'identifiant de l'établissement est requis pour ce rôle." })
       }
     }
 

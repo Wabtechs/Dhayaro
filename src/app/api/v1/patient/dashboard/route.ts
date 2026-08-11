@@ -3,14 +3,14 @@ import { getDb } from '@/lib/db'
 import { users, patients, consultations, diagnostics, treatments, labExams, documents, prescriptions, medications, facilities, queue } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request)
     if ('error' in auth) return auth.error
     if (auth.user.role !== 'PATIENT') {
-      return apiError(403, 'Accès réservé aux patients')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const [patient] = await getDb()
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .limit(1)
 
     if (!patient) {
-      return apiError(404, 'Profil patient introuvable')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const patientId = patient.id

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
-import { apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, diseaseCreateSchema } from '@/lib/api-schemas'
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const [existing] = await db.select({ id: diseases.id }).from(diseases).where(eq(diseases.code, body.code)).limit(1)
     if (existing) {
-      return apiError(400, 'Disease code already exists')
+      return apiErrorResponse('RESOURCE_ALREADY_EXISTS', 409, { code: 'Ce code de maladie existe déjà.' })
     }
 
     const now = new Date()

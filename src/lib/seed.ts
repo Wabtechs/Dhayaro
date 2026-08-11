@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems, billingCodes } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, bedAssignments, beds, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems, billingCodes } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -199,6 +199,8 @@ async function seed() {
   await db.delete(clinicalCases)
   await db.delete(caseNotes)
   await db.delete(similarCaseSearches)
+  await db.delete(bedAssignments)
+  await db.delete(beds)
   await db.delete(episodeEntities)
   await db.delete(careEpisodes)
   await db.delete(clinicalKnowledgeBase)
@@ -759,6 +761,66 @@ async function seed() {
   }
   await db.insert(careEpisodes).values(episodeBatch as any)
   console.log(`Care Episodes: ${episodeBatch.length}`)
+  console.log('Generating beds + assignments...')
+  const bedTypes = ['WARD', 'PRIVATE', 'SEMI_PRIVATE', 'ICU', 'MATERNITY', 'PEDIATRIC', 'OTHER'] as const
+  const bedStatuses = ['AVAILABLE', 'OCCUPIED', 'CLEANING', 'OUT_OF_SERVICE', 'RESERVED'] as const
+  const rooms = ['101', '102', '103', '104', '201', '202', '301', '302']
+  const floors = ['1', '2', '3']
+  const departments = ['Medecine', 'Chirurgie', 'Reanimation', 'Pediatrie', 'Maternite']
+  const firstFacility = insertedFacilities[0].id
+  const bedBatch: any[] = []
+  let bedCounter = 1
+  for (const room of rooms) {
+    const floor = floors[parseInt(room.charAt(0)) - 1] || '1'
+    const dept = pick(departments)
+    const count = room === '101' ? 6 : (room === '201' ? 4 : (room === '301' ? 2 : 2))
+    for (let b = 0; b < count; b++) {
+      const number = `${room}-B${b + 1}`
+      const isOccupied = bedCounter === 3
+      bedBatch.push({
+        id: uuid(),
+        facilityId: firstFacility,
+        locationId: null,
+        bedNumber: number,
+        floor,
+        room,
+        department: dept,
+        label: `Lit ${number}`,
+        type: pick(bedTypes),
+        status: isOccupied ? 'OCCUPIED' : (pick(bedStatuses) as any),
+        notes: null,
+        isActive: true,
+        createdAt: daysAgo(60),
+        updatedAt: new Date(),
+      })
+      bedCounter += 1
+    }
+  }
+  const insertedBeds = await db.insert(beds).values(bedBatch).returning({ id: beds.id })
+  console.log(`  Beds: ${insertedBeds.length}`)
+
+  const occupiedBed = bedBatch.find((b) => b.status === 'OCCUPIED')
+  if (occupiedBed && insertedPatients.length > 0) {
+    const patient = pick(insertedPatients)
+    const episode = insertedEpisodes.length > 0 ? pick(insertedEpisodes) : null
+    await db.insert(bedAssignments).values({
+      id: uuid(),
+      facilityId: firstFacility,
+      bedId: occupiedBed.id,
+      patientId: patient.id,
+      episodeId: episode ? episode.id : null,
+      assignedById: insertedUsers[3].id,
+      assignedAt: daysAgo(2),
+      releasedAt: null,
+      status: 'ACTIVE',
+      notes: null,
+      isActive: true,
+      createdAt: daysAgo(2),
+      updatedAt: new Date(),
+    })
+    console.log('  Bed Assignments: 1')
+  }
+
 
   console.log('Generating 50 episode entities...')
   const entityTypes = ['CONSULTATION','DIAGNOSIS','TREATMENT','LAB_EXAM','DOCUMENT'] as const

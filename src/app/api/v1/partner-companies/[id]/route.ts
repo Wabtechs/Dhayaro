@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { partnerCompanies } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, pickAllowedKeys } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiErrorResponse, handleEndpointError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, partnerCompanyUpdateSchema } from '@/lib/api-schemas'
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const companyId = sanitizeUuid(id)
-    if (!companyId) return apiError(400, 'Invalid company ID')
+    if (!companyId) return apiErrorResponse('VALIDATION_ERROR', 422, { companyId: "L'identifiant de l'entreprise est invalide." })
 
     const db = getDb()
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const [company] = await db.select().from(partnerCompanies).where(and(...conditions)).limit(1)
 
-    if (!company) return apiError(404, 'Partner company not found')
+    if (!company) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     return NextResponse.json(company)
   } catch (e) {
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const companyId = sanitizeUuid(id)
-    if (!companyId) return apiError(400, 'Invalid company ID')
+    if (!companyId) return apiErrorResponse('VALIDATION_ERROR', 422, { companyId: "L'identifiant de l'entreprise est invalide." })
 
     const parsed = await parseJsonBody(request, partnerCompanyUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (facilityFilter) conditions.push(facilityFilter)
 
     const [existing] = await db.select().from(partnerCompanies).where(and(...conditions)).limit(1)
-    if (!existing) return apiError(404, 'Partner company not found')
+    if (!existing) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const fields = pickAllowedKeys(body, ALLOWED_UPDATE_KEYS)
 
@@ -75,7 +75,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { id } = await params
     const companyId = sanitizeUuid(id)
-    if (!companyId) return apiError(400, 'Invalid company ID')
+    if (!companyId) return apiErrorResponse('VALIDATION_ERROR', 422, { companyId: "L'identifiant de l'entreprise est invalide." })
 
     const db = getDb()
 
@@ -84,12 +84,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (facilityFilter) conditions.push(facilityFilter)
 
     const [existing] = await db.select().from(partnerCompanies).where(and(...conditions)).limit(1)
-    if (!existing) return apiError(404, 'Partner company not found')
+    if (!existing) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await db.update(partnerCompanies).set({ isActive: false, updatedAt: new Date() }).where(eq(partnerCompanies.id, companyId))
     await logAudit(auth.user, 'DELETE', 'partner_company', companyId, { name: existing.name })
 
-    return NextResponse.json({ detail: 'Partner company deactivated' })
+    return NextResponse.json({ success: true, data: { id: companyId }, message: 'Entreprise partenaire désactivée avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /partner-companies/[id]')
   }

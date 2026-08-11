@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { clinicalCases } from '@/lib/schema'
 import { and, count } from 'drizzle-orm'
-import { addFacilityFilter } from '@/lib/api-errors'
+import { addFacilityFilter, apiErrorResponse } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -52,6 +52,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(stats)
   } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 }

@@ -1,6 +1,6 @@
 # ROADMAP DHAYARO — Améliorations Priorisées
 
-**Dernière mise à jour :** 8 août 2026  
+**Dernière mise à jour :** 11 août 2026  
 **Baseline :** Audit complet parcours patient + impact rôles
 
 ---
@@ -10,7 +10,7 @@
 | Phase | Statut | Jours est. | Progression |
 |-------|--------|------------|-------------|
 | **P1 — Critique** | ✅ Terminée | 10-14 | 100% |
-| **P2 — Majeur** | 🔄 En cours | 12-15 | 0% |
+| **P2 — Majeur** | 🔄 En cours | 12-15 | 25% |
 | **P3 — Améliorations** | ⏳ Planifié | 14-15 | 0% |
 
 ---
@@ -97,9 +97,9 @@
 ### P2.2 — Gestion Lits Hospitalisation
 | Tâche | Statut | Fichiers |
 |-------|--------|----------|
-| Schéma : `beds`, `bedAssignments` | ⬜ TODO | `src/lib/schema.ts` |
-| API `/api/v1/hospitalization/beds/*` | ⬜ TODO | `src/app/api/v1/hospitalization/beds/` |
-| UI plan de lits (`/hospitalization/beds`) | ⬜ TODO | `src/views/hospitalization/beds/` |
+| Schéma : `beds`, `bedAssignments` | ✅ DONE | `src/lib/schema.ts` (beds, bedAssignments) + migration `drizzle/0002_easy_ares.sql` |
+| API `/api/v1/hospitalization/beds/*` | ✅ DONE | `src/app/api/v1/hospitalization/beds/` (GET list, GET/PUT/DELETE [id], POST assign, POST release) |
+| UI plan de lits (`/hospitalization/beds`) | ✅ DONE | `src/views/hospitalization/beds/index.tsx` + `src/app/(app)/hospitalization/beds/page.tsx` |
 
 ### P2.3 — Portail Patient Complet
 | Tâche | Statut | Fichiers |
@@ -142,6 +142,17 @@
 - [x] P1.3 — table `dispensations`, `POST /pharmacy/dispense` (atomique + log + doc + notif), `GET /pharmacy` worklist, hook `useDispenseTreatment` pointé sur la nouvelle route
 - [x] P1.4 — soft-delete validé (diagnostics/labExams/documents → isActive=false, treatments → status=CANCELLED, careEpisodes → isArchived=true)
 - [x] Build TypeScript `tsc --noEmit` : 0 erreurs (corrigé firstname/lastname JWT + `unknown` index errors)
+- [ ] **Prochaine action : P2.1 - Module Facturation (Billing) — schéma invoices/payments**
+
+### 2026-08-11 — P2.2 Gestion Lits Hospitalisation
+- [x] Schéma `beds` + `bedAssignments` (status/type/position, capacité facility, assignments avec admission/admissionDate)
+- [x] Migration `drizzle/0002_easy_ares.sql` générée + appliquée en base (drizzle-kit migrate)
+- [x] API : `GET /hospitalization/beds` (filtres status/type/search + pagination + facility), `GET/PUT/DELETE /[id]`, `POST /[id]/assign`, `POST /[id]/release`
+- [x] Règles métier : lit unique par patient, pas de ré-assign si lit occupé, release unitaire, audits + notifications assign/release
+- [x] Permissions `hospitalization:beds` (ADMIN, SUPER_ADMIN, NURSE, DOCTOR, RECEPTIONIST) + accès limité au patient
+- [x] UI plan de lits : statuts colorés, stats, CRUD lit, dialog assign patient (search + détails), release, permission-gating
+- [x] Seed : 30 lits (6 services × 5) + assignments, hook `useBeds`/`useBedAssign`/`useBedRelease`/`useUpdateBed`/`useDeleteBed`
+- [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs, `next build` OK (routes + page incluses)
 - [ ] **Prochaine action : P2.1 - Module Facturation (Billing) — schéma invoices/payments**
 
 ---

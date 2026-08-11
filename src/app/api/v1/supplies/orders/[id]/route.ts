@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { purchaseOrders, purchaseOrderItems, equipmentSuppliers, supplyBatches, stockMovements } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, notifyStaff } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { purchaseOrderUpdateSchema, normalizeNum, PO_STATUSES } from '@/lib/api-schemas-equipment'
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .leftJoin(equipmentSuppliers, eq(purchaseOrders.supplierId, equipmentSuppliers.id))
       .where(and(eq(purchaseOrders.id, id), isNull(purchaseOrders.deletedAt)))
       .limit(1)
-    if (!row) return apiError(404, 'Purchase order not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const items = await getDb().select(itemSelect).from(purchaseOrderItems).where(and(eq(purchaseOrderItems.orderId, id), isNull(purchaseOrderItems.deletedAt))).orderBy(purchaseOrderItems.createdAt)
 
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.totalAmount !== undefined && body.totalAmount !== null) fields.totalAmount = normalizeNum(body.totalAmount)
 
     const [row] = await db.update(purchaseOrders).set(fields).where(and(eq(purchaseOrders.id, id), isNull(purchaseOrders.deletedAt))).returning()
-    if (!row) return apiError(404, 'Purchase order not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     if (Array.isArray(body.items)) {
       await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.orderId, id))
@@ -166,7 +166,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const now = new Date()
     const db = getDb()
     const [row] = await db.update(purchaseOrders).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(purchaseOrders.id, id), isNull(purchaseOrders.deletedAt))).returning()
-    if (!row) return apiError(404, 'Purchase order not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     await db.update(purchaseOrderItems).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(eq(purchaseOrderItems.orderId, id))
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'purchase_order', resourceId: row.id, details: { orderNumber: row.orderNumber } })
     return NextResponse.json({ success: true })

@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { parseJsonBody, userUpdateSchema } from '@/lib/api-schemas'
@@ -19,7 +19,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { userId: "L'identifiant de l'utilisateur est invalide." })
 
     const [row] = await getDb()
       .select({
@@ -47,7 +47,7 @@ export async function GET(
       .limit(1)
 
     if (!row) {
-      return apiError(404, 'User not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -65,12 +65,12 @@ export async function PUT(
     if ('error' in auth) return auth.error
 
     if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
-      return apiError(403, 'Only administrators can update users')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { userId: "L'identifiant de l'utilisateur est invalide." })
 
     const parsed = await parseJsonBody(request, userUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -81,7 +81,7 @@ export async function PUT(
     if (targetRole && !MULTI_FACILITY_ROLES.includes(targetRole)) {
       const fid = body.facilityId !== undefined ? sanitizeUuid(body.facilityId) : undefined
       if (fid !== undefined && !fid) {
-        return apiError(400, 'facilityId cannot be empty for this role')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { facilityId: "L'identifiant de l'établissement ne peut pas être vide pour ce rôle." })
       }
     }
 
@@ -117,7 +117,7 @@ export async function PUT(
       })
 
     if (!updated) {
-      return apiError(404, 'User not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'user', validId, { role: updated.role })
@@ -137,12 +137,12 @@ export async function DELETE(
     if ('error' in auth) return auth.error
 
     if (!['SUPER_ADMIN', 'ADMIN'].includes(auth.user.role)) {
-      return apiError(403, 'Only administrators can delete users')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { userId: "L'identifiant de l'utilisateur est invalide." })
 
     const [result] = await getDb()
       .update(users)
@@ -151,7 +151,7 @@ export async function DELETE(
       .returning({ id: users.id })
 
     if (!result) {
-      return apiError(404, 'User not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'user', validId)

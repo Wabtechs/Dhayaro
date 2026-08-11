@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentWarranties } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentWarrantyUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     const [row] = await getDb().select().from(equipmentWarranties).where(and(eq(equipmentWarranties.id, id), isNull(equipmentWarranties.deletedAt))).limit(1)
-    if (!row) return apiError(404, 'Warranty not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/warranties/[id]')
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = parsed.body
 
     const existing = await getDb().select({ id: equipmentWarranties.id, equipmentId: equipmentWarranties.equipmentId, status: equipmentWarranties.status, facilityId: equipmentWarranties.facilityId }).from(equipmentWarranties).where(and(eq(equipmentWarranties.id, id), isNull(equipmentWarranties.deletedAt))).limit(1)
-    if (!existing[0]) return apiError(404, 'Warranty not found')
+    if (!existing[0]) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const now = new Date()
     const fields: Record<string, unknown> = { updatedBy: auth.user.sub, updatedAt: now }
@@ -48,7 +48,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.cost !== undefined && body.cost !== null && body.cost !== '') fields.cost = normalizeNum(body.cost)
 
     const [row] = await getDb().update(equipmentWarranties).set(fields).where(and(eq(equipmentWarranties.id, id), isNull(equipmentWarranties.deletedAt))).returning()
-    if (!row) return apiError(404, 'Warranty not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_warranty', resourceId: row.id, details: { equipmentId: row.equipmentId } })
     if (body.status && body.status !== existing[0].status) {
@@ -68,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(equipmentWarranties).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(equipmentWarranties.id, id), isNull(equipmentWarranties.deletedAt))).returning()
-    if (!row) return apiError(404, 'Warranty not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_warranty', resourceId: row.id, details: { equipmentId: row.equipmentId } })
     await logEquipmentEvent({ equipmentId: row.equipmentId, action: 'WARRANTY_DELETED', user: auth.user, details: { warrantyId: row.id }, facilityId: row.facilityId })

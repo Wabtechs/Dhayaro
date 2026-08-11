@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { invoices, invoiceItems, patients, users, careCoverages } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
-import { apiError, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const patientId = sanitizeUuid(body.patientId)
-    if (!patientId) return apiError(400, 'PatientId invalide')
+    if (!patientId) return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: "L'identifiant du patient est invalide." })
 
     const { facilityId } = enforceFacilityAccess(body, auth)
     const db = getDb()

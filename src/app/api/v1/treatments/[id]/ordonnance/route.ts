@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { treatments, prescriptions, medications, patients, users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 
@@ -16,7 +16,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: "L'identifiant du traitement est invalide." })
 
     const [treatment] = await getDb()
       .select()
@@ -25,7 +25,7 @@ export async function GET(
       .limit(1)
 
     if (!treatment) {
-      return apiError(404, 'Treatment not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const treatmentPrescriptions = await getDb()

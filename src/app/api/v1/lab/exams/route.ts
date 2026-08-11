@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { labExams, patients, users, labCategories, episodeEntities, queue, careEpisodes } from '@/lib/schema'
 import { eq, ne, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, apiErrorResponse, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -112,17 +112,17 @@ export async function POST(request: NextRequest) {
 
     const patientCheck = await getDb().select({ id: patients.id }).from(patients).where(eq(patients.id, patientId)).limit(1)
     if (patientCheck.length === 0) {
-      return apiError(400, 'Patient not found')
+      return apiErrorResponse('VALIDATION_ERROR', 422, { patientId: 'Patient introuvable.' })
     }
 
     if (body.categoryId) {
       const catId = sanitizeUuid(body.categoryId)
       if (!catId) {
-        return apiError(400, 'Invalid categoryId')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { categoryId: "L'identifiant de la catégorie est invalide." })
       }
       const catCheck = await getDb().select({ id: labCategories.id }).from(labCategories).where(eq(labCategories.id, catId)).limit(1)
       if (catCheck.length === 0) {
-        return apiError(400, 'Lab category not found')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { categoryId: 'Catégorie introuvable.' })
       }
     }
 

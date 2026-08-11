@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { caseNotes, clinicalCases, users } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -18,7 +18,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { caseId: "L'identifiant du dossier est invalide." })
 
     const db = getDb()
 
@@ -27,7 +27,7 @@ export async function GET(
       .from(clinicalCases)
       .where(eq(clinicalCases.id, validId))
       .limit(1)
-    if (!caseCheck) return apiError(404, 'Clinical case not found')
+    if (!caseCheck) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const items = await db
       .select({
@@ -60,7 +60,7 @@ export async function POST(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { caseId: "L'identifiant du dossier est invalide." })
 
     const parsed = await parseJsonBody(request, caseNoteCreateSchema)
     if (parsed.ok === false) return parsed.error
@@ -73,7 +73,7 @@ export async function POST(
       .from(clinicalCases)
       .where(eq(clinicalCases.id, validId))
       .limit(1)
-    if (!caseCheck) return apiError(404, 'Clinical case not found')
+    if (!caseCheck) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const [row] = await db
       .insert(caseNotes)

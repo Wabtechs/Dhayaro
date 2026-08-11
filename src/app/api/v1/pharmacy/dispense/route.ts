@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { dispensations, treatments, medications, prescriptions, queue } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, enforceFacilityAccess, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, enforceFacilityAccess, handleEndpointError } from '@/lib/api-errors'
 import { requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -38,17 +38,17 @@ export async function POST(request: NextRequest) {
       .where(eq(treatments.id, treatmentId))
       .limit(1)
 
-    if (treatment.length === 0) return apiError(404, 'Treatment not found')
+    if (treatment.length === 0) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     const current = treatment[0]
 
     const facilityId = enforceFacilityAccess(current, auth).facilityId
     if (!facilityId || (auth.user.role !== 'SUPER_ADMIN' && current.facilityId !== facilityId)) {
-      return apiError(403, 'This treatment does not belong to your facility')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const validStatuses = ['PRESCRIBED', 'IN_PROGRESS']
     if (!validStatuses.includes(current.status)) {
-      return apiError(400, `Treatment status (${current.status}) cannot be dispensed`)
+      return apiErrorResponse('VALIDATION_ERROR', 422, { treatmentId: `Le statut du traitement (${current.status}) ne permet pas la délivrance.` })
     }
 
     const now = new Date()
@@ -111,14 +111,14 @@ export async function POST(request: NextRequest) {
         .where(eq(queue.id, queueId))
         .limit(1)
 
-      if (queueEntry.length === 0) return apiError(404, 'Queue entry not found')
+      if (queueEntry.length === 0) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
       const q = queueEntry[0]
       const qFacility = enforceFacilityAccess(q, auth).facilityId
       if (!qFacility || (auth.user.role !== 'SUPER_ADMIN' && q.facilityId !== qFacility)) {
-        return apiError(403, 'This queue entry does not belong to your facility')
+        return apiErrorResponse('ACCESS_DENIED', 403)
       }
       if (q.patientId !== current.patientId) {
-        return apiError(400, 'Queue entry does not belong to the same patient')
+        return apiErrorResponse('VALIDATION_ERROR', 422, { queueId: 'Cette entrée de file d\'attente ne concerne pas le même patient.' })
       }
 
       await db.update(queue).set({ status: 'COMPLETED', completedAt: now, updatedAt: now }).where(eq(queue.id, queueId))

@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { consultations, patients, users, diagnostics, treatments, labExams, diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -22,7 +22,7 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { consultationId: "L'identifiant de la consultation est invalide." })
 
     const [row] = await getDb().select({
       id: consultations.id,
@@ -53,7 +53,7 @@ export async function GET(
     .limit(1)
 
     if (!row) {
-      return apiError(404, 'Consultation not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     const [relatedDiagnostics, relatedTreatments, relatedLabExams] = await Promise.all([
@@ -117,7 +117,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { consultationId: "L'identifiant de la consultation est invalide." })
 
     const parsed = await parseJsonBody(request, consultationUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -132,7 +132,7 @@ export async function PUT(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Consultation not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'consultation', validId, { ...allowedFields })
@@ -216,7 +216,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { consultationId: "L'identifiant de la consultation est invalide." })
 
     const [deleted] = await getDb()
       .update(consultations)
@@ -225,7 +225,7 @@ export async function DELETE(
       .returning()
 
     if (!deleted) {
-      return apiError(404, 'Consultation not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'consultation', validId, { consultationNumber: deleted.consultationNumber })
@@ -259,7 +259,7 @@ export async function DELETE(
       metadata: { consultationId: validId, consultationNumber: deleted.consultationNumber },
     })
 
-    return NextResponse.json({ detail: 'Consultation cancelled' })
+    return NextResponse.json({ success: true, data: { id: validId, status: 'CANCELLED' }, message: 'Consultation annulée avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /consultations/[id]')
   }

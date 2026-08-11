@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { payments, invoices, patients } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
-import { apiError, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError, parsePagination, addFacilityFilter, enforceFacilityAccess } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const body = parsed.body
 
     const invoiceId = sanitizeUuid(body.invoiceId)
-    if (!invoiceId) return apiError(400, 'InvoiceId invalide')
+    if (!invoiceId) return apiErrorResponse('VALIDATION_ERROR', 422, { invoiceId: "L'identifiant de la facture est invalide." })
 
     const db = getDb()
     const now = new Date()
@@ -101,14 +101,14 @@ export async function POST(request: NextRequest) {
       doctorId: invoices.doctorId,
     }).from(invoices).where(eq(invoices.id, invoiceId)).limit(1)
 
-    if (invoice.length === 0) return apiError(404, 'Invoice not found')
+    if (invoice.length === 0) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     const inv = invoice[0]
-    if (inv.status === 'PAID') return apiError(400, 'Invoice already paid')
-    if (inv.status === 'CANCELLED') return apiError(400, 'Cannot record payment on a cancelled invoice')
+    if (inv.status === 'PAID') return apiErrorResponse('VALIDATION_ERROR', 422, { invoiceId: 'Cette facture est déjà payée.' })
+    if (inv.status === 'CANCELLED') return apiErrorResponse('VALIDATION_ERROR', 422, { invoiceId: 'Impossible d\'enregistrer un paiement sur une facture annulée.' })
 
     const { facilityId } = enforceFacilityAccess(inv, auth)
     if (auth.user.role !== 'SUPER_ADMIN' && inv.facilityId && inv.facilityId !== facilityId) {
-      return apiError(403, 'This invoice does not belong to your facility')
+      return apiErrorResponse('ACCESS_DENIED', 403)
     }
 
     const payment = await db.transaction(async (tx) => {

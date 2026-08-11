@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentBookings, medicalEquipment } from '@/lib/schema'
 import { eq, and, desc, isNull, count, sql } from 'drizzle-orm'
-import { addFacilityFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, apiErrorResponse, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentBookingCreateSchema } from '@/lib/api-schemas-equipment'
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         sql`${equipmentBookings.endTime} > ${startTime}`,
       ))
       .limit(1)
-    if (overlap) return apiError(409, "L'équipement est déjà réservé sur cette période")
+    if (overlap) return apiErrorResponse('VALIDATION_ERROR', 422, { equipmentId: "L'équipement est déjà réservé sur cette période." })
 
     const [row] = await getDb().insert(equipmentBookings).values({
       id: crypto.randomUUID(),

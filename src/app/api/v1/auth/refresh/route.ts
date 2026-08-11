@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, createToken } from '@/lib/auth'
+import { apiErrorResponse } from '@/lib/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
     const refreshToken = request.cookies.get('dhayaro_refresh_token')?.value
 
     if (!refreshToken) {
-      return NextResponse.json({ detail: 'Refresh token is required' }, { status: 401 })
+      return apiErrorResponse('TOKEN_REFRESH_FAILED', 401)
     }
 
     const payload = await verifyToken(refreshToken)
     if (!payload) {
-      return NextResponse.json({ detail: 'Invalid or expired refresh token' }, { status: 401 })
+      return apiErrorResponse('TOKEN_REFRESH_FAILED', 401)
     }
 
     const access_token = await createToken({ sub: payload.sub, email: payload.email, role: payload.role, facilityId: payload.facilityId, firstname: payload.firstname, lastname: payload.lastname })
@@ -27,6 +28,6 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch {
-    return NextResponse.json({ detail: 'Internal server error' }, { status: 500 })
+    return apiErrorResponse('SERVER_ERROR', 500)
   }
 }

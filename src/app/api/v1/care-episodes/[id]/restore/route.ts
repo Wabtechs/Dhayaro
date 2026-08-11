@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { careEpisodes } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, apiError, handleEndpointError } from '@/lib/api-errors'
+import { addFacilityFilter, apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { id } = await params
     const episodeId = sanitizeUuid(id)
-    if (!episodeId) return apiError(400, 'Invalid episode ID')
+    if (!episodeId) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: "L'identifiant de l'épisode est invalide." })
 
     const db = getDb()
 
@@ -28,8 +28,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       isArchived: careEpisodes.isArchived,
     }).from(careEpisodes).where(and(...conditions)).limit(1)
 
-    if (!existing) return apiError(404, 'Episode not found')
-    if (!existing.isArchived) return apiError(400, 'Episode is not archived')
+    if (!existing) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
+    if (!existing.isArchived) return apiErrorResponse('VALIDATION_ERROR', 422, { episodeId: 'Cet épisode n\'est pas archivé.' })
 
     const [row] = await db.update(careEpisodes).set({
       isArchived: false,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { spareParts, sparePartInventory } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, enforceFacilityAccess, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, enforceFacilityAccess, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { sparePartUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .leftJoin(sparePartInventory, and(eq(sparePartInventory.sparePartId, spareParts.id), isNull(sparePartInventory.deletedAt)))
       .where(and(eq(spareParts.id, id), isNull(spareParts.deletedAt)))
       .limit(1)
-    if (!row) return apiError(404, 'Spare part not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/spare-parts/[id]')
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const [row] = await getDb().update(spareParts).set(fields).where(and(eq(spareParts.id, id), isNull(spareParts.deletedAt))).returning()
-    if (!row) return apiError(404, 'Spare part not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     const invKeys = ['quantity', 'minThreshold', 'unitCost', 'location'] as const
     const hasInventory = invKeys.some((k) => body[k] !== undefined && body[k] !== null && body[k] !== '')
@@ -122,7 +122,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(spareParts).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(spareParts.id, id), isNull(spareParts.deletedAt))).returning()
-    if (!row) return apiError(404, 'Spare part not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'spare_part', resourceId: row.id, details: { name: row.name, code: row.code } })
     return NextResponse.json({ success: true })

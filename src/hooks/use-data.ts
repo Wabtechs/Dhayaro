@@ -1292,3 +1292,94 @@ export function useCreatePayment() {
     },
   });
 }
+
+export function useBedsData(params?: string) {
+  return useQuery({
+    queryKey: ['beds', params],
+    queryFn: () =>
+      fetchData<{ items: unknown[]; total: number; page: number; size: number }>(
+        `/hospitalization/beds${params ? '?' + params : ''}`,
+      ),
+  });
+}
+
+export function useBedDetail(id?: string) {
+  return useQuery({
+    queryKey: ['bed', id],
+    queryFn: () => fetchData<any>(`/hospitalization/beds/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateBed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: unknown) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>('/hospitalization/beds', data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['beds'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateBed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: unknown }) => {
+      const token = getTokenFromStorage();
+      return api.put<unknown>(`/hospitalization/beds/${id}`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['beds'] });
+      queryClient.invalidateQueries({ queryKey: ['bed', variables.id] });
+    },
+  });
+}
+
+export function useDeleteBed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.delete<unknown>(`/hospitalization/beds/${id}`, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['beds'] });
+    },
+  });
+}
+
+export function useAssignBed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: unknown }) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>(`/hospitalization/beds/${id}/assign`, data, token);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['beds'] });
+      queryClient.invalidateQueries({ queryKey: ['bed', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['patient-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useReleaseBed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = getTokenFromStorage();
+      return api.post<unknown>(`/hospitalization/beds/${id}/release`, {}, token);
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['beds'] });
+      queryClient.invalidateQueries({ queryKey: ['bed', id] });
+      queryClient.invalidateQueries({ queryKey: ['patient-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}

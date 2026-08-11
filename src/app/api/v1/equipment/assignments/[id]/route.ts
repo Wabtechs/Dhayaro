@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentAssignments } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentAssignmentUpdateSchema } from '@/lib/api-schemas-equipment'
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if ('error' in auth) return auth.error
     const { id } = await params
     const [row] = await getDb().select().from(equipmentAssignments).where(and(eq(equipmentAssignments.id, id), isNull(equipmentAssignments.deletedAt))).limit(1)
-    if (!row) return apiError(404, 'Assignment not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     return NextResponse.json(row)
   } catch (e) {
 return handleEndpointError(e, 'GET /equipment/assignments/[id]')
@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.endedAt !== undefined) fields.endedAt = body.endedAt ? new Date(body.endedAt) : null
 
     const [row] = await getDb().update(equipmentAssignments).set(fields).where(and(eq(equipmentAssignments.id, id), isNull(equipmentAssignments.deletedAt))).returning()
-    if (!row) return apiError(404, 'Assignment not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_assignment', resourceId: row.id, details: { equipmentId: row.equipmentId } })
     if (row.endedAt && !body.endedAt) {
@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     const now = new Date()
     const [row] = await getDb().update(equipmentAssignments).set({ deletedAt: now, updatedBy: auth.user.sub, updatedAt: now }).where(and(eq(equipmentAssignments.id, id), isNull(equipmentAssignments.deletedAt))).returning()
-    if (!row) return apiError(404, 'Assignment not found')
+    if (!row) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_assignment', resourceId: row.id, details: { equipmentId: row.equipmentId } })
     return NextResponse.json({ success: true })
   } catch (e) {

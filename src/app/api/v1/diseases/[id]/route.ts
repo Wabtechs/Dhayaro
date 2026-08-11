@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
+import { apiErrorResponse, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
@@ -20,12 +20,12 @@ export async function GET(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diseaseId: "L'identifiant de la maladie est invalide." })
 
     const [row] = await getDb().select().from(diseases).where(eq(diseases.id, validId)).limit(1)
 
     if (!row) {
-      return apiError(404, 'Disease not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     return NextResponse.json(row)
@@ -44,7 +44,7 @@ export async function PUT(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diseaseId: "L'identifiant de la maladie est invalide." })
 
     const parsed = await parseJsonBody(request, diseaseUpdateSchema)
     if (parsed.ok === false) return parsed.error
@@ -58,7 +58,7 @@ export async function PUT(
       .returning()
 
     if (!updated) {
-      return apiError(404, 'Disease not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'UPDATE', 'disease', validId, { ...allowedFields })
@@ -79,7 +79,7 @@ export async function DELETE(
 
     const { id } = await params
     const validId = sanitizeUuid(id)
-    if (!validId) return apiError(400, 'ID invalide')
+    if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { diseaseId: "L'identifiant de la maladie est invalide." })
 
     const [deleted] = await getDb()
       .update(diseases)
@@ -88,12 +88,12 @@ export async function DELETE(
       .returning()
 
     if (!deleted) {
-      return apiError(404, 'Disease not found')
+      return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
     }
 
     await logAudit(auth.user, 'DELETE', 'disease', validId, { isActive: false })
 
-    return NextResponse.json({ detail: 'Disease deleted' })
+    return NextResponse.json({ success: true, data: { id: validId }, message: 'Maladie supprimée avec succès.' })
   } catch (e) {
 return handleEndpointError(e, 'DELETE /diseases/[id]')
   }

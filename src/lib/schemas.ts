@@ -76,6 +76,12 @@ export const CARE_COVERAGE_TYPES = ['PERSONAL', 'INSURANCE', 'MUTUAL', 'COMPANY'
 
 export const COVERAGE_STATUSES = ['ACTIVE', 'EXPIRED', 'SUSPENDED'] as const
 
+export const BED_STATUSES = ['AVAILABLE', 'OCCUPIED', 'CLEANING', 'OUT_OF_SERVICE', 'RESERVED'] as const
+
+export const BED_TYPES = ['WARD', 'PRIVATE', 'SEMI_PRIVATE', 'ICU', 'MATERNITY', 'PEDIATRIC', 'OTHER'] as const
+
+export const ASSIGNMENT_STATUSES = ['ACTIVE', 'COMPLETED', 'CANCELLED'] as const
+
 export const AVAILABILITY = ['AVAILABLE', 'ON_LEAVE', 'OFF_DUTY'] as const
 
 export const loginSchema = z.object({
