@@ -24,7 +24,7 @@ export async function GET(
     const validId = sanitizeUuid(id)
     if (!validId) return apiErrorResponse('VALIDATION_ERROR', 422, { bedId: "L'identifiant du lit est invalide." })
 
-    const row = await getDb()
+    const [row] = await getDb()
       .select({
         id: beds.id,
         facilityId: beds.facilityId,
