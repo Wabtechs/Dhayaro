@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       paidAmount: invoices.paidAmount,
       currency: invoices.currency,
       doctorId: invoices.doctorId,
+      paidAt: invoices.paidAt,
     }).from(invoices).where(eq(invoices.id, invoiceId)).limit(1)
 
     if (invoice.length === 0) return apiErrorResponse('RESOURCE_NOT_FOUND', 404)
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
       metadata: { paymentId: payment.payment.id, invoiceId, amount: payment.payment.amount, method: payment.payment.method, newStatus: payment.inv.status },
     })
 
-    const { invoiceNumber } = await db.select({ number: invoices.invoiceNumber }).from(invoices).where(eq(invoices.id, invoiceId)).limit(1)
+    const [{ number: invoiceNumber }] = await db.select({ number: invoices.invoiceNumber }).from(invoices).where(eq(invoices.id, invoiceId)).limit(1)
 
     if (inv.doctorId && inv.doctorId !== auth.user.sub) {
       await sendNotification({
