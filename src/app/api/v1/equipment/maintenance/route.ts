@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentMaintenance, medicalEquipment, users } from '@/lib/schema'
 import { eq, and, desc, isNull, ilike, or, count } from 'drizzle-orm'
-import { addFacilityFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentMaintenanceCreateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -83,8 +83,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, total: countResult?.value ?? 0, page, size })
   } catch (e) {
-    logError('GET /equipment/maintenance', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/maintenance')
   }
 }
 
@@ -137,7 +136,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /equipment/maintenance', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /equipment/maintenance')
   }
 }

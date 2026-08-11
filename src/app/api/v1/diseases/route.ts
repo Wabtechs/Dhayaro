@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, diseaseCreateSchema } from '@/lib/api-schemas'
 
@@ -42,8 +42,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /diseases', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /diseases')
   }
 }
 
@@ -83,7 +82,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /diseases', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /diseases')
   }
 }

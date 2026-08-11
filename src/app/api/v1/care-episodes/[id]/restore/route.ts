@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { careEpisodes } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
+import { addFacilityFilter, apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -55,7 +55,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('PATCH /care-episodes/[id]/restore', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PATCH /care-episodes/[id]/restore')
   }
 }

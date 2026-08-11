@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentCategories } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentCategoryUpdateSchema } from '@/lib/api-schemas-equipment'
@@ -17,8 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!row) return apiError(404, 'Category not found')
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /equipment/categories/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/categories/[id]')
   }
 }
 
@@ -45,8 +44,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_category', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /equipment/categories/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /equipment/categories/[id]')
   }
 }
 
@@ -63,7 +61,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_category', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /equipment/categories/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /equipment/categories/[id]')
   }
 }

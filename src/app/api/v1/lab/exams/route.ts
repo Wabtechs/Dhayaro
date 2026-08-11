@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { labExams, patients, users, labCategories, episodeEntities, queue, careEpisodes } from '@/lib/schema'
 import { eq, ne, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, addDoctorFilter, apiError, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -95,8 +95,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /lab/exams', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /lab/exams')
   }
 }
 
@@ -245,7 +244,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /lab/exams', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /lab/exams')
   }
 }

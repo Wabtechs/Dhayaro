@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, userCreateSchema } from '@/lib/api-schemas'
 
@@ -74,8 +74,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /users', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /users')
   }
 }
 
@@ -114,7 +113,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {
-    logError('POST /users', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /users')
   }
 }

@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { therapeuticProtocols } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { parseJsonBody, protocolUpdateSchema } from '@/lib/api-schemas'
@@ -24,8 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /therapeutic-protocols/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /therapeutic-protocols/[id]')
   }
 }
 
@@ -53,8 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logAudit(auth.user, 'UPDATE', 'therapeutic_protocol', protocolId, { name: row.name })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /therapeutic-protocols/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /therapeutic-protocols/[id]')
   }
 }
 
@@ -75,7 +73,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logAudit(auth.user, 'DELETE', 'therapeutic_protocol', protocolId, { isActive: false })
     return NextResponse.json({ detail: 'Protocol deactivated' })
   } catch (e) {
-    logError('DELETE /therapeutic-protocols/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /therapeutic-protocols/[id]')
   }
 }

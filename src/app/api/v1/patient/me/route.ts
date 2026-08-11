@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { users, patients, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         antecedents: patient.antecedents,
       },
     })
-  } catch {
-    return apiError(500, 'Erreur interne')
+  } catch (e) {
+    return handleEndpointError(e, 'GET /patient/me')
   }
 }

@@ -4,7 +4,7 @@ import { users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { parseJsonBody, userUpdateSchema } from '@/lib/api-schemas'
@@ -52,8 +52,7 @@ export async function GET(
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /users/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /users/[id]')
   }
 }
 
@@ -125,8 +124,7 @@ export async function PUT(
 
     return NextResponse.json(updated)
   } catch (e) {
-    logError('PUT /users/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /users/[id]')
   }
 }
 
@@ -160,7 +158,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, id: result.id })
   } catch (e) {
-    logError('DELETE /users/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /users/[id]')
   }
 }

@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { diseaseStatistics, diseases } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /disease-statistics', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /disease-statistics')
   }
 }

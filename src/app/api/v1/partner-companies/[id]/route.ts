@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { partnerCompanies } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, pickAllowedKeys } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, partnerCompanyUpdateSchema } from '@/lib/api-schemas'
@@ -91,7 +91,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ detail: 'Partner company deactivated' })
   } catch (e) {
-    logError('DELETE /partner-companies/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /partner-companies/[id]')
   }
 }

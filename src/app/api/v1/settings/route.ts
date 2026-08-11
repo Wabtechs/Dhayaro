@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { parseJsonBody, settingsUpdateSchema } from '@/lib/api-schemas'
 
 export async function GET(request: NextRequest) {
@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ preferences: user.preferences || {} })
   } catch (e) {
-    logError('GET /settings', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /settings')
   }
 }
 
@@ -45,7 +44,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ preferences })
   } catch (e) {
-    logError('PUT /settings', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /settings')
   }
 }

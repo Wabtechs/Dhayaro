@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { helpImages } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
-import { apiError, logError } from '@/lib/api-errors'
+import { handleEndpointError } from '@/lib/api-errors'
 import { parseJsonBody, helpImageSchema } from '@/lib/api-schemas'
 import { eq, inArray } from 'drizzle-orm'
 
@@ -24,8 +24,7 @@ export async function GET(request: NextRequest) {
     const rows = await db.select().from(helpImages)
     return NextResponse.json(rows)
   } catch (e) {
-    logError('GET /help-images', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /help-images')
   }
 }
 
@@ -71,7 +70,6 @@ export async function POST(request: NextRequest) {
       .returning()
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /help-images', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /help-images')
   }
 }

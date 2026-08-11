@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { syncQueue } from '@/lib/schema'
 import { eq, desc, and, count, SQL } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { parsePagination, apiError } from '@/lib/api-errors'
+import { parsePagination, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +34,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, total, page, size, pendingCount, syncedCount, failedCount })
   } catch (e) {
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /sync/pull')
   }
 }

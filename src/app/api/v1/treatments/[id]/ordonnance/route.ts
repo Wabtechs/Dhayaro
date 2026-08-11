@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { treatments, prescriptions, medications, patients, users, facilities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
 
@@ -105,7 +105,6 @@ export async function GET(
       } : null,
     })
   } catch (e) {
-    logError('GET /treatments/[id]/ordonnance', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /treatments/[id]/ordonnance')
   }
 }

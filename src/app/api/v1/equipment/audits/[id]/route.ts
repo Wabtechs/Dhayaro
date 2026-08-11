@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentAudits, medicalEquipment, users } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentAuditUpdateSchema } from '@/lib/api-schemas-equipment'
@@ -45,8 +45,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!row) return apiError(404, 'Audit not found')
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /equipment/audits/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/audits/[id]')
   }
 }
 
@@ -74,8 +73,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logEquipmentEvent({ equipmentId: row.equipmentId, action: `AUDIT_${row.auditType}`, user: auth.user, details: { auditId: row.id, status: row.status }, facilityId: row.facilityId })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /equipment/audits/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /equipment/audits/[id]')
   }
 }
 
@@ -92,7 +90,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_audit', resourceId: row.id, details: { equipmentId: row.equipmentId, auditType: row.auditType } })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /equipment/audits/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /equipment/audits/[id]')
   }
 }

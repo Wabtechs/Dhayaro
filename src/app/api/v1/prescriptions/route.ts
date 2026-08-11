@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { prescriptions, treatments, medications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addDoctorFilter, addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addDoctorFilter, addFacilityFilter, apiError, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -63,8 +63,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /prescriptions', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /prescriptions')
   }
 }
 
@@ -121,7 +120,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /prescriptions', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /prescriptions')
   }
 }

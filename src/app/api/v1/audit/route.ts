@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { auditLogs, users } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { requireRole } from '@/lib/auth'
-import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, parsePagination, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /audit', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /audit')
   }
 }

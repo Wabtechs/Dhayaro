@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { caseNotes, clinicalCases, users } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { sanitizeUuid } from '@/lib/validation'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -46,8 +46,7 @@ export async function GET(
 
     return NextResponse.json({ items, total: items.length })
   } catch (e) {
-    logError('GET /clinical-cases/[id]/notes', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /clinical-cases/[id]/notes')
   }
 }
 
@@ -89,7 +88,6 @@ export async function POST(
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /clinical-cases/[id]/notes', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /clinical-cases/[id]/notes')
   }
 }

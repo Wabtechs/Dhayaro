@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notificationPreferences, users } from '@/lib/schema'
 import { eq, desc, and, or, ilike, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, apiError, handleEndpointError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, notificationPreferenceCreateSchema, notificationPreferenceUpdateSchema } from '@/lib/api-schemas'
@@ -66,8 +66,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /notification-preferences', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /notification-preferences')
   }
 }
 

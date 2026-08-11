@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { queue, patients, users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { requireAuth, requireRole } from '@/lib/auth'
@@ -59,8 +59,7 @@ export async function GET(
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /queue/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /queue/[id]')
   }
 }
 
@@ -132,8 +131,7 @@ export async function PUT(
 
     return NextResponse.json(updated)
   } catch (e) {
-    logError('PUT /queue/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /queue/[id]')
   }
 }
 
@@ -175,7 +173,6 @@ export async function DELETE(
 
     return NextResponse.json({ detail: 'Queue entry cancelled' })
   } catch (e) {
-    logError('DELETE /queue/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /queue/[id]')
   }
 }

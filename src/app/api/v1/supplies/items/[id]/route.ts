@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { medicalSupplies, supplyBatches, equipmentSuppliers } from '@/lib/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, stockStatus } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { medicalSupplyUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -54,8 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       batches,
     })
   } catch (e) {
-    logError('GET /supplies/items/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /supplies/items/[id]')
   }
 }
 
@@ -90,8 +89,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'medical_supply', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /supplies/items/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /supplies/items/[id]')
   }
 }
 
@@ -106,7 +104,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'medical_supply', resourceId: row.id, details: { name: row.name } })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /supplies/items/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /supplies/items/[id]')
   }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentDocuments, medicalEquipment } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentDocumentUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -38,8 +38,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!row) return apiError(404, 'Document not found')
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /equipment/documents/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/documents/[id]')
   }
 }
 
@@ -67,8 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'equipment_document', resourceId: row.id, details: { equipmentId: row.equipmentId, title: row.title, category: row.category } })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /equipment/documents/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /equipment/documents/[id]')
   }
 }
 
@@ -85,7 +83,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'equipment_document', resourceId: row.id, details: { equipmentId: row.equipmentId, title: row.title } })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /equipment/documents/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /equipment/documents/[id]')
   }
 }

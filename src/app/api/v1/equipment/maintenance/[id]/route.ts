@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentMaintenance, medicalEquipment, users } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentMaintenanceUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -51,8 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!row) return apiError(404, 'Maintenance not found')
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /equipment/maintenance/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/maintenance/[id]')
   }
 }
 
@@ -104,8 +103,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /equipment/maintenance/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /equipment/maintenance/[id]')
   }
 }
 
@@ -123,7 +121,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentEvent({ equipmentId: row.equipmentId, action: 'MAINTENANCE_DELETED', user: auth.user, details: { maintenanceId: row.id }, facilityId: row.facilityId })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /equipment/maintenance/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /equipment/maintenance/[id]')
   }
 }

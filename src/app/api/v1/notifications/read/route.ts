@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notifications } from '@/lib/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, notificationsReadSchema } from '@/lib/api-schemas'
 
@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ detail: `${updated.length} notification(s) marked as read` })
   } catch (e) {
-    logError('POST /notifications/read', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /notifications/read')
   }
 }

@@ -6,7 +6,7 @@ import {
 } from '@/lib/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -184,7 +184,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ detail: 'Episode archived successfully', episodeId })
   } catch (e) {
-    logError('POST /care-episodes/[id]/archive', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /care-episodes/[id]/archive')
   }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { labCategories } from '@/lib/schema'
 import { eq, desc, count } from 'drizzle-orm'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, labCategorySchema } from '@/lib/api-schemas'
 
@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /lab/categories', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /lab/categories')
   }
 }
 
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /lab/categories', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /lab/categories')
   }
 }

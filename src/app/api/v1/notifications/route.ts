@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { notifications } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
+import { enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, notificationCreateSchema } from '@/lib/api-schemas'
 
@@ -33,8 +33,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /notifications', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /notifications')
   }
 }
 
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /notifications', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /notifications')
   }
 }

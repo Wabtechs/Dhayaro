@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { purchaseOrders, purchaseOrderItems, equipmentSuppliers, supplyBatches, stockMovements } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, notifyStaff } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { purchaseOrderUpdateSchema, normalizeNum, PO_STATUSES } from '@/lib/api-schemas-equipment'
@@ -56,8 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({ ...row, items, movements })
   } catch (e) {
-    logError('GET /supplies/orders/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /supplies/orders/[id]')
   }
 }
 
@@ -155,8 +154,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logEquipmentAudit({ user: auth.user, action: 'UPDATE', resource: 'purchase_order', resourceId: row.id, details: { orderNumber: row.orderNumber, status: row.status } })
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /supplies/orders/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /supplies/orders/[id]')
   }
 }
 
@@ -173,7 +171,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentAudit({ user: auth.user, action: 'DELETE', resource: 'purchase_order', resourceId: row.id, details: { orderNumber: row.orderNumber } })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /supplies/orders/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /supplies/orders/[id]')
   }
 }

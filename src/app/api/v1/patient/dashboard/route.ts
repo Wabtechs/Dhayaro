@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { users, patients, consultations, diagnostics, treatments, labExams, documents, prescriptions, medications, facilities, queue } from '@/lib/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -163,7 +163,6 @@ export async function GET(request: NextRequest) {
       totalConsultations: totalConsultations?.value ?? 0,
     })
   } catch (e) {
-    logError('GET /patient/dashboard', e)
-    return apiError(500, 'Erreur interne')
+return handleEndpointError(e, 'GET /patient/dashboard')
   }
 }

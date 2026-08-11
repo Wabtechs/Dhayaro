@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { therapeuticProtocols, diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, enforceFacilityAccess, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, enforceFacilityAccess, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 import { parseJsonBody, protocolCreateSchema } from '@/lib/api-schemas'
 
@@ -65,8 +65,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /therapeutic-protocols', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /therapeutic-protocols')
   }
 }
 
@@ -103,7 +102,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
-    logError('POST /therapeutic-protocols', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /therapeutic-protocols')
   }
 }

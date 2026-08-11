@@ -4,7 +4,7 @@ import { syncQueue } from '@/lib/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { parseJsonBody, syncPushSchema } from '@/lib/api-schemas'
 
 export async function POST(request: NextRequest) {
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ updated: updated.length })
   } catch (e) {
-    logError('POST /sync/push', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /sync/push')
   }
 }

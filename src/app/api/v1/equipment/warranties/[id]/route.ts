@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { equipmentWarranties } from '@/lib/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission, logEquipmentAudit, logEquipmentEvent } from '@/lib/equipment-utils'
 import { parseJsonBody } from '@/lib/api-schemas'
 import { equipmentWarrantyUpdateSchema, normalizeNum } from '@/lib/api-schemas-equipment'
@@ -17,8 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!row) return apiError(404, 'Warranty not found')
     return NextResponse.json(row)
   } catch (e) {
-    logError('GET /equipment/warranties/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/warranties/[id]')
   }
 }
 
@@ -57,8 +56,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json(row)
   } catch (e) {
-    logError('PUT /equipment/warranties/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /equipment/warranties/[id]')
   }
 }
 
@@ -76,7 +74,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await logEquipmentEvent({ equipmentId: row.equipmentId, action: 'WARRANTY_DELETED', user: auth.user, details: { warrantyId: row.id }, facilityId: row.facilityId })
     return NextResponse.json({ success: true })
   } catch (e) {
-    logError('DELETE /equipment/warranties/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /equipment/warranties/[id]')
   }
 }

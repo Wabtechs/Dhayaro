@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { consultations, patients, users, diagnostics, treatments, labExams, diseases } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { apiError, logError, pickAllowedKeys } from '@/lib/api-errors'
+import { apiError, pickAllowedKeys, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
@@ -103,8 +103,7 @@ export async function GET(
       labExams: relatedLabExams,
     })
   } catch (e) {
-    logError('GET /consultations/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /consultations/[id]')
   }
 }
 
@@ -203,8 +202,7 @@ export async function PUT(
 
     return NextResponse.json(updated)
   } catch (e) {
-    logError('PUT /consultations/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'PUT /consultations/[id]')
   }
 }
 
@@ -263,7 +261,6 @@ export async function DELETE(
 
     return NextResponse.json({ detail: 'Consultation cancelled' })
   } catch (e) {
-    logError('DELETE /consultations/[id]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /consultations/[id]')
   }
 }

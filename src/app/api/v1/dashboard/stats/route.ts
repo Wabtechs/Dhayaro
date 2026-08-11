@@ -6,7 +6,7 @@ import {
   clinicalCases, facilities, users, notifications, patients, medications,
 } from '@/lib/schema'
 import { eq, ne, and, count, desc, gte, SQL } from 'drizzle-orm'
-import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
+import { addFacilityFilter, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
@@ -311,7 +311,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ role, stats, charts })
   } catch (e) {
-    logError('GET /dashboard/stats', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /dashboard/stats')
   }
 }

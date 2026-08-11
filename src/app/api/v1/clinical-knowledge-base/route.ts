@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db'
 import { clinicalKnowledgeBase, diseases } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count, SQL } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
-import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -72,7 +72,6 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /clinical-knowledge-base', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /clinical-knowledge-base')
   }
 }

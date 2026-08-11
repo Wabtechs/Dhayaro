@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { medicalSupplies, supplyBatches, equipmentSuppliers } from '@/lib/schema'
 import { eq, and, or, ilike, isNull, sql, inArray } from 'drizzle-orm'
-import { addFacilityFilter, apiError, logError, parsePagination } from '@/lib/api-errors'
+import { addFacilityFilter, parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission } from '@/lib/equipment-utils'
 
 export async function GET(request: NextRequest) {
@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items: filtered.slice(offset, offset + size), total: filtered.length, page, size, totals, byCategory })
   } catch (e) {
-    logError('GET /supplies/stock', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /supplies/stock')
   }
 }

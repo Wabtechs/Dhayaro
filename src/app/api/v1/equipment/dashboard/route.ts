@@ -6,7 +6,7 @@ import {
   medicalSupplies,
 } from '@/lib/schema'
 import { eq, and, count, sql, gte, lte, desc } from 'drizzle-orm'
-import { addFacilityFilter, apiError, logError } from '@/lib/api-errors'
+import { addFacilityFilter, handleEndpointError } from '@/lib/api-errors'
 import { requireEquipmentPermission } from '@/lib/equipment-utils'
 
 function compactAnd(...conditions: any[]): any {
@@ -202,7 +202,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats, charts, alerts, recentActivity })
   } catch (e) {
-    logError('GET /equipment/dashboard', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /equipment/dashboard')
   }
 }

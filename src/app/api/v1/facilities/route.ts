@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, getSql } from '@/lib/db'
 import { facilities } from '@/lib/schema'
 import { eq, desc, ilike, and, count } from 'drizzle-orm'
-import { apiError, logError, parsePagination } from '@/lib/api-errors'
+import { parsePagination, handleEndpointError } from '@/lib/api-errors'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, facilityCreateSchema } from '@/lib/api-schemas'
 
@@ -33,8 +33,7 @@ export async function GET(request: NextRequest) {
       size,
     })
   } catch (e) {
-    logError('GET /facilities', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'GET /facilities')
   }
 }
 
@@ -58,7 +57,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(rows[0], { status: 201 })
   } catch (e: unknown) {
-    logError('POST /facilities', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'POST /facilities')
   }
 }

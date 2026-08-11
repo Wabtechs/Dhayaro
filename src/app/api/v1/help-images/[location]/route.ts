@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { helpImages } from '@/lib/schema'
 import { requireRole } from '@/lib/auth'
-import { apiError, logError } from '@/lib/api-errors'
+import { apiError, handleEndpointError } from '@/lib/api-errors'
 import { eq } from 'drizzle-orm'
 
 export async function DELETE(
@@ -23,7 +23,6 @@ export async function DELETE(
 
     return NextResponse.json({ deleted: true })
   } catch (e) {
-    logError('DELETE /help-images/[location]', e)
-    return apiError(500, 'Internal server error')
+return handleEndpointError(e, 'DELETE /help-images/[location]')
   }
 }
