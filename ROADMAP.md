@@ -153,7 +153,14 @@
 - [x] UI plan de lits : statuts colorés, stats, CRUD lit, dialog assign patient (search + détails), release, permission-gating
 - [x] Seed : 30 lits (6 services × 5) + assignments, hook `useBeds`/`useBedAssign`/`useBedRelease`/`useUpdateBed`/`useDeleteBed`
 - [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs, `next build` OK (routes + page incluses)
-- [ ] **Prochaine action : P2.1 - Module Facturation (Billing) — schéma invoices/payments**
+- [x] **Déployé sur Vercel (prod `dhayaro.vercel.app`, Build Ready)** et validé en base Neon :
+  - Migration 0002 (beds) appliquée manuellement (drizzle-kit migrate ne fonctionne pas : pas de table `__drizzle_migrations`) + seed complet (~7173 enregistrements)
+  - `getDb()` basculé sur driver `neon-serverless` (WebSocket Pool → `db.transaction()` supporté ; `neon-http` ne les supporte pas)
+  - Fix runtime : `payments` passait un string dans `paidAt` (timestamp → `value.toISOString is not a function`) → `new Date(body.paidAt)`
+  - Fix `treatments` : `.toISOString()` sur colonne `date()` (string)
+  - Seed : ordre de nettoyage rendu FK-safe (`patient_history`, `dispensations`, `payments`, `invoiceItems`, `invoices`)
+  - Smoke tests prod : login, beds GET (22 lits), assign/release (OCCUPIED→CLEANING), facture + paiement (FACT-… → PAID), page `/hospitalization/beds` (200)
+- [ ] **Prochaine action : P2.3 - Portail Patient Complet (onglet Diagnostics + PDF ordonnance)**
 
 ---
 
