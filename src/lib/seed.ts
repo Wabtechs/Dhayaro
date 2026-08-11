@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, bedAssignments, beds, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems, billingCodes } from './schema'
+import { facilities, users, patients, consultations, diagnostics, diseases, treatments, medications, prescriptions, labCategories, labExams, queue, documents, notifications, auditLogs, archives, syncQueue, clinicalCases, caseNotes, careEpisodes, bedAssignments, beds, episodeEntities, clinicalKnowledgeBase, diseaseStatistics, therapeuticProtocols, similarCaseSearches, helpImages, auditHistory, careCoverages, partnerCompanies, partnerPatients, patientHistory, notificationPreferences, equipmentCategories, medicalEquipment, equipmentLocations, equipmentAssignments, equipmentDocuments, equipmentMaintenance, maintenanceTasks, equipmentIncidents, equipmentLogs, equipmentWarranties, equipmentBookings, equipmentSuppliers, equipmentAudits, spareParts, sparePartInventory, medicalSupplies, supplyBatches, stockMovements, purchaseOrders, purchaseOrderItems, billingCodes, dispensations, invoices, invoiceItems, payments } from './schema'
 import { hashPassword } from './auth'
 
 const F = { HOSPITAL: 'HOSPITAL' as const, CLINIC: 'CLINIC' as const, LABORATORY: 'LABORATORY' as const, PHARMACY: 'PHARMACY' as const }
@@ -192,6 +192,7 @@ async function seed() {
   await db.delete(queue)
   await db.delete(labExams)
   await db.delete(prescriptions)
+  await db.delete(dispensations)
   await db.delete(medications)
   await db.delete(treatments)
   await db.delete(diagnostics)
@@ -202,6 +203,7 @@ async function seed() {
   await db.delete(bedAssignments)
   await db.delete(beds)
   await db.delete(episodeEntities)
+  await db.delete(patientHistory)
   await db.delete(careEpisodes)
   await db.delete(clinicalKnowledgeBase)
   await db.delete(diseaseStatistics)
@@ -228,7 +230,9 @@ async function seed() {
   await db.delete(equipmentLocations)
   await db.delete(partnerPatients)
   await db.delete(partnerCompanies)
-  await db.delete(patientHistory)
+  await db.delete(payments)
+  await db.delete(invoiceItems)
+  await db.delete(invoices)
   await db.delete(careCoverages)
   await db.delete(notificationPreferences)
   await db.delete(notifications)

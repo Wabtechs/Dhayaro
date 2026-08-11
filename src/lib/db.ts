@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { drizzle } from 'drizzle-orm/neon-http'
+import { drizzle } from 'drizzle-orm/neon-serverless'
 import * as schema from './schema'
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null
@@ -19,7 +19,7 @@ function getNeonUrl(): string {
 export function getDb() {
   if (!_db) {
     const url = getNeonUrl()
-    _db = drizzle(neon(url), { schema })
+    _db = drizzle(url, { schema })
   }
   return _db
 }
