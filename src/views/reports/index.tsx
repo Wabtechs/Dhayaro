@@ -1,18 +1,22 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import {
   FileBarChart,
   Users,
   Stethoscope,
   TestTube,
   Pill,
-  Download,
+  Activity,
+  Hospital,
+  ChevronRight,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useDashboardStats } from '@/hooks/use-data'
 
-const reports = [
+const reportTypes = [
   {
     id: 'patients',
     title: 'Rapport Patients',
@@ -43,8 +47,25 @@ const reports = [
   },
 ]
 
-export { ReportsView }
+function StatCard({ label, value, icon: Icon }: { label: string; value?: number; icon: typeof Activity }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value ?? 0}</div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function ReportsView() {
+  const router = useRouter()
+  const { data, isLoading } = useDashboardStats()
+  const s = data?.stats ?? {}
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -57,8 +78,25 @@ export default function ReportsView() {
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6"><Skeleton className="h-8 w-full" /></CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <StatCard label="Consultations" value={s.totalConsultations} icon={Stethoscope} />
+            <StatCard label="Patients" value={s.totalPatients} icon={Users} />
+            <StatCard label="Patients hospitalisés" value={s.hospitalizedPatients} icon={Hospital} />
+            <StatCard label="Examens de laboratoire" value={s.totalLabExams} icon={TestTube} />
+          </>
+        )}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        {reports.map((report) => {
+        {reportTypes.map((report) => {
           const Icon = report.icon
           return (
             <Card key={report.id} className="hover:shadow-md transition-shadow">
@@ -74,9 +112,15 @@ export default function ReportsView() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  Générer
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => router.push(`/reports/${report.id}`)}
+                >
+                  <Activity className="mr-2 h-4 w-4" />
+                  Générer le rapport
+                  <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>
@@ -86,3 +130,5 @@ export default function ReportsView() {
     </div>
   )
 }
+
+export { ReportsView }

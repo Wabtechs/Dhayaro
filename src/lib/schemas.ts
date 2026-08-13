@@ -727,6 +727,14 @@ export const patientHistoryCreateSchema = z.object({
 })
 export type PatientHistoryCreateValues = z.infer<typeof patientHistoryCreateSchema>
 
+export const patientHistoryUpdateSchema = z.object({
+  eventType: z.string().min(1, 'Le type d\'événement est requis'),
+  title: z.string().min(1, 'Le titre est requis'),
+  description: z.string().optional(),
+  episodeId: z.string().optional(),
+})
+export type PatientHistoryUpdateValues = z.infer<typeof patientHistoryUpdateSchema>
+
 export const notificationPreferenceCreateSchema = z.object({
   userId: z.string().min(1, 'Veuillez sélectionner un utilisateur'),
   soundEnabled: z.boolean().optional(),

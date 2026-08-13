@@ -124,6 +124,7 @@ export default function HospitalizationView() {
     if (!pendingDischargeItem) return
     setConfirmDischargeOpen(false)
     setDischargeItem(pendingDischargeItem)
+    dischargeForm.reset({ outcome: '', summary: '' })
     setDischargeOpen(true)
     setPendingDischargeItem(null)
   }
@@ -352,11 +353,11 @@ export default function HospitalizationView() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nouvelle admission</DialogTitle>
-            <DialogDescription>Hospitaliser un patient</DialogDescription>
+            <DialogDescription>Sélectionnez le patient à hospitaliser et indiquez le motif de l'admission.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Patient</Label>
+              <Label>Patient <span className="text-destructive">*</span></Label>
               <Controller
                 control={admitForm.control}
                 name="patientId"
@@ -420,7 +421,9 @@ export default function HospitalizationView() {
           <DialogHeader>
             <DialogTitle>Sortie du patient</DialogTitle>
             <DialogDescription>
-              {dischargeItem ? `${dischargeItem.patientFirstname || ''} ${dischargeItem.patientLastname || ''}` : ''}
+              {dischargeItem
+                ? `${dischargeItem.patientFirstname || ''} ${dischargeItem.patientLastname || ''}${dischargeItem.episodeNumber ? ` — Épisode ${dischargeItem.episodeNumber}` : ''}`
+                : ''}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleDischarge} className="space-y-4">
@@ -447,9 +450,9 @@ export default function HospitalizationView() {
               {dischargeForm.formState.errors.outcome && <p className="text-xs text-destructive">{dischargeForm.formState.errors.outcome.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Résumé clinique</Label>
+              <Label>Résumé clinique <span className="text-muted-foreground text-xs font-normal">(optionnel)</span></Label>
               <Textarea
-                placeholder="Résumé de l'hospitalisation"
+                placeholder="Synthèse de l'hospitalisation, évolution et recommandations de sortie"
                 rows={4}
                 {...dischargeForm.register('summary')}
               />

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { patientHistoryCreateSchema, type PatientHistoryCreateValues } from '@/lib/schemas'
+import { useQueryClient } from '@tanstack/react-query'
+import { patientHistoryCreateSchema, patientHistoryUpdateSchema, type PatientHistoryCreateValues, type PatientHistoryUpdateValues } from '@/lib/schemas'
 import { Search, Plus, Activity, FileText, Clock, User, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -95,18 +95,24 @@ const eventTypeLabels: Record<string, string> = {
 }
 
 export default function PatientHistoryPage() {
-  const router = useRouter()
   const { toast } = useToast()
   const { can } = usePermissions()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingItem, setEditingItem] = useState<PatientHistoryItem | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const createForm = useForm<PatientHistoryCreateValues>({
     resolver: zodResolver(patientHistoryCreateSchema),
     defaultValues: { eventType: 'CONSULTATION' },
+  })
+
+  const editForm = useForm<PatientHistoryUpdateValues>({
+    resolver: zodResolver(patientHistoryUpdateSchema),
+    defaultValues: { eventType: '', title: '', description: '' },
   })
 
   const params = new URLSearchParams()
@@ -124,6 +130,20 @@ export default function PatientHistoryPage() {
   const totalPages = Math.ceil(total / 10)
   const patients = (patientsData?.items ?? []) as PatientItem[]
 
+  const invalidateHistory = () => {
+    queryClient.invalidateQueries({ queryKey: ['patient-history'] })
+  }
+
+  const openEdit = (item: PatientHistoryItem) => {
+    setEditingItem(item)
+    editForm.reset({
+      eventType: item.eventType,
+      title: item.title,
+      description: item.description || '',
+      episodeId: item.episodeId || '',
+    })
+  }
+
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -131,6 +151,7 @@ export default function PatientHistoryPage() {
       if (res.ok) {
         toast({ title: 'Succès', description: 'Événement supprimé' })
         setDeletingId(null)
+        invalidateHistory()
       } else {
         toast({ title: 'Erreur', description: 'Impossible de supprimer l\'événement. Veuillez réessayer.', variant: 'destructive' })
       }
@@ -236,7 +257,7 @@ export default function PatientHistoryPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/patient-history/${item.id}`)}>
+                          <DropdownMenuItem onClick={() => openEdit(item)}>
                             <Edit className="mr-2 h-4 w-4" /> Modifier
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setDeletingId(item.id)} className="text-destructive">
@@ -282,6 +303,7 @@ export default function PatientHistoryPage() {
                 toast({ title: 'Succès', description: 'Événement ajouté' })
                 setShowCreateDialog(false)
                 createForm.reset()
+                invalidateHistory()
               } else {
                 toast({ title: 'Erreur', description: 'Impossible d&apos;ajouter l&apos;événement. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
@@ -341,6 +363,67 @@ export default function PatientHistoryPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier l&apos;événement</DialogTitle>
+            <DialogDescription>Mettez à jour les informations de l&apos;événement</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(async (values) => {
+            if (!editingItem) return
+            try {
+              const token = localStorage.getItem('dhayaro_token') || ''
+              const res = await fetch(`/api/v1/patient-history/${editingItem.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(values),
+              })
+              if (res.ok) {
+                toast({ title: 'Succès', description: 'Événement mis à jour' })
+                setEditingItem(null)
+                invalidateHistory()
+              } else {
+                toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'événement. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
+              }
+            } catch {
+              toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'événement. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
+            }
+          })} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Type d&apos;événement *</label>
+                <Controller
+                  control={editForm.control}
+                  name="eventType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(eventTypeLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Titre *</label>
+                <Input {...editForm.register('title')} placeholder="Titre de l&apos;événement" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Input {...editForm.register('description')} placeholder="Description de l&apos;événement" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>Annuler</Button>
+              <Button type="submit">Enregistrer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -356,3 +439,5 @@ export default function PatientHistoryPage() {
     </div>
   )
 }
+
+export { PatientHistoryPage }

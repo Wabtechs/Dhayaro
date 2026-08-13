@@ -106,6 +106,18 @@ src/
 
 ---
 
+## 🗓️ Session 2026-08-13 (soir) — Pages inaccessibles + rapports + formulaires
+
+| # | Anomalie | Statut |
+|---|----------|--------|
+| 19 | **`/patient-history` et `/care-coverages` → 404** — routes pages absentes alors que les vues étaient complètes (liens sidebar morts) | ✅ **FIXÉ** — `src/app/(app)/patient-history/page.tsx` + `src/app/(app)/care-coverages/page.tsx` créées |
+| 20 | **`patient-history` : suppression/édition mortes** — la vue appelait `DELETE/PUT /patient-history/[id]` qui n'existait pas ; « Modifier » naviguait vers une page inexistante | ✅ **FIXÉ** — API `[id]` créée (GET/PUT/DELETE, facility-filtered) + dialog d'édition inline + invalidation cache |
+| 21 | **`/reports` : boutons « Générer » inactifs, stats en « — »** — page statique | ✅ **FIXÉ** — `useDashboardStats()` + cartes stats + pages `/reports/[type]` (patients/consultations/laboratory/treatments) avec tables, **export CSV** et **impression** |
+| 22 | **Hospitalisation : formulaire d'admission peu clair** | ✅ **FIXÉ** — description explicite + libellé « Patient * » |
+| 23 | **Hospitalisation : « Résumé clinique » de sortie ne marche pas** | ✅ **FIXÉ** — reset du formulaire à l'ouverture (valeurs périmées d'un patient précédent), n° d'épisode affiché, placeholder explicite |
+
+---
+
 ## ✅ Déjà livré (ce déploiement)
 - RBAC `/users` : isolation facility opérationnelle
 - UUID validation : 4 routes → 422 au lieu de 500

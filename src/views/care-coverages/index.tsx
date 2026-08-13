@@ -408,3 +408,5 @@ export default function CareCoveragesPage() {
     </div>
   )
 }
+
+export { CareCoveragesPage }

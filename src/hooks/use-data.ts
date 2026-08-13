@@ -1383,3 +1383,12 @@ export function useReleaseBed() {
     },
   });
 }
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => fetchData<RoleDashboardResponse>('/dashboard/stats'),
+    staleTime: 30_000,
+  });
+}
+

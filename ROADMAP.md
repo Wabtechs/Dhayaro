@@ -10,7 +10,7 @@
 | Phase | Statut | Jours est. | Progression |
 |-------|--------|------------|-------------|
 | **P1 — Critique** | ✅ Terminée | 10-14 | 100% |
-| **P2 — Majeur** | 🔄 En cours | 12-15 | 85% |
+| **P2 — Majeur** | 🔄 En cours | 12-15 | 95% |
 | **P3 — Améliorations** | ⏳ Planifié | 14-15 | 0% |
 
 ---
@@ -91,7 +91,7 @@
 | Schéma : `invoices`, `invoiceItems`, `payments`, `billingCodes` | ✅ DONE | `src/lib/schema.ts` + migration `drizzle/0001_lean_phil_sheldon.sql` |
 | API facturation (CRUD factures, paiements, codes) | ✅ DONE | `src/app/api/v1/invoices/`, `payments/`, `billing-codes/` (GET/POST + [id]) |
 | Permissions `billing:*` pour ACCOUNTANT | ✅ DONE | `src/lib/permissions.ts`, `src/middleware.ts` (invoices/payments/billing-codes) |
-| Liaison `careCoverages` → factures auto | ⬜ TODO | Génération automatique de facture à la création episode/traitement (invoice.careCoverageId déjà en schéma + GET join) |
+| Liaison `careCoverages` → factures auto | ✅ DONE | `src/lib/billing.ts` (computeCoverageSplit, getActiveCareCoverage, createAutoInvoice) + `POST /care-episodes` (billingCodeId → facture admission auto) + `POST /invoices` (split couverture appliqué + remainingAmount décrémenté) |
 | UI Facturation pour ACCOUNTANT | ✅ DONE | `src/views/billing/index.tsx` + `src/app/(app)/billing/page.tsx` |
 
 ### P2.2 — Gestion Lits Hospitalisation
@@ -178,7 +178,23 @@
 - [x] `/equipment/reports?type=inventory` corrigé : inventaire **équipements** (par catégorie/statut/état + valeur) au lieu des fournitures ; inventaire fournitures déplacé sous `type=supplies` (BUG #11)
 - [x] Vérifié en code (aucun correctif nécessaire) : facility isolation sur mutations (#1), cascade annulation consultation (#2/#3), dispense 422 (#6), bed assign 422 (#7), `/pharmacy` worklist = comportement voulu (#13), format legacy `{detail}` déjà supprimé, statut consultation frontend `WAITING` (le 422 `PENDING` était un artefact de test)
 - [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs (warnings préexistants)
-- [ ] **Prochaine action : P2.1 - facture auto depuis `careCoverages` à la création episode/traitement, ou Phase 4 cascades (tests CI)**
+- [x] **P2.1 clôturé** — liaison `careCoverages` → factures auto :
+  - `src/lib/billing.ts` : `computeCoverageSplit` (rate × total, borné par plafond + remainingAmount), `getActiveCareCoverage` (ACTIVE + périodes valides), `createAutoInvoice` (transaction : facture + item + décrément remainingAmount)
+  - `POST /care-episodes` : champ optionnel `billingCodeId` → facture d'admission auto (montant = tarif du code, couverture patient appliquée), réponse inclut la facture
+  - `POST /invoices` : si `careCoverageId` fourni → split couverture appliqué (coverageRate/insuranceShare/patientShare renseignés) + remainingAmount décrémenté (avant : tout en patientShare)
+- [ ] **Prochaine action : P3 - Améliorations (soft-delete uniformisé, pagination serveur, triage, etc.) ou Phase 4 cascades (tests CI)**
+
+### 2026-08-13 (soir) — Pages inaccessibles + rapports + formulaires hospitalisation
+- [x] **Routes pages manquantes créées (BUG : 404 sidebar)** : `src/app/(app)/patient-history/page.tsx` et `src/app/(app)/care-coverages/page.tsx` — les vues étaient complètes mais les routes n'existaient pas, donc les liens sidebar `/patient-history` (Historique patients) et `/care-coverages` (Prises en charge) renvoyaient 404
+- [x] **API `patient-history/[id]`** (`src/app/api/v1/patient-history/[id]/route.ts`) : GET / PUT / DELETE (facility-filtered, rôles) — la vue appelait ces routes qui n'existaient pas (suppression/édition mortes)
+- [x] **Vue patient-history corrigée** : « Modifier » ouvrait une route inexistante → dialog d'édition inline (PUT) ; invalidation du cache après create/update/delete ; `patientHistoryUpdateSchema` ajouté à `src/lib/schemas.ts`
+- [x] **`/reports` fonctionnel** : hook `useDashboardStats()` (`src/hooks/use-data.ts`, consomme `/api/v1/dashboard/stats`) ; vue `src/views/reports/index.tsx` réécrite avec 4 cartes stats (consultations, patients, hospitalisés, examens labo) + cartes de rapports navigables
+- [x] **Pages `/reports/[type]`** (`patients`, `consultations`, `laboratory`, `treatments`) : `src/app/(app)/reports/[type]/page.tsx` + vue `src/views/report-detail/index.tsx` — tables alimentées par les API existantes, **export CSV** (UTF-8 BOM, séparateur `;`) et **impression** (en-tête imprimable)
+- [x] **Formulaire d'admission hospitalisation clarifié** : description « Sélectionnez le patient à hospitaliser et indiquez le motif de l'admission », libellé « Patient * »
+- [x] **Formulaire de sortie robustifié** : reset du formulaire à l'ouverture (fini les valeurs périmées d'un patient précédent), n° d'épisode affiché, libellé/placeholder « Résumé clinique » explicites
+- [x] Qualité : `tsc --noEmit` 0 erreurs
+- [ ] **Déploiement : `vercel --prod`**
+
 
 ---
 
