@@ -4,10 +4,10 @@ import { users } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
-import { checkRateLimit, getRateLimitKey, cleanupRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getRateLimitKey, cleanupRateLimit, getRateLimitConfig } from '@/lib/rate-limit'
 import { parseJsonBody, authLoginSchema } from '@/lib/api-schemas'
 
-const LOGIN_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
+const LOGIN_RATE_LIMIT = getRateLimitConfig('LOGIN_RATE_LIMIT', 30, 60_000)
 
 export async function POST(request: NextRequest) {
   cleanupRateLimit()

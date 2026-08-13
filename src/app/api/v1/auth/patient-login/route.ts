@@ -5,9 +5,24 @@ import { eq } from 'drizzle-orm'
 import { createToken, createRefreshToken, verifyPassword } from '@/lib/auth'
 import { parseJsonBody, authLoginSchema } from '@/lib/api-schemas'
 import { apiErrorResponse } from '@/lib/api-errors'
+import { checkRateLimit, getRateLimitKey, cleanupRateLimit, getRateLimitConfig } from '@/lib/rate-limit'
+
+const PATIENT_LOGIN_RATE_LIMIT = getRateLimitConfig('PATIENT_LOGIN_RATE_LIMIT', 30, 60_000)
 
 export async function POST(request: NextRequest) {
   try {
+    cleanupRateLimit()
+
+    const rateLimitKey = getRateLimitKey(request, 'patient-login')
+    const { allowed, retryAfterMs } = checkRateLimit(rateLimitKey, PATIENT_LOGIN_RATE_LIMIT.maxRequests, PATIENT_LOGIN_RATE_LIMIT.windowMs)
+
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Vous avez effectué trop de tentatives. Veuillez patienter avant de réessayer.', code: 'RATE_LIMIT_EXCEEDED', errors: {}, data: null },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) } }
+      )
+    }
+
     const parsed = await parseJsonBody(request, authLoginSchema)
     if (parsed.ok === false) return parsed.error
     const { email, password } = parsed.body

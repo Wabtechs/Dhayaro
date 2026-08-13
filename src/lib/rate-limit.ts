@@ -31,6 +31,19 @@ export function getRateLimitKey(request: Request, prefix: string): string {
   return `${prefix}:${getClientIp(request)}`
 }
 
+export function getRateLimitConfig(
+  envPrefix: string,
+  defaultMax: number = 30,
+  defaultWindowMs: number = 60_000
+): { maxRequests: number; windowMs: number } {
+  const max = Number(process.env[`${envPrefix}_MAX`] ?? defaultMax)
+  const window = Number(process.env[`${envPrefix}_WINDOW_MS`] ?? defaultWindowMs)
+  return {
+    maxRequests: Number.isFinite(max) && max > 0 ? Math.floor(max) : defaultMax,
+    windowMs: Number.isFinite(window) && window > 0 ? Math.floor(window) : defaultWindowMs,
+  }
+}
+
 const CLEANUP_INTERVAL = 5 * 60 * 1000
 let lastCleanup = Date.now()
 
