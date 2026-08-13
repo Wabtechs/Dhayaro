@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth-store'
 import { useNotificationsData, useFacilitiesData, useMarkNotificationRead } from '@/hooks/use-data'
+import { usePwa } from '@/hooks/use-pwa'
 import type { Notification } from '@/types'
 import {
   Menu,
@@ -38,6 +39,7 @@ import {
   User,
   Settings,
   Building2,
+  Download,
 } from 'lucide-react'
 import {
   Select,
@@ -72,6 +74,7 @@ export function Header() {
   const { user, logout } = useAuthStore()
 
   const markRead = useMarkNotificationRead()
+  const { status, promptInstall } = usePwa()
 
   const { data: notifData } = useNotificationsData()
 
@@ -233,6 +236,24 @@ export function Header() {
             <TooltipContent>{darkMode ? 'Mode clair' : 'Mode sombre'}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
+
+        {status === 'installable' && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  onClick={() => promptInstall()}
+                >
+                  <Download className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Installer l&apos;application</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 

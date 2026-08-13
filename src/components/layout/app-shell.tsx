@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { CommandPalette } from './command-palette'
+import { InstallBanner } from '@/components/pwa/install-banner'
 import { useAppStore } from '@/store'
 import {
   Sheet,
@@ -44,6 +45,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <Header />
+
+      <InstallBanner />
 
       <main
         className={cn(

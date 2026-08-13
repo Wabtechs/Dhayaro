@@ -74,13 +74,15 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   manifest: '/manifest.json',
-    icons: {
-      icon: [
-        { url: '/favicon.svg', type: 'image/svg+xml' },
-      ],
-      apple: '/favicon.svg',
-      shortcut: [{ url: '/favicon.svg' }],
-    },
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: '/apple-touch-icon.png',
+    shortcut: [{ url: '/favicon.png', type: 'image/png' }],
+  },
   alternates: {
     canonical: SITE_URL,
   },
@@ -126,7 +128,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />

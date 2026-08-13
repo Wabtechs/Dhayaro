@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { useEffect, useState } from 'react'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/store/auth-store'
+import { PwaManager } from '@/components/pwa/pwa-manager'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <TooltipProvider>
         {children}
         <Toaster />
+        <PwaManager />
       </TooltipProvider>
     </QueryClientProvider>
   )

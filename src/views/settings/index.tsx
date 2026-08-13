@@ -25,10 +25,12 @@ import {
   Globe,
   Clock,
   Save,
+  Download,
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings, useUpdateSettings } from "@/hooks/use-data";
+import { PwaSettingsPanel } from "@/components/pwa/pwa-settings-panel";
 
 const DEFAULT_SETTINGS: SettingsValues = {
   platformName: "Dhayaro",
@@ -165,7 +167,7 @@ export default function SettingsPage() {
       )}
 
       <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">
             <Settings className="mr-2 h-4 w-4" />
             Général
@@ -181,6 +183,10 @@ export default function SettingsPage() {
           <TabsTrigger value="appearance">
             <Palette className="mr-2 h-4 w-4" />
             Apparence
+          </TabsTrigger>
+          <TabsTrigger value="app">
+            <Download className="mr-2 h-4 w-4" />
+            Application
           </TabsTrigger>
         </TabsList>
 
@@ -545,6 +551,11 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        {/* ── Application (PWA) ─────────────────────────────── */}
+        <TabsContent value="app">
+          <PwaSettingsPanel />
         </TabsContent>
       </Tabs>
     </div>
