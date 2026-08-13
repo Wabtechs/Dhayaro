@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { careEpisodes, patients, users } from '@/lib/schema'
+import { careEpisodes, patients, users, billingCodes } from '@/lib/schema'
 import { eq, desc, ilike, and, or, count, sql, max } from 'drizzle-orm'
 import { sanitizeUuid } from '@/lib/validation'
 import { addFacilityFilter, enforceFacilityAccess, logError, parsePagination } from '@/lib/api-errors'
 import { logAudit } from '@/lib/audit'
 import { requireAuth, requireRole } from '@/lib/auth'
 import { parseJsonBody, careEpisodeCreateSchema } from '@/lib/api-schemas'
+import { createAutoInvoice } from '@/lib/billing'
+import { logPatientEvent } from '@/lib/patient-history'
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,6 +102,23 @@ export async function POST(request: NextRequest) {
     }
 
     const { facilityId } = enforceFacilityAccess(body, auth)
+    const billingCodeId = sanitizeUuid(body.billingCodeId)
+    let billingCode: { id: string; label: string; serviceType: string; price: number } | null = null
+    if (billingCodeId) {
+      const [code] = await db
+        .select({ id: billingCodes.id, label: billingCodes.label, serviceType: billingCodes.serviceType, price: billingCodes.price })
+        .from(billingCodes)
+        .where(and(eq(billingCodes.id, billingCodeId), eq(billingCodes.isActive, true)))
+        .limit(1)
+      if (!code) {
+        return NextResponse.json(
+          { success: false, message: 'Code de facturation introuvable ou inactif.', code: 'RESOURCE_NOT_FOUND', errors: {}, data: null },
+          { status: 404 }
+        )
+      }
+      billingCode = code
+    }
+
     const now = new Date()
     const year = now.getFullYear()
     const yearPrefix = `EP-${year}-`
@@ -128,7 +147,45 @@ export async function POST(request: NextRequest) {
 
     await logAudit(auth.user, 'CREATE', 'care_episode', row.id, { episodeNumber: row.episodeNumber, patientId: row.patientId })
 
-    return NextResponse.json(row, { status: 201 })
+    let invoiceResult = null
+    if (billingCode) {
+      invoiceResult = await createAutoInvoice({
+        facilityId: row.facilityId,
+        patientId: row.patientId,
+        episodeId: row.id,
+        doctorId: auth.user.sub,
+        billingCodeId: billingCode.id,
+        serviceType: billingCode.serviceType,
+        description: billingCode.label,
+        amount: billingCode.price,
+        quantity: 1,
+        notes: `Admission ${row.episodeNumber}`,
+      })
+
+      await logPatientEvent({
+        facilityId: row.facilityId,
+        patientId: row.patientId,
+        episodeId: row.id,
+        eventType: 'DOCUMENT_CREATED',
+        title: 'Facture créée',
+        description: `Facture ${invoiceResult.invoiceNumber} auto générée (admission) — ${billingCode.label}`,
+        performedBy: auth.user.sub,
+        performedByName: `${auth.user.firstname ?? ''} ${auth.user.lastname ?? ''}`.trim(),
+        metadata: { invoiceNumber: invoiceResult.invoiceNumber, totalAmount: invoiceResult.totalAmount, patientShare: invoiceResult.patientShare, insuranceShare: invoiceResult.insuranceShare },
+      })
+    }
+
+    return NextResponse.json({
+      ...row,
+      invoice: invoiceResult ? {
+        invoiceNumber: invoiceResult.invoiceNumber,
+        invoiceId: invoiceResult.invoiceId,
+        totalAmount: invoiceResult.totalAmount,
+        patientShare: invoiceResult.patientShare,
+        insuranceShare: invoiceResult.insuranceShare,
+        coverageApplied: invoiceResult.coverageApplied,
+      } : null,
+    }, { status: 201 })
   } catch (e) {
     console.error('POST /care-episodes ERROR:', e instanceof Error ? e.message : e)
     if (e && typeof e === 'object' && 'cause' in e) console.error('CAUSE:', e.cause)

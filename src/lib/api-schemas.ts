@@ -524,6 +524,7 @@ export const careEpisodeCreateSchema = z.object({
   admitDate: optStr,
   admitReason: optStr,
   metadata: optJson,
+  billingCodeId: optUuid,
   facilityId: optUuid,
 })
 

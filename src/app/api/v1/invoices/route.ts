@@ -8,6 +8,7 @@ import { logAudit, sendNotification } from '@/lib/audit'
 import { logPatientEvent, EVENT_TITLES } from '@/lib/patient-history'
 import { parseJsonBody, invoiceCreateSchema } from '@/lib/api-schemas'
 import { sanitizeUuid, sanitizeSearch } from '@/lib/validation'
+import { computeCoverageSplit } from '@/lib/billing'
 
 export async function GET(request: NextRequest) {
   try {
@@ -108,6 +109,27 @@ export async function POST(request: NextRequest) {
     const db = getDb()
     const now = new Date()
 
+    const totalAmount = body.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0)
+
+    let coverage: { id: string; coverageRate: number | null; coverageCeiling: number | null; remainingAmount: number | null } | null = null
+    const careCoverageId = body.careCoverageId ? sanitizeUuid(body.careCoverageId) : null
+    if (careCoverageId) {
+      const [cov] = await db
+        .select({
+          id: careCoverages.id,
+          coverageRate: careCoverages.coverageRate,
+          coverageCeiling: careCoverages.coverageCeiling,
+          remainingAmount: careCoverages.remainingAmount,
+        })
+        .from(careCoverages)
+        .where(eq(careCoverages.id, careCoverageId))
+        .limit(1)
+      if (!cov) return apiErrorResponse('RESOURCE_NOT_FOUND', 404, { careCoverageId: 'Couverture de soins introuvable.' })
+      coverage = cov
+    }
+
+    const split = computeCoverageSplit(totalAmount, coverage ?? {})
+
     const invoiceNumber = 'FACT-' + now.getFullYear().toString().slice(-2) + '-' + Date.now().toString().slice(-6)
 
     await db.transaction(async (tx) => {
@@ -115,18 +137,18 @@ export async function POST(request: NextRequest) {
         id: crypto.randomUUID(),
         facilityId: facilityId || null,
         patientId,
-        careCoverageId: body.careCoverageId ? sanitizeUuid(body.careCoverageId) : null,
+        careCoverageId: careCoverageId || null,
         doctorId: body.doctorId ? sanitizeUuid(body.doctorId) : null,
         episodeId: body.episodeId ? sanitizeUuid(body.episodeId) : null,
         invoiceNumber,
         status: 'ISSUED',
-        totalAmount: body.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0),
+        totalAmount,
         paidAmount: 0,
         currency: 'CDF',
-        coverageRate: 0,
-        coverageCeiling: 0,
-        patientShare: body.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0),
-        insuranceShare: 0,
+        coverageRate: split.coverageRate,
+        coverageCeiling: split.coverageCeiling,
+        patientShare: split.patientShare,
+        insuranceShare: split.insuranceShare,
         issueDate: body.issueDate || now.toISOString().split('T')[0],
         dueDate: body.dueDate || null,
         paidAt: null,
@@ -156,6 +178,13 @@ export async function POST(request: NextRequest) {
 
       await tx.update(invoices).set({ totalAmount: itemRows.reduce((sum, i) => sum + i.totalPrice, 0) }).where(eq(invoices.id, invoice.id))
 
+      if (coverage && split.insuranceShare > 0) {
+        const newRemaining = Math.max(0, (coverage.remainingAmount ?? 0) - split.insuranceShare)
+        await tx.update(careCoverages)
+          .set({ remainingAmount: newRemaining, updatedAt: now })
+          .where(eq(careCoverages.id, coverage.id))
+      }
+
       return invoice
     })
 
@@ -184,7 +213,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ invoiceNumber, status: 'ISSUED', totalAmount: body.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0) }, { status: 201 })
+    return NextResponse.json({
+      invoiceNumber,
+      status: 'ISSUED',
+      totalAmount,
+      patientShare: split.patientShare,
+      insuranceShare: split.insuranceShare,
+      coverageRate: split.coverageRate,
+      coverageApplied: split.coverageApplied,
+    }, { status: 201 })
   } catch (e) {
     return handleEndpointError(e, 'POST /invoices')
   }
