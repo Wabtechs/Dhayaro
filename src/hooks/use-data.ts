@@ -1084,6 +1084,78 @@ export function useDiseaseStatisticsData(params?: string) {
   });
 }
 
+export interface DiseaseTreatmentHistoryData {
+  disease: {
+    id: string | null
+    code: string | null
+    name: string
+    category: string | null
+    severity: string | null
+  } | null
+  stats: {
+    totalTreatments: number
+    totalPatients: number
+    totalDoctors: number
+    totalMedications: number
+    statusDistribution: Record<string, number>
+    outcomeDistribution: Record<string, number>
+    monthlyTrend: { month: string; count: number }[]
+  }
+  byDisease: {
+    diseaseId: string | null
+    diseaseCode: string | null
+    diseaseName: string
+    treatments: number
+    patients: number
+  }[]
+  byDoctor: {
+    doctorId: string | null
+    doctorName: string
+    treatments: number
+    patients: number
+    methods: { description: string; count: number }[]
+    medications: { name: string; count: number }[]
+    statusDistribution: Record<string, number>
+    outcomeDistribution: Record<string, number>
+  }[]
+  timeline: {
+    treatmentId: string
+    startDate: string
+    endDate?: string
+    createdAt: string
+    description: string
+    status: string
+    outcome?: string
+    notes?: string
+    patientId?: string
+    patientName?: string
+    patientDossier?: string
+    doctorId?: string
+    doctorName?: string
+    diseaseId?: string
+    diseaseCode?: string
+    diseaseName?: string
+    medications: {
+      name: string
+      category?: string
+      dosage?: string
+      frequency?: string
+      duration?: string
+      instructions?: string
+    }[]
+  }[]
+  page: number
+  size: number
+  total: number
+}
+
+export function useDiseaseTreatmentHistoryData(params?: string) {
+  return useQuery({
+    queryKey: ['disease-treatment-history', params],
+    queryFn: () => fetchData<DiseaseTreatmentHistoryData>(`/disease-treatment-history${params ? '?' + params : ''}`),
+  });
+}
+
 export function useTherapeuticProtocolsData(params?: string) {
   return useQuery({
     queryKey: ['therapeutic-protocols', params],

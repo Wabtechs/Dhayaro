@@ -88,6 +88,7 @@ const navSections: NavSection[] = [
     label: 'TRAITEMENT',
     items: [
       { label: 'Traitements', icon: Pill, href: '/treatments', permission: 'treatments:list' },
+      { label: 'Historique des maladies', icon: Activity, href: '/disease-treatment-history', permission: 'treatments:list' },
       { label: 'Prescriptions', icon: Pill, href: '/prescriptions', permission: 'treatments:list' },
       { label: 'Pharmacie', icon: Pill, href: '/pharmacy', permission: 'pharmacy:list' },
       { label: 'Laboratoire', icon: TestTube, href: '/laboratory', permission: 'lab:list' },
