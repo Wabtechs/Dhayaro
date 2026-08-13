@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import {
-  medicalEquipment, equipmentMaintenance, equipmentIncidents, equipmentBookings,
+  medicalEquipment, equipmentCategories, equipmentMaintenance, equipmentIncidents, equipmentBookings,
   equipmentWarranties, supplyBatches, medicalSupplies, equipmentSuppliers,
   spareParts, sparePartInventory, stockMovements, purchaseOrders,
 } from '@/lib/schema'
@@ -28,6 +28,55 @@ export async function GET(request: NextRequest) {
     const report: Record<string, unknown> = { type, generatedAt: new Date().toISOString() }
 
     if (type === 'inventory') {
+      const byCategory = await getDb()
+        .select({
+          categoryId: medicalEquipment.categoryId,
+          category: equipmentCategories.name,
+          count: count(),
+          totalValue: sql<number>`coalesce(sum(${medicalEquipment.purchasePrice}), 0)`,
+        })
+        .from(medicalEquipment)
+        .leftJoin(equipmentCategories, eq(medicalEquipment.categoryId, equipmentCategories.id))
+        .where(compactAnd(
+          isNull(medicalEquipment.retirementDate),
+          addFacilityFilter(medicalEquipment.facilityId, auth, searchParams),
+        ))
+        .groupBy(medicalEquipment.categoryId, equipmentCategories.name)
+        .orderBy(sql`count(*) desc`)
+
+      const byStatus = await getDb()
+        .select({ status: medicalEquipment.status, count: count() })
+        .from(medicalEquipment)
+        .where(compactAnd(
+          isNull(medicalEquipment.retirementDate),
+          addFacilityFilter(medicalEquipment.facilityId, auth, searchParams),
+        ))
+        .groupBy(medicalEquipment.status)
+
+      const byState = await getDb()
+        .select({ state: medicalEquipment.state, count: count() })
+        .from(medicalEquipment)
+        .where(compactAnd(
+          isNull(medicalEquipment.retirementDate),
+          addFacilityFilter(medicalEquipment.facilityId, auth, searchParams),
+        ))
+        .groupBy(medicalEquipment.state)
+
+      report.byCategory = byCategory
+      report.byStatus = byStatus
+      report.byState = byState
+      report.totals = await getDb()
+        .select({
+          totalEquipment: count(),
+          totalValue: sql<number>`coalesce(sum(${medicalEquipment.purchasePrice}), 0)`,
+        })
+        .from(medicalEquipment)
+        .where(compactAnd(
+          isNull(medicalEquipment.retirementDate),
+          addFacilityFilter(medicalEquipment.facilityId, auth, searchParams),
+        ))
+        .then(r => r[0])
+    } else if (type === 'supplies') {
       const byCategory = await getDb()
         .select({
           category: medicalSupplies.category,

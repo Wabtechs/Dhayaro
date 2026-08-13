@@ -33,9 +33,42 @@ const optNum = z.number().nullish()
 const optJson = z.unknown().nullish()
 const optStrArr = z.union([z.array(z.string()), z.string()]).nullish()
 
+const ZOD_ENGLISH_DEFAULT = /^(Invalid|Too small|Too big|Required|Expected|Unrecognized key|Invalid input)/i
+
+export function formatZodIssueMessage(issue: z.ZodIssue): string {
+  const msg = issue.message || 'Valeur invalide'
+  if (!ZOD_ENGLISH_DEFAULT.test(msg)) return msg
+
+  switch (issue.code) {
+    case 'invalid_type':
+      return /received undefined/i.test(msg) ? 'Ce champ est requis.' : 'Valeur invalide.'
+    case 'invalid_value':
+    case 'invalid_union':
+      return 'Valeur non autorisée.'
+    case 'too_small':
+      return 'Valeur trop petite.'
+    case 'too_big':
+      return 'Valeur trop grande.'
+    case 'invalid_format':
+      if (issue.format === 'email') return 'Adresse email invalide.'
+      if (issue.format === 'uuid') return 'Identifiant invalide.'
+      if (issue.format === 'url') return 'URL invalide.'
+      return 'Format invalide.'
+    case 'invalid_key':
+    case 'invalid_element':
+      return 'Élément invalide.'
+    case 'unrecognized_keys':
+      return 'Clé non reconnue.'
+    case 'not_multiple_of':
+      return 'Valeur non multiple attendu.'
+    default:
+      return msg
+  }
+}
+
 export function formatZodIssues(error: z.ZodError): string {
   return error.issues
-    .map((i) => (i.path.length ? `${i.path.join('.')}: ` : '') + (i.message || 'Invalid value'))
+    .map((i) => (i.path.length ? `${i.path.join('.')}: ` : '') + formatZodIssueMessage(i))
     .join('; ')
 }
 
@@ -43,7 +76,7 @@ export function formatZodIssuesAsErrors(error: z.ZodError): Record<string, strin
   const fieldErrors: Record<string, string> = {}
   for (const issue of error.issues) {
     const path = issue.path.length ? issue.path.join('.') : '_global'
-    fieldErrors[path] = issue.message || 'Valeur invalide'
+    fieldErrors[path] = formatZodIssueMessage(issue)
   }
   return fieldErrors
 }

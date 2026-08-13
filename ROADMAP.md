@@ -10,7 +10,7 @@
 | Phase | Statut | Jours est. | Progression |
 |-------|--------|------------|-------------|
 | **P1 — Critique** | ✅ Terminée | 10-14 | 100% |
-| **P2 — Majeur** | 🔄 En cours | 12-15 | 25% |
+| **P2 — Majeur** | 🔄 En cours | 12-15 | 85% |
 | **P3 — Améliorations** | ⏳ Planifié | 14-15 | 0% |
 
 ---
@@ -88,11 +88,11 @@
 ### P2.1 — Module Facturation (Billing)
 | Tâche | Statut | Fichiers |
 |-------|--------|----------|
-| Schéma : `invoices`, `invoiceItems`, `payments`, `billingCodes` | ⬜ TODO | `src/lib/schema.ts` |
-| API `/api/v1/billing/*` (CRUD factures, paiements) | ⬜ TODO | `src/app/api/v1/billing/` |
-| Permissions `billing:*` pour ACCOUNTANT | ⬜ TODO | `src/lib/permissions.ts`, `middleware.ts` |
-| Liaison `careCoverages` → factures auto | ⬜ TODO | Dans création episode/traitement |
-| UI Facturation pour ACCOUNTANT | ⬜ TODO | `src/views/billing/` (nouveau) |
+| Schéma : `invoices`, `invoiceItems`, `payments`, `billingCodes` | ✅ DONE | `src/lib/schema.ts` + migration `drizzle/0001_lean_phil_sheldon.sql` |
+| API facturation (CRUD factures, paiements, codes) | ✅ DONE | `src/app/api/v1/invoices/`, `payments/`, `billing-codes/` (GET/POST + [id]) |
+| Permissions `billing:*` pour ACCOUNTANT | ✅ DONE | `src/lib/permissions.ts`, `src/middleware.ts` (invoices/payments/billing-codes) |
+| Liaison `careCoverages` → factures auto | ⬜ TODO | Génération automatique de facture à la création episode/traitement (invoice.careCoverageId déjà en schéma + GET join) |
+| UI Facturation pour ACCOUNTANT | ✅ DONE | `src/views/billing/index.tsx` + `src/app/(app)/billing/page.tsx` |
 
 ### P2.2 — Gestion Lits Hospitalisation
 | Tâche | Statut | Fichiers |
@@ -112,8 +112,8 @@
 ### P2.4 — Middleware : couvrir toutes API
 | Tâche | Statut | Fichiers |
 |-------|--------|----------|
-| Ajouter routes manquantes dans `ROLE_ROUTES` | ⬜ TODO | `src/middleware.ts` |
-| Routes à ajouter : consultations, patients, treatments, prescriptions, care-episodes, diagnostics, lab, documents, pharmacy | ⬜ TODO | `src/middleware.ts` |
+| Ajouter routes manquantes dans `ROLE_ROUTES` | ✅ DONE | `src/middleware.ts` |
+| Routes couvertes : consultations, patients, treatments, prescriptions, care-episodes, diagnostics, lab, documents, pharmacy, billing/invoices/payments/billing-codes, hospitalization, equipment, supplies, patient-history, etc. | ✅ DONE | `src/middleware.ts` |
 
 ---
 
@@ -169,6 +169,16 @@
 - [x] Onglet Documents avec bouton téléchargement PDF + bouton "Ordonnance" sur chaque traitement
 - [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs, `next build` OK (routes + page incluses)
 - [ ] **Prochaine action : P2.4 - Middleware : couvrir toutes API (ROLE_ROUTES)**
+
+### 2026-08-13 — P2.4 + nettoyage bugs roadmaps
+- [x] P2.4 — middleware `ROLE_ROUTES` complet : toutes les routes API couvertes (billing/invoices/payments/billing-codes, hospitalization, equipment, supplies, patient-history, pharmacy, lab, etc.)
+- [x] P2.1 Facturation — re-audit : schéma, API (invoices/payments/billing-codes), permissions `billing:*` et UI comptable opérationnels (validé prod : FACT-… → PAID). Reste : liaison `careCoverages` → factures auto
+- [x] Retiré l'entrée vestigiale `/api/v1/triage` du middleware (BUG #8/#16)
+- [x] `formatZodIssueMessage` (`src/lib/api-schemas.ts`) : messages de validation Zod v4 traduits en français (champ requis, valeur invalide, email/uuid/url, enum, too small/big) ; les messages personnalisés FR sont préservés
+- [x] `/equipment/reports?type=inventory` corrigé : inventaire **équipements** (par catégorie/statut/état + valeur) au lieu des fournitures ; inventaire fournitures déplacé sous `type=supplies` (BUG #11)
+- [x] Vérifié en code (aucun correctif nécessaire) : facility isolation sur mutations (#1), cascade annulation consultation (#2/#3), dispense 422 (#6), bed assign 422 (#7), `/pharmacy` worklist = comportement voulu (#13), format legacy `{detail}` déjà supprimé, statut consultation frontend `WAITING` (le 422 `PENDING` était un artefact de test)
+- [x] Qualité : `tsc --noEmit` 0 erreurs, ESLint 0 erreurs (warnings préexistants)
+- [ ] **Prochaine action : P2.1 - facture auto depuis `careCoverages` à la création episode/traitement, ou Phase 4 cascades (tests CI)**
 
 ---
 
