@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { partnerCompanyCreateSchema, type PartnerCompanyCreateValues } from '@/lib/schemas'
-import { Search, Plus, Building2, Phone, Mail, Globe, MoreHorizontal, Edit, Trash2, Shield } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { partnerCompanyCreateSchema, partnerCompanyUpdateSchema, type PartnerCompanyCreateValues, type PartnerCompanyUpdateValues } from '@/lib/schemas'
+import { Search, Plus, Building2, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -95,17 +95,23 @@ const contractStatusColors: Record<string, string> = {
 }
 
 export default function PartnerCompaniesPage() {
-  const router = useRouter()
   const { toast } = useToast()
   const { can } = usePermissions()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingItem, setEditingItem] = useState<PartnerCompanyItem | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const createForm = useForm<PartnerCompanyCreateValues>({
     resolver: zodResolver(partnerCompanyCreateSchema),
+    defaultValues: { country: 'RD Congo', contractStatus: 'ACTIVE' },
+  })
+
+  const editForm = useForm<PartnerCompanyUpdateValues>({
+    resolver: zodResolver(partnerCompanyUpdateSchema),
     defaultValues: { country: 'RD Congo', contractStatus: 'ACTIVE' },
   })
 
@@ -121,6 +127,27 @@ export default function PartnerCompaniesPage() {
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / 10)
 
+  const invalidateCompanies = () => {
+    queryClient.invalidateQueries({ queryKey: ['partner-companies'] })
+  }
+
+  const openEdit = (item: PartnerCompanyItem) => {
+    setEditingItem(item)
+    editForm.reset({
+      code: item.code,
+      name: item.name,
+      sector: item.sector || '',
+      country: item.country || 'RD Congo',
+      phone: item.phone || '',
+      email: item.email || '',
+      contractNumber: item.contractNumber || '',
+      contractStatus: (item.contractStatus || 'ACTIVE') as 'ACTIVE' | 'EXPIRED' | 'SUSPENDED',
+      contractStartDate: item.contractStartDate || '',
+      contractEndDate: item.contractEndDate || '',
+      coverageRate: item.coverageRate,
+    })
+  }
+
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -128,6 +155,7 @@ export default function PartnerCompaniesPage() {
       if (res.ok) {
         toast({ title: 'Succès', description: 'Entreprise partenaire désactivée' })
         setDeletingId(null)
+        invalidateCompanies()
       } else {
         toast({ title: 'Erreur', description: 'Impossible de supprimer l\'entreprise. Veuillez réessayer.', variant: 'destructive' })
       }
@@ -230,7 +258,7 @@ export default function PartnerCompaniesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/partner-companies/${item.id}`)}>
+                          <DropdownMenuItem onClick={() => openEdit(item)}>
                             <Edit className="mr-2 h-4 w-4" /> Modifier
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setDeletingId(item.id)} className="text-destructive">
@@ -276,6 +304,7 @@ export default function PartnerCompaniesPage() {
                 toast({ title: 'Succès', description: 'Entreprise partenaire créée' })
                 setShowCreateDialog(false)
                 createForm.reset()
+                invalidateCompanies()
               } else {
                 toast({ title: 'Erreur', description: 'Impossible de créer l\'entreprise. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
@@ -358,6 +387,107 @@ export default function PartnerCompaniesPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifier l&apos;entreprise partenaire</DialogTitle>
+            <DialogDescription>Mettez à jour les informations de l&apos;entreprise</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(async (values) => {
+            if (!editingItem) return
+            try {
+              const token = localStorage.getItem('dhayaro_token') || ''
+              const res = await fetch(`/api/v1/partner-companies/${editingItem.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(values),
+              })
+              if (res.ok) {
+                toast({ title: 'Succès', description: 'Entreprise partenaire mise à jour' })
+                setEditingItem(null)
+                invalidateCompanies()
+              } else {
+                toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'entreprise. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
+              }
+            } catch {
+              toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'entreprise. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
+            }
+          })} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Code *</label>
+                <Input {...editForm.register('code')} placeholder="EX: PART-001" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Nom *</label>
+                <Input {...editForm.register('name')} placeholder="Nom de l'entreprise" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Secteur</label>
+                <Input {...editForm.register('sector')} placeholder="Secteur d'activité" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Pays</label>
+                <Input {...editForm.register('country')} placeholder="RD Congo" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Téléphone</label>
+                <Input {...editForm.register('phone')} placeholder="+243..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <Input type="email" {...editForm.register('email')} placeholder="email@example.com" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">N° Contrat</label>
+                <Input {...editForm.register('contractNumber')} placeholder="Numéro de contrat" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Statut du contrat</label>
+                <Controller
+                  control={editForm.control}
+                  name="contractStatus"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(contractStatusLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Début du contrat</label>
+                <Input type="date" {...editForm.register('contractStartDate')} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Fin du contrat</label>
+                <Input type="date" {...editForm.register('contractEndDate')} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Taux de couverture (%)</label>
+              <Input type="number" {...editForm.register('coverageRate', { valueAsNumber: true })} placeholder="100" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>Annuler</Button>
+              <Button type="submit">Enregistrer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -373,3 +503,5 @@ export default function PartnerCompaniesPage() {
     </div>
   )
 }
+
+export { PartnerCompaniesPage }

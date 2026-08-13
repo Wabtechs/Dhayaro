@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { partnerPatientCreateSchema, type PartnerPatientCreateValues } from '@/lib/schemas'
+import { useQueryClient } from '@tanstack/react-query'
+import { partnerPatientCreateSchema, partnerPatientUpdateSchema, type PartnerPatientCreateValues, type PartnerPatientUpdateValues } from '@/lib/schemas'
 import { Search, Plus, Users, Building2, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -53,7 +53,6 @@ import { usePartnerPatientsData, usePartnerCompaniesData, usePatientsData } from
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate } from '@/lib/utils'
 
 interface PartnerCompanyItem {
   id: string
@@ -97,17 +96,23 @@ const partnerPatientStatusColors: Record<string, string> = {
 }
 
 export default function PartnerPatientsPage() {
-  const router = useRouter()
   const { toast } = useToast()
   const { can } = usePermissions()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingItem, setEditingItem] = useState<PartnerPatientItem | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const createForm = useForm<PartnerPatientCreateValues>({
     resolver: zodResolver(partnerPatientCreateSchema),
+    defaultValues: { partnerId: '', patientId: '' },
+  })
+
+  const editForm = useForm<PartnerPatientUpdateValues>({
+    resolver: zodResolver(partnerPatientUpdateSchema),
     defaultValues: { partnerId: '', patientId: '' },
   })
 
@@ -128,6 +133,21 @@ export default function PartnerPatientsPage() {
   const partners = (partnersData?.items ?? []) as PartnerCompanyItem[]
   const patients = (patientsData?.items ?? []) as PatientItem[]
 
+  const invalidateAffiliations = () => {
+    queryClient.invalidateQueries({ queryKey: ['partner-patients'] })
+  }
+
+  const openEdit = (item: PartnerPatientItem) => {
+    setEditingItem(item)
+    editForm.reset({
+      partnerId: item.partnerId,
+      patientId: item.patientId,
+      contractNumber: item.contractNumber || '',
+      coverageRate: item.coverageRate,
+      status: (item.status || 'ACTIVE') as 'ACTIVE' | 'EXPIRED' | 'SUSPENDED',
+    })
+  }
+
   const handleDelete = async (id: string) => {
     try {
       const token = localStorage.getItem('dhayaro_token') || ''
@@ -135,6 +155,7 @@ export default function PartnerPatientsPage() {
       if (res.ok) {
         toast({ title: 'Succès', description: 'Affiliation supprimée' })
         setDeletingId(null)
+        invalidateAffiliations()
       } else {
         toast({ title: 'Erreur', description: 'Impossible de supprimer l\'affiliation. Veuillez réessayer.', variant: 'destructive' })
       }
@@ -242,7 +263,7 @@ export default function PartnerPatientsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/partner-patients/${item.id}`)}>
+                          <DropdownMenuItem onClick={() => openEdit(item)}>
                             <Edit className="mr-2 h-4 w-4" /> Modifier
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setDeletingId(item.id)} className="text-destructive">
@@ -288,6 +309,7 @@ export default function PartnerPatientsPage() {
                 toast({ title: 'Succès', description: 'Affiliation créée' })
                 setShowCreateDialog(false)
                 createForm.reset()
+                invalidateAffiliations()
               } else {
                 toast({ title: 'Erreur', description: 'Impossible de créer l\'affiliation. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
               }
@@ -384,6 +406,101 @@ export default function PartnerPatientsPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifier l&apos;affiliation</DialogTitle>
+            <DialogDescription>Mettez à jour l&apos;affiliation du patient</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(async (values) => {
+            if (!editingItem) return
+            try {
+              const token = localStorage.getItem('dhayaro_token') || ''
+              const res = await fetch(`/api/v1/partner-patients/${editingItem.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(values),
+              })
+              if (res.ok) {
+                toast({ title: 'Succès', description: 'Affiliation mise à jour' })
+                setEditingItem(null)
+                invalidateAffiliations()
+              } else {
+                toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'affiliation. Vérifiez les informations saisies puis réessayez.', variant: 'destructive' })
+              }
+            } catch {
+              toast({ title: 'Erreur', description: 'Impossible de mettre à jour l\'affiliation. Vérifiez votre connexion puis réessayez.', variant: 'destructive' })
+            }
+          })} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Entreprise partenaire *</label>
+              <Controller
+                control={editForm.control}
+                name="partnerId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner une entreprise" /></SelectTrigger>
+                    <SelectContent>
+                      {partners.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name} ({p.code})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Patient *</label>
+              <Controller
+                control={editForm.control}
+                name="patientId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un patient" /></SelectTrigger>
+                    <SelectContent>
+                      {patients.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.firstName || p.lastName ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'Patient'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">N° Contrat</label>
+                <Input {...editForm.register('contractNumber')} placeholder="Numéro de contrat" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Taux de couverture (%)</label>
+                <Input type="number" {...editForm.register('coverageRate', { valueAsNumber: true })} placeholder="100" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Statut</label>
+              <Controller
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(partnerPatientStatusLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>Annuler</Button>
+              <Button type="submit">Enregistrer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -399,3 +516,5 @@ export default function PartnerPatientsPage() {
     </div>
   )
 }
+
+export { PartnerPatientsPage }

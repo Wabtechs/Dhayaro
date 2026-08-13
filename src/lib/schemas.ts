@@ -702,6 +702,9 @@ export const partnerCompanyCreateSchema = z.object({
 })
 export type PartnerCompanyCreateValues = z.infer<typeof partnerCompanyCreateSchema>
 
+export const partnerCompanyUpdateSchema = partnerCompanyCreateSchema.partial()
+export type PartnerCompanyUpdateValues = z.infer<typeof partnerCompanyUpdateSchema>
+
 export const partnerPatientCreateSchema = z.object({
   partnerId: z.string().min(1, 'Veuillez sélectionner une entreprise'),
   patientId: z.string().min(1, 'Veuillez sélectionner un patient'),
@@ -715,6 +718,9 @@ export const partnerPatientCreateSchema = z.object({
   notes: z.string().optional(),
 })
 export type PartnerPatientCreateValues = z.infer<typeof partnerPatientCreateSchema>
+
+export const partnerPatientUpdateSchema = partnerPatientCreateSchema.partial()
+export type PartnerPatientUpdateValues = z.infer<typeof partnerPatientUpdateSchema>
 
 export const patientHistoryCreateSchema = z.object({
   patientId: z.string().min(1, 'Veuillez sélectionner un patient'),
